@@ -1,5 +1,7 @@
 import { BrowserWindow } from 'electron'
 import * as os from 'os'
+import * as fsSync from 'fs'
+import * as path from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { IPC_CHANNELS } from '../../shared/constants'
 import { TerminalDataPayload } from '../../shared/types'
@@ -18,21 +20,61 @@ export class TerminalService {
     this.mainWindow = window
   }
 
-  public async createTerminal(id: string, cwd?: string): Promise<boolean> {
+  private resolveShell(shellType?: string): { shell: string; args: string[] } {
+    const isWindows = os.platform() === 'win32'
+    const type = (shellType || 'default').toLowerCase()
+
+    if (!isWindows) {
+      if (type === 'bash') return { shell: '/bin/bash', args: ['-i'] }
+      if (type === 'zsh') return { shell: '/bin/zsh', args: ['-i'] }
+      if (type === 'sh') return { shell: '/bin/sh', args: ['-i'] }
+      return { shell: process.env.SHELL || '/bin/bash', args: ['-i'] }
+    }
+
+    if (type === 'cmd') {
+      return { shell: process.env.COMSPEC || 'cmd.exe', args: [] }
+    }
+
+    if (type === 'bash' || type === 'git-bash') {
+      const gitBashCandidates = [
+        'C:\\Program Files\\Git\\bin\\bash.exe',
+        'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+        path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe'),
+        'bash.exe'
+      ]
+      for (const candidate of gitBashCandidates) {
+        if (candidate === 'bash.exe' || fsSync.existsSync(candidate)) {
+          return { shell: candidate, args: ['--login', '-i'] }
+        }
+      }
+      return { shell: 'bash.exe', args: ['--login', '-i'] }
+    }
+
+    if (type === 'wsl') {
+      return { shell: 'wsl.exe', args: [] }
+    }
+
+    // Default to PowerShell
+    return {
+      shell: process.env.SystemRoot
+        ? `${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
+        : 'powershell.exe',
+      args: ['-NoLogo']
+    }
+  }
+
+  public async createTerminal(id: string, cwd?: string, shellType?: string): Promise<boolean> {
     this.killTerminal(id)
 
-    const isWindows = os.platform() === 'win32'
     const workingDirectory = cwd || os.homedir()
+    const { shell: resolvedShell, args: shellArgs } = this.resolveShell(shellType)
 
     // 1. Try spawning with node-pty first
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const pty = require('node-pty')
-      const shell = isWindows
-        ? (process.env.COMSPEC || 'powershell.exe')
-        : (process.env.SHELL || '/bin/bash')
 
-      const ptyProcess = pty.spawn(shell, [], {
+      const ptyProcess = pty.spawn(resolvedShell, shellArgs, {
         name: 'xterm-256color',
         cols: 80,
         rows: 24,
@@ -74,18 +116,7 @@ export class TerminalService {
 
     // 2. Fallback to child_process interactive shell
     try {
-      let shellCmd: string
-      let shellArgs: string[] = []
-
-      if (isWindows) {
-        shellCmd = 'powershell.exe'
-        shellArgs = ['-NoLogo']
-      } else {
-        shellCmd = process.env.SHELL || '/bin/bash'
-        shellArgs = ['-i']
-      }
-
-      const proc: ChildProcess = spawn(shellCmd, shellArgs, {
+      const proc: ChildProcess = spawn(resolvedShell, shellArgs, {
         cwd: workingDirectory,
         env: {
           ...process.env,

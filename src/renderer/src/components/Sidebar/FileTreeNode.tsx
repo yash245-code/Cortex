@@ -86,11 +86,13 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
     deleteItem
   } = useWorkspaceStore()
 
-  const { openTab } = useEditorStore()
+  const { openTab, activeTabId, pane2ActiveTabId } = useEditorStore()
 
   const isDirectory = node.type === 'directory'
   const isExpanded = expandedPaths.has(node.path)
-  const isSelected = selectedPath === node.path
+  const isSelected = isDirectory
+    ? selectedPath === node.path
+    : activeTabId === node.path || pane2ActiveTabId === node.path || (selectedPath === node.path && !activeTabId)
   const isRenaming = renamingPath === node.path
   const isCreatingUnderThis = creatingItem?.parentPath === node.path
 
@@ -180,9 +182,9 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
         <span className="mr-1.5 flex items-center">
           {isDirectory ? (
             isExpanded ? (
-              <FolderOpen size={14} className="text-indigo-400 shrink-0" />
+              <FolderOpen size={14} className="text-cortex-accent shrink-0" />
             ) : (
-              <Folder size={14} className="text-indigo-400 shrink-0" />
+              <Folder size={14} className="text-cortex-accent shrink-0" />
             )
           ) : (
             getFileIcon(node.name)
@@ -202,7 +204,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
               if (e.key === 'Escape') setRenamingPath(null)
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-cortex-bg border border-indigo-500 rounded px-1 text-xs text-white outline-none"
+            className="flex-1 bg-cortex-bg border border-cortex-accent rounded px-1 text-xs text-white outline-none"
           />
         ) : (
           <span className="truncate flex-1">{node.name}</span>
@@ -269,7 +271,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
             {creatingItem.type === 'file' ? (
               <File size={14} className="text-cortex-muted" />
             ) : (
-              <Folder size={14} className="text-indigo-400" />
+              <Folder size={14} className="text-cortex-accent" />
             )}
           </span>
           <input
@@ -284,7 +286,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
               if (e.key === 'Escape') setCreatingItem(null)
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-cortex-bg border border-indigo-500 rounded px-1.5 py-0.5 text-xs text-white outline-none"
+            className="flex-1 bg-cortex-bg border border-cortex-accent rounded px-1.5 py-0.5 text-xs text-white outline-none"
           />
         </div>
       )}

@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import {
-  Minus,
-  Square,
-  X,
-  Copy,
-  FolderOpen,
-  FileCode2,
-  Terminal,
-  Columns
-} from 'lucide-react'
+import { Minus, Square, X, Copy, FileCode2, Search } from 'lucide-react'
 import { useEditorStore } from '../store/useEditorStore'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
+import { MenuBar } from './TitleBar/MenuBar'
 
 export const TitleBar: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false)
-  const { tabs, activeTabId, toggleTerminal, toggleSidebar } = useEditorStore()
-  const { rootPath, openFolder } = useWorkspaceStore()
+  const { tabs, activeTabId, openPalette } = useEditorStore()
+  const { rootPath } = useWorkspaceStore()
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
 
@@ -58,49 +50,36 @@ export const TitleBar: React.FC = () => {
 
   return (
     <div className="h-9 w-full bg-cortex-sidebar border-b border-cortex-border flex items-center justify-between px-3 select-none draggable-region z-50">
-      {/* Left section: Logo and Quick Actions */}
+      {/* Left section: Logo and Full Desktop Menu Bar */}
       <div className="flex items-center gap-2 non-draggable">
-        <div className="flex items-center gap-1.5 font-bold tracking-wide text-xs text-indigo-400">
-          <div className="w-5 h-5 rounded bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
+        <div className="flex items-center gap-1.5 font-bold tracking-wide text-xs text-cortex-accent pr-1">
+          <div className="w-5 h-5 rounded bg-cortex-accent/15 border border-cortex-accent/30 flex items-center justify-center text-cortex-accent shadow-sm">
             <FileCode2 size={13} className="stroke-[2.5]" />
           </div>
-          <span className="bg-gradient-to-r from-indigo-400 via-purple-300 to-indigo-200 bg-clip-text text-transparent font-semibold">
+          <span className="bg-gradient-to-r from-[#5DD62C] via-[#9ee87f] to-white bg-clip-text text-transparent font-semibold tracking-wider">
             CORTEX
           </span>
         </div>
 
-        <div className="h-3 w-[1px] bg-cortex-border mx-1" />
+        <div className="h-3 w-[1px] bg-cortex-border mx-0.5" />
 
-        <button
-          onClick={toggleSidebar}
-          title="Toggle Sidebar (Ctrl+B)"
-          className="p-1 text-cortex-muted hover:text-cortex-text hover:bg-cortex-surface rounded transition-colors"
-        >
-          <Columns size={13} />
-        </button>
-
-        <button
-          onClick={() => openFolder()}
-          title="Open Folder (Ctrl+Shift+O)"
-          className="p-1 text-cortex-muted hover:text-cortex-text hover:bg-cortex-surface rounded transition-colors"
-        >
-          <FolderOpen size={13} />
-        </button>
-
-        <button
-          onClick={toggleTerminal}
-          title="Toggle Terminal (Ctrl+`)"
-          className="p-1 text-cortex-muted hover:text-cortex-text hover:bg-cortex-surface rounded transition-colors"
-        >
-          <Terminal size={13} />
-        </button>
+        {/* File, Edit, View, Run, Terminal, Help Menus */}
+        <MenuBar />
       </div>
 
-      {/* Center section: Breadcrumb / File name */}
-      <div className="flex-1 text-center px-4 overflow-hidden pointer-events-none">
-        <span className="text-xs text-cortex-muted truncate inline-block max-w-[500px]">
-          {breadcrumb}
-        </span>
+      {/* Center section: Interactive Quick Open Search Bar */}
+      <div className="flex-1 flex justify-center px-4 overflow-hidden non-draggable">
+        <button
+          onClick={() => openPalette('files')}
+          title="Quick Open (Ctrl+P)"
+          className="flex items-center gap-2 max-w-[420px] w-full px-3 py-1 bg-cortex-bg/80 hover:bg-cortex-surface border border-cortex-border/70 hover:border-cortex-accent/40 rounded-md text-xs text-cortex-muted hover:text-cortex-text transition-all shadow-inner group"
+        >
+          <Search size={12} className="text-cortex-muted group-hover:text-cortex-accent transition-colors shrink-0" />
+          <span className="truncate flex-1 text-left">{breadcrumb}</span>
+          <kbd className="hidden sm:inline px-1.5 py-0.2 text-[10px] font-mono rounded bg-cortex-panel text-cortex-muted border border-cortex-border/50">
+            Ctrl+P
+          </kbd>
+        </button>
       </div>
 
       {/* Right section: Window Controls */}

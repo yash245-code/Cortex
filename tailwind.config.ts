@@ -7,17 +7,18 @@ export default {
     extend: {
       colors: {
         cortex: {
-          bg: '#0f1117',
-          sidebar: '#141721',
-          panel: '#181b27',
-          surface: '#1e2235',
-          border: '#272c42',
-          active: '#2e3550',
-          accent: '#6366f1',
-          accentHover: '#4f46e5',
-          text: '#f1f5f9',
-          muted: '#8b949e',
-          selection: '#264f78'
+          bg: '#0F0F0F',
+          sidebar: '#171717',
+          panel: '#202020',
+          surface: '#282828',
+          border: '#2F2F2F',
+          active: '#333333',
+          accent: '#5DD62C',
+          accentHover: '#4ec023',
+          accentSecondary: '#337418',
+          text: '#F8F8F8',
+          muted: '#8E8E8E',
+          selection: '#337418'
         }
       },
       fontFamily: {

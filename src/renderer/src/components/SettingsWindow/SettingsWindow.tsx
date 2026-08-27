@@ -1,0 +1,786 @@
+import React, { useState, useEffect, useMemo } from 'react'
+import {
+  Sliders,
+  Eye,
+  AlignLeft,
+  Save,
+  Terminal,
+  Palette,
+  Sparkles,
+  Keyboard,
+  Minus,
+  X,
+  Search,
+  RotateCcw,
+  Check,
+  Code2,
+  Lock,
+  ChevronRight
+} from 'lucide-react'
+import { useEditorStore } from '../../store/useEditorStore'
+import { EditorSettings, ShellType } from '../../../../shared/types'
+
+type SettingsCategory = 'editor' | 'appearance' | 'terminal' | 'files' | 'ai' | 'shortcuts'
+
+export const SettingsWindow: React.FC = () => {
+  const { settings, updateSettings, initSettingsSync } = useEditorStore()
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>('editor')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showApiKey, setShowApiKey] = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
+
+  // Listen to cross-window sync
+  useEffect(() => {
+    const unsub = initSettingsSync()
+    return () => {
+      unsub()
+    }
+  }, [initSettingsSync])
+
+  const handleMinimize = (): void => {
+    window.cortexAPI?.minimizeWindow?.()
+  }
+
+  const handleClose = (): void => {
+    window.cortexAPI?.closeWindow?.()
+  }
+
+  const handleSettingChange = (partial: Partial<EditorSettings>): void => {
+    updateSettings(partial)
+    setJustSaved(true)
+    setTimeout(() => setJustSaved(false), 1200)
+  }
+
+  const resetDefaults = (): void => {
+    const defaults: EditorSettings = {
+      fontSize: 14,
+      fontFamily: "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace",
+      tabSize: 2,
+      wordWrap: 'on',
+      minimap: true,
+      theme: 'vs-dark',
+      autoSave: true,
+      autoSaveDelay: 5000,
+      lineHeight: 22,
+      cursorBlinking: 'smooth',
+      cursorStyle: 'line',
+      bracketPairColorization: true,
+      formatOnSave: true,
+      terminalFontSize: 13,
+      terminalFontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
+      terminalCursorStyle: 'block',
+      terminalDefaultShell: 'powershell',
+      aiModelProvider: 'google-gemini',
+      aiApiKey: '',
+      aiTemperature: 0.7,
+      aiMaxTokens: 4096
+    }
+    updateSettings(defaults)
+    setJustSaved(true)
+    setTimeout(() => setJustSaved(false), 1500)
+  }
+
+  const categories = [
+    { id: 'editor', label: 'Editor', icon: <Code2 size={16} /> },
+    { id: 'appearance', label: 'Appearance', icon: <Palette size={16} /> },
+    { id: 'terminal', label: 'Terminal', icon: <Terminal size={16} /> },
+    { id: 'files', label: 'Files & Save', icon: <Save size={16} /> },
+    { id: 'ai', label: 'AI & Intelligence', icon: <Sparkles size={16} /> },
+    { id: 'shortcuts', label: 'Keybindings', icon: <Keyboard size={16} /> }
+  ] as const
+
+  const shortcutsList = [
+    { label: 'Command Palette / Quick Open', keys: ['Ctrl', 'P'] },
+    { label: 'Commands Mode', keys: ['Ctrl', 'Shift', 'P'] },
+    { label: 'Open Settings Window', keys: ['Ctrl', ','] },
+    { label: 'Save Current File', keys: ['Ctrl', 'S'] },
+    { label: 'Save All Files', keys: ['Ctrl', 'Shift', 'S'] },
+    { label: 'Toggle Sidebar', keys: ['Ctrl', 'B'] },
+    { label: 'Toggle Integrated Terminal', keys: ['Ctrl', '`'] },
+    { label: 'Global Search in Workspace', keys: ['Ctrl', 'Shift', 'F'] },
+    { label: 'Split Editor Panes', keys: ['Ctrl', '\\'] },
+    { label: 'Zoom In / Out', keys: ['Ctrl', '+ / -'] },
+    { label: 'Reset Zoom Level', keys: ['Ctrl', '0'] },
+    { label: 'Close Active Tab', keys: ['Ctrl', 'W'] }
+  ]
+
+  const filteredShortcuts = useMemo(() => {
+    if (!searchQuery.trim()) return shortcutsList
+    const q = searchQuery.toLowerCase()
+    return shortcutsList.filter(
+      (s) =>
+        s.label.toLowerCase().includes(q) ||
+        s.keys.some((k) => k.toLowerCase().includes(q))
+    )
+  }, [searchQuery])
+
+  return (
+    <div className="h-screen w-screen flex flex-col bg-cortex-bg text-cortex-text select-none overflow-hidden font-sans border border-cortex-border/60">
+      {/* Frameless Draggable TitleBar */}
+      <header
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        className="h-10 bg-cortex-sidebar border-b border-cortex-border flex items-center justify-between px-3 shrink-0 select-none z-30"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-5 h-5 rounded-md bg-cortex-accent/20 border border-cortex-accent/50 flex items-center justify-center text-cortex-accent shadow-[0_0_8px_#5DD62C40]">
+            <Sliders size={12} />
+          </div>
+          <span className="text-xs font-semibold tracking-wide text-cortex-text">
+            Cortex Settings
+          </span>
+          <span className="text-[10px] text-cortex-muted bg-cortex-surface px-1.5 py-0.5 rounded font-mono">
+            v1.0
+          </span>
+        </div>
+
+        {/* Search & Actions */}
+        <div
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          className="flex items-center gap-3"
+        >
+          {justSaved && (
+            <div className="flex items-center gap-1 text-[11px] text-cortex-accent font-medium animate-fade-in">
+              <Check size={12} />
+              <span>Synced</span>
+            </div>
+          )}
+
+          {/* Window controls */}
+          <div className="flex items-center">
+            <button
+              onClick={handleMinimize}
+              title="Minimize"
+              className="w-8 h-8 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            >
+              <Minus size={14} />
+            </button>
+            <button
+              onClick={handleClose}
+              title="Close Settings"
+              className="w-8 h-8 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-red-600 rounded transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Settings Body */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Navigation Sidebar */}
+        <aside className="w-48 bg-cortex-sidebar border-r border-cortex-border flex flex-col p-2 gap-1 shrink-0">
+          <div className="relative mb-2 px-1">
+            <Search
+              size={13}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-cortex-muted"
+            />
+            <input
+              type="text"
+              placeholder="Search settings..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-cortex-panel text-xs text-cortex-text pl-7 pr-2 py-1.5 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none placeholder:text-cortex-muted"
+            />
+          </div>
+
+          <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
+            {categories.map((cat) => {
+              const isActive = activeCategory === cat.id && !searchQuery
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    setActiveCategory(cat.id as SettingsCategory)
+                    setSearchQuery('')
+                  }}
+                  className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-cortex-accent/15 text-cortex-accent border border-cortex-accent/30 shadow-sm font-semibold'
+                      : 'text-cortex-muted hover:text-white hover:bg-cortex-surface'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={isActive ? 'text-cortex-accent' : 'text-cortex-muted'}>
+                      {cat.icon}
+                    </span>
+                    <span>{cat.label}</span>
+                  </div>
+                  {isActive && <ChevronRight size={12} className="text-cortex-accent" />}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Reset button at bottom of sidebar */}
+          <div className="pt-2 border-t border-cortex-border">
+            <button
+              onClick={resetDefaults}
+              title="Reset all settings to default values"
+              className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] text-cortex-muted hover:text-white hover:bg-cortex-surface border border-transparent hover:border-cortex-border transition-colors"
+            >
+              <RotateCcw size={11} />
+              <span>Reset Defaults</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* Right Settings Content */}
+        <main className="flex-1 bg-cortex-bg overflow-y-auto p-5 text-xs space-y-6">
+          {searchQuery ? (
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold text-cortex-text flex items-center gap-2 pb-2 border-b border-cortex-border">
+                <Search size={14} className="text-cortex-accent" />
+                <span>Search Results for "{searchQuery}"</span>
+              </h2>
+
+              {/* Filtered shortcuts */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-cortex-muted">
+                  Matching Keybindings
+                </span>
+                <div className="space-y-1.5">
+                  {filteredShortcuts.map((sc, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-cortex-panel border border-cortex-border"
+                    >
+                      <span className="text-cortex-text">{sc.label}</span>
+                      <div className="flex items-center gap-1">
+                        {sc.keys.map((k, kidx) => (
+                          <kbd
+                            key={kidx}
+                            className="px-2 py-0.5 rounded bg-cortex-surface border border-cortex-border font-mono text-[11px] text-cortex-accent shadow-sm"
+                          >
+                            {k}
+                          </kbd>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Category: EDITOR */}
+              {activeCategory === 'editor' && (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="flex items-center justify-between pb-2 border-b border-cortex-border">
+                    <div className="flex items-center gap-2">
+                      <Code2 size={16} className="text-cortex-accent" />
+                      <h2 className="text-sm font-semibold text-cortex-text">Editor Settings</h2>
+                    </div>
+                    <span className="text-[11px] text-cortex-muted">
+                      Customizes font, formatting & Monaco behavior
+                    </span>
+                  </div>
+
+                  {/* Font Size */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-cortex-text">Font Size</div>
+                        <div className="text-[11px] text-cortex-muted">
+                          Controls the font size in pixels for all open editor buffers.
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded bg-cortex-surface text-cortex-accent font-mono font-bold text-xs border border-cortex-border">
+                        {settings.fontSize}px
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 pt-1">
+                      <span className="text-[10px] text-cortex-muted">10px</span>
+                      <input
+                        type="range"
+                        min="10"
+                        max="32"
+                        value={settings.fontSize}
+                        onChange={(e) =>
+                          handleSettingChange({ fontSize: Number(e.target.value) })
+                        }
+                        className="flex-1 accent-[#5DD62C] cursor-pointer"
+                      />
+                      <span className="text-[10px] text-cortex-muted">32px</span>
+                    </div>
+                  </div>
+
+                  {/* Font Family */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="font-medium text-cortex-text">Font Family</div>
+                    <div className="text-[11px] text-cortex-muted">
+                      Specify the monospace typeface fallback chain.
+                    </div>
+                    <input
+                      type="text"
+                      value={settings.fontFamily}
+                      onChange={(e) => handleSettingChange({ fontFamily: e.target.value })}
+                      className="w-full bg-cortex-surface text-xs font-mono text-cortex-text px-3 py-1.5 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Tab Size */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-cortex-text">Tab Indentation</div>
+                      <div className="text-[11px] text-cortex-muted">
+                        Number of spaces per indentation level.
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-cortex-surface p-1 rounded-md border border-cortex-border">
+                      {[2, 4, 8].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => handleSettingChange({ tabSize: size })}
+                          className={`px-3 py-1 rounded text-xs transition-all ${
+                            settings.tabSize === size
+                              ? 'bg-cortex-accent text-black font-bold shadow-sm'
+                              : 'text-cortex-muted hover:text-white'
+                          }`}
+                        >
+                          {size} spaces
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Minimap & Word Wrap Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Minimap */}
+                    <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border flex flex-col justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 font-medium text-cortex-text">
+                          <Eye size={14} className="text-cortex-muted" />
+                          <span>Editor Minimap</span>
+                        </div>
+                        <div className="text-[11px] text-cortex-muted mt-1">
+                          Shows an overview scrollbar map on the right.
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleSettingChange({ minimap: !settings.minimap })}
+                        className={`w-full py-1.5 rounded text-xs font-semibold transition-all ${
+                          settings.minimap
+                            ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40 shadow-sm'
+                            : 'bg-cortex-surface text-cortex-muted hover:text-white border border-cortex-border'
+                        }`}
+                      >
+                        {settings.minimap ? 'Minimap: Enabled' : 'Minimap: Disabled'}
+                      </button>
+                    </div>
+
+                    {/* Word Wrap */}
+                    <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border flex flex-col justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 font-medium text-cortex-text">
+                          <AlignLeft size={14} className="text-cortex-muted" />
+                          <span>Word Wrap</span>
+                        </div>
+                        <div className="text-[11px] text-cortex-muted mt-1">
+                          Wraps long lines exceeding viewport width.
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          handleSettingChange({
+                            wordWrap: settings.wordWrap === 'on' ? 'off' : 'on'
+                          })
+                        }
+                        className={`w-full py-1.5 rounded text-xs font-semibold transition-all ${
+                          settings.wordWrap === 'on'
+                            ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40 shadow-sm'
+                            : 'bg-cortex-surface text-cortex-muted hover:text-white border border-cortex-border'
+                        }`}
+                      >
+                        {settings.wordWrap === 'on' ? 'Wrap: On' : 'Wrap: Off'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Live Mini Preview Box */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-cortex-muted">
+                      <span>Live Preview</span>
+                      <span className="font-mono">preview.ts</span>
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: settings.fontFamily,
+                        fontSize: `${settings.fontSize}px`
+                      }}
+                      className="p-3 bg-[#0F0F0F] rounded border border-cortex-border font-mono text-cortex-text overflow-x-auto leading-relaxed"
+                    >
+                      <span className="text-[#5DD62C]">const</span>{' '}
+                      <span className="text-[#F8F8F8]">cortex</span> = {'{\n'}
+                      {'  '}status: <span className="text-[#A3E635]">'ultra-fast'</span>,{'\n'}
+                      {'  '}tabSize: <span className="text-[#86EFAC]">{settings.tabSize}</span>
+                      {'\n}'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Category: APPEARANCE */}
+              {activeCategory === 'appearance' && (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="flex items-center justify-between pb-2 border-b border-cortex-border">
+                    <div className="flex items-center gap-2">
+                      <Palette size={16} className="text-cortex-accent" />
+                      <h2 className="text-sm font-semibold text-cortex-text">
+                        Appearance & Theme
+                      </h2>
+                    </div>
+                    <span className="text-[11px] text-cortex-muted">
+                      Theme customization and color schemes
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-3">
+                    <div>
+                      <div className="font-medium text-cortex-text">Color Theme</div>
+                      <div className="text-[11px] text-cortex-muted">
+                        Select the editor and workbench visual palette.
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div
+                        onClick={() => handleSettingChange({ theme: 'cortex-dark' })}
+                        className="p-3 rounded-lg border-2 border-cortex-accent bg-[#0F0F0F] cursor-pointer relative shadow-[0_0_12px_#5DD62C20]"
+                      >
+                        <div className="flex items-center justify-between font-semibold text-cortex-accent">
+                          <span>Cortex Cyber Dark</span>
+                          <Check size={14} />
+                        </div>
+                        <div className="text-[11px] text-cortex-muted mt-1">
+                          Default obsidian deep black with emerald green accent highlights.
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => handleSettingChange({ theme: 'vs-dark' })}
+                        className="p-3 rounded-lg border border-cortex-border bg-cortex-surface cursor-pointer hover:border-cortex-muted transition-colors opacity-75"
+                      >
+                        <div className="font-semibold text-cortex-text">Monaco Dark</div>
+                        <div className="text-[11px] text-cortex-muted mt-1">
+                          Standard Visual Studio dark code theme.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* UI Scale / Zoom */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-cortex-text">Zoom Controls</div>
+                      <div className="text-[11px] text-cortex-muted">
+                        Adjust global UI scale factor (`Ctrl++` / `Ctrl+-`).
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => window.cortexAPI?.zoomOut?.()}
+                        className="px-2.5 py-1 rounded bg-cortex-surface hover:bg-cortex-border text-xs text-cortex-text transition-colors"
+                      >
+                        Zoom -
+                      </button>
+                      <button
+                        onClick={() => window.cortexAPI?.resetZoom?.()}
+                        className="px-2.5 py-1 rounded bg-cortex-surface hover:bg-cortex-border text-xs text-cortex-text transition-colors"
+                      >
+                        Reset (100%)
+                      </button>
+                      <button
+                        onClick={() => window.cortexAPI?.zoomIn?.()}
+                        className="px-2.5 py-1 rounded bg-cortex-surface hover:bg-cortex-border text-xs text-cortex-text transition-colors"
+                      >
+                        Zoom +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Category: TERMINAL */}
+              {activeCategory === 'terminal' && (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="flex items-center justify-between pb-2 border-b border-cortex-border">
+                    <div className="flex items-center gap-2">
+                      <Terminal size={16} className="text-cortex-accent" />
+                      <h2 className="text-sm font-semibold text-cortex-text">
+                        Integrated Terminal
+                      </h2>
+                    </div>
+                    <span className="text-[11px] text-cortex-muted">
+                      PTY execution and xterm configuration
+                    </span>
+                  </div>
+
+                  {/* Default Shell */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="font-medium text-cortex-text">Default Shell</div>
+                    <div className="text-[11px] text-cortex-muted">
+                      The shell executable launched for new terminal sessions.
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 pt-1">
+                      {(['powershell', 'cmd', 'bash', 'wsl'] as ShellType[]).map((sh) => (
+                        <button
+                          key={sh}
+                          onClick={() =>
+                            handleSettingChange({ terminalDefaultShell: sh })
+                          }
+                          className={`py-2 px-3 rounded-md text-xs font-mono capitalize transition-all ${
+                            (settings.terminalDefaultShell || 'powershell') === sh
+                              ? 'bg-cortex-accent text-black font-bold shadow-sm'
+                              : 'bg-cortex-surface text-cortex-muted hover:text-white border border-cortex-border'
+                          }`}
+                        >
+                          {sh}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Terminal Font Size */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-cortex-text">Terminal Font Size</div>
+                        <div className="text-[11px] text-cortex-muted">
+                          Controls the render font size inside xterm.js instances.
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded bg-cortex-surface text-cortex-accent font-mono font-bold text-xs border border-cortex-border">
+                        {settings.terminalFontSize || 13}px
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 pt-1">
+                      <span className="text-[10px] text-cortex-muted">10px</span>
+                      <input
+                        type="range"
+                        min="10"
+                        max="24"
+                        value={settings.terminalFontSize || 13}
+                        onChange={(e) =>
+                          handleSettingChange({ terminalFontSize: Number(e.target.value) })
+                        }
+                        className="flex-1 accent-[#5DD62C] cursor-pointer"
+                      />
+                      <span className="text-[10px] text-cortex-muted">24px</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Category: FILES & AUTOSAVE */}
+              {activeCategory === 'files' && (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="flex items-center justify-between pb-2 border-b border-cortex-border">
+                    <div className="flex items-center gap-2">
+                      <Save size={16} className="text-cortex-accent" />
+                      <h2 className="text-sm font-semibold text-cortex-text">
+                        Files & Auto Save
+                      </h2>
+                    </div>
+                    <span className="text-[11px] text-cortex-muted">
+                      File persistence, intervals, and formats
+                    </span>
+                  </div>
+
+                  {/* Auto Save Toggle */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-cortex-text">Auto Save</div>
+                      <div className="text-[11px] text-cortex-muted">
+                        Automatically writes modified dirty tabs to disk at set intervals.
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSettingChange({ autoSave: !settings.autoSave })}
+                      className={`px-3 py-1.5 rounded text-xs font-semibold transition-all ${
+                        settings.autoSave
+                          ? 'bg-cortex-accent text-black font-bold shadow-sm'
+                          : 'bg-cortex-surface text-cortex-muted hover:text-white border border-cortex-border'
+                      }`}
+                    >
+                      {settings.autoSave ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+
+                  {/* Auto Save Delay */}
+                  {settings.autoSave && (
+                    <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-cortex-text">Auto Save Delay</div>
+                          <div className="text-[11px] text-cortex-muted">
+                            Delay before dirty tabs are saved to disk.
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-0.5 rounded bg-cortex-surface text-cortex-accent font-mono font-bold text-xs border border-cortex-border">
+                          {(settings.autoSaveDelay || 5000) / 1000}s
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 pt-1">
+                        <span className="text-[10px] text-cortex-muted">1s</span>
+                        <input
+                          type="range"
+                          min="1000"
+                          max="15000"
+                          step="1000"
+                          value={settings.autoSaveDelay || 5000}
+                          onChange={(e) =>
+                            handleSettingChange({ autoSaveDelay: Number(e.target.value) })
+                          }
+                          className="flex-1 accent-[#5DD62C] cursor-pointer"
+                        />
+                        <span className="text-[10px] text-cortex-muted">15s</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Category: AI & INTELLIGENCE */}
+              {activeCategory === 'ai' && (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="flex items-center justify-between pb-2 border-b border-cortex-border">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-cortex-accent" />
+                      <h2 className="text-sm font-semibold text-cortex-text">
+                        AI & Model Configuration
+                      </h2>
+                    </div>
+                    <span className="text-[11px] text-cortex-muted">
+                      LLM provider and reasoning configurations
+                    </span>
+                  </div>
+
+                  {/* AI Provider */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="font-medium text-cortex-text">AI Model Provider</div>
+                    <div className="text-[11px] text-cortex-muted">
+                      Select your preferred LLM provider for inline code generation.
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      {[
+                        { id: 'google-gemini', label: 'Google Gemini' },
+                        { id: 'openai', label: 'OpenAI GPT-4' },
+                        { id: 'anthropic', label: 'Claude 3.5' }
+                      ].map((prov) => (
+                        <button
+                          key={prov.id}
+                          onClick={() =>
+                            handleSettingChange({ aiModelProvider: prov.id })
+                          }
+                          className={`py-2 px-3 rounded-md text-xs font-semibold transition-all ${
+                            (settings.aiModelProvider || 'google-gemini') === prov.id
+                              ? 'bg-cortex-accent text-black font-bold shadow-sm'
+                              : 'bg-cortex-surface text-cortex-muted hover:text-white border border-cortex-border'
+                          }`}
+                        >
+                          {prov.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* API Key */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium text-cortex-text flex items-center gap-1.5">
+                        <Lock size={13} className="text-cortex-muted" />
+                        <span>API Key</span>
+                      </div>
+                      <button
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="text-[11px] text-cortex-accent hover:underline"
+                      >
+                        {showApiKey ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      placeholder="Paste your API key here (saved locally)"
+                      value={settings.aiApiKey || ''}
+                      onChange={(e) => handleSettingChange({ aiApiKey: e.target.value })}
+                      className="w-full bg-cortex-surface text-xs font-mono text-cortex-text px-3 py-1.5 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Temperature */}
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-cortex-text">Creativity (Temperature)</div>
+                        <div className="text-[11px] text-cortex-muted">
+                          Lower is more deterministic, higher is more exploratory.
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded bg-cortex-surface text-cortex-accent font-mono font-bold text-xs border border-cortex-border">
+                        {settings.aiTemperature ?? 0.7}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 pt-1">
+                      <span className="text-[10px] text-cortex-muted">0.0 (Precise)</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={settings.aiTemperature ?? 0.7}
+                        onChange={(e) =>
+                          handleSettingChange({ aiTemperature: Number(e.target.value) })
+                        }
+                        className="flex-1 accent-[#5DD62C] cursor-pointer"
+                      />
+                      <span className="text-[10px] text-cortex-muted">1.0 (Creative)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Category: KEYBINDINGS */}
+              {activeCategory === 'shortcuts' && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="flex items-center justify-between pb-2 border-b border-cortex-border">
+                    <div className="flex items-center gap-2">
+                      <Keyboard size={16} className="text-cortex-accent" />
+                      <h2 className="text-sm font-semibold text-cortex-text">
+                        Keybindings Reference
+                      </h2>
+                    </div>
+                    <span className="text-[11px] text-cortex-muted">
+                      Default keyboard shortcuts
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {shortcutsList.map((sc, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-cortex-panel border border-cortex-border hover:border-cortex-border/80 transition-colors"
+                      >
+                        <span className="text-cortex-text font-medium">{sc.label}</span>
+                        <div className="flex items-center gap-1">
+                          {sc.keys.map((k, kidx) => (
+                            <kbd
+                              key={kidx}
+                              className="px-2 py-0.5 rounded bg-cortex-surface border border-cortex-border font-mono text-[11px] text-cortex-accent shadow-sm font-semibold"
+                            >
+                              {k}
+                            </kbd>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}
+
+export default SettingsWindow

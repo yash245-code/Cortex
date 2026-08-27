@@ -2,30 +2,70 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { IPC_CHANNELS } from '../shared/constants'
 import { fileService } from './services/fileService'
 import { terminalService } from './services/terminalService'
+import { SearchService } from './services/searchService'
+import { SearchOptions } from '../shared/types'
 
-export function registerIpcHandlers(mainWindow: BrowserWindow): void {
+const searchService = new SearchService()
+
+let storedSettings: Record<string, unknown> = {}
+
+export function registerIpcHandlers(
+  mainWindow: BrowserWindow,
+  openSettingsWindow?: () => BrowserWindow
+): void {
   fileService.setMainWindow(mainWindow)
   terminalService.setMainWindow(mainWindow)
 
-  // Window Controls
-  ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, () => {
-    mainWindow.minimize()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, () => {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize()
-    } else {
-      mainWindow.maximize()
+  // Window Controls (Target the specific sender window)
+  ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow
+    if (win && !win.isDestroyed()) {
+      win.minimize()
     }
   })
 
-  ipcMain.handle(IPC_CHANNELS.WINDOW_CLOSE, () => {
-    mainWindow.close()
+  ipcMain.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow
+    if (win && !win.isDestroyed()) {
+      if (win.isMaximized()) {
+        win.unmaximize()
+      } else {
+        win.maximize()
+      }
+    }
   })
 
-  ipcMain.handle(IPC_CHANNELS.WINDOW_IS_MAXIMIZED, () => {
-    return mainWindow.isMaximized()
+  ipcMain.handle(IPC_CHANNELS.WINDOW_CLOSE, (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow
+    if (win && !win.isDestroyed()) {
+      win.close()
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.WINDOW_IS_MAXIMIZED, (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow
+    return win && !win.isDestroyed() ? win.isMaximized() : false
+  })
+
+  // Settings Handlers
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_OPEN, () => {
+    if (openSettingsWindow) {
+      openSettingsWindow()
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, () => {
+    return storedSettings
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE, (_, partialSettings: Record<string, unknown>) => {
+    storedSettings = { ...storedSettings, ...partialSettings }
+    // Broadcast to all windows
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.SETTINGS_CHANGED, partialSettings)
+      }
+    })
   })
 
   // Native Dialogs
@@ -76,9 +116,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Terminal PTY
-  ipcMain.handle(IPC_CHANNELS.TERMINAL_CREATE, async (_, id: string, cwd?: string) => {
-    return await terminalService.createTerminal(id, cwd)
-  })
+  ipcMain.handle(
+    IPC_CHANNELS.TERMINAL_CREATE,
+    async (_, id: string, cwd?: string, shellType?: string) => {
+      return await terminalService.createTerminal(id, cwd, shellType)
+    }
+  )
 
   ipcMain.handle(IPC_CHANNELS.TERMINAL_WRITE, (_, id: string, data: string) => {
     terminalService.writeTerminal(id, data)
@@ -91,4 +134,39 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(IPC_CHANNELS.TERMINAL_KILL, (_, id: string) => {
     terminalService.killTerminal(id)
   })
+
+  // Workspace Search & Replace
+  ipcMain.handle(
+    IPC_CHANNELS.SEARCH_WORKSPACE,
+    async (_, workspacePath: string, query: string, options?: SearchOptions) => {
+      return await searchService.searchWorkspace(workspacePath, query, options)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.SEARCH_REPLACE_FILE,
+    async (
+      _,
+      filePath: string,
+      query: string,
+      replaceText: string,
+      options?: SearchOptions
+    ) => {
+      return await searchService.replaceInFile(filePath, query, replaceText, options)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.SEARCH_REPLACE_ALL,
+    async (
+      _,
+      workspacePath: string,
+      query: string,
+      replaceText: string,
+      options?: SearchOptions
+    ) => {
+      return await searchService.replaceAll(workspacePath, query, replaceText, options)
+    }
+  )
 }
+

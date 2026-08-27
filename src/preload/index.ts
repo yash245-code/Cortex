@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent, webFrame } from 'electron'
 import { IPC_CHANNELS } from '../shared/constants'
 import {
   CortexAPI,
@@ -13,6 +13,25 @@ const api: CortexAPI = {
   maximizeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MAXIMIZE),
   closeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_CLOSE),
   isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
+  zoomIn: async (): Promise<number> => {
+    const current = webFrame.getZoomFactor()
+    const next = Math.min(2.5, Math.round((current + 0.1) * 10) / 10)
+    webFrame.setZoomFactor(next)
+    return next
+  },
+  zoomOut: async (): Promise<number> => {
+    const current = webFrame.getZoomFactor()
+    const next = Math.max(0.5, Math.round((current - 0.1) * 10) / 10)
+    webFrame.setZoomFactor(next)
+    return next
+  },
+  resetZoom: async (): Promise<number> => {
+    webFrame.setZoomFactor(1.0)
+    return 1.0
+  },
+  getZoomFactor: async (): Promise<number> => {
+    return webFrame.getZoomFactor()
+  },
 
   // Dialogs
   openFileDialog: () => ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_FILE),
@@ -49,8 +68,8 @@ const api: CortexAPI = {
   },
 
   // Terminal
-  createTerminal: (id: string, cwd?: string): Promise<boolean> =>
-    ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_CREATE, id, cwd),
+  createTerminal: (id: string, cwd?: string, shellType?: string): Promise<boolean> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_CREATE, id, cwd, shellType),
   writeTerminal: (id: string, data: string): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_WRITE, id, data),
   resizeTerminal: (id: string, cols: number, rows: number): Promise<void> =>
@@ -76,6 +95,40 @@ const api: CortexAPI = {
     ipcRenderer.on(IPC_CHANNELS.TERMINAL_EXIT, subscription)
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_EXIT, subscription)
+    }
+  },
+
+  // Search & Replace
+  searchWorkspace: (workspacePath, query, options) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SEARCH_WORKSPACE, workspacePath, query, options),
+  replaceInFile: (filePath, query, replaceText, options) =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SEARCH_REPLACE_FILE,
+      filePath,
+      query,
+      replaceText,
+      options
+    ),
+  replaceAll: (workspacePath, query, replaceText, options) =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SEARCH_REPLACE_ALL,
+      workspacePath,
+      query,
+      replaceText,
+      options
+    ),
+
+  // Settings
+  openSettingsWindow: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_OPEN),
+  getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
+  updateSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_UPDATE, settings),
+  onSettingsChanged: (callback) => {
+    const subscription = (_event: IpcRendererEvent, updatedSettings: any): void => {
+      callback(updatedSettings)
+    }
+    ipcRenderer.on(IPC_CHANNELS.SETTINGS_CHANGED, subscription)
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.SETTINGS_CHANGED, subscription)
     }
   }
 }

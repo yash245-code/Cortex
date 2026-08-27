@@ -27,7 +27,16 @@ const IPC_CHANNELS = {
   TERMINAL_RESIZE: "cortex:terminal:resize",
   TERMINAL_KILL: "cortex:terminal:kill",
   TERMINAL_DATA: "cortex:terminal:data",
-  TERMINAL_EXIT: "cortex:terminal:exit"
+  TERMINAL_EXIT: "cortex:terminal:exit",
+  // Search & Replace
+  SEARCH_WORKSPACE: "cortex:search:workspace",
+  SEARCH_REPLACE_FILE: "cortex:search:replaceFile",
+  SEARCH_REPLACE_ALL: "cortex:search:replaceAll",
+  // Settings
+  SETTINGS_OPEN: "cortex:settings:open",
+  SETTINGS_GET: "cortex:settings:get",
+  SETTINGS_UPDATE: "cortex:settings:update",
+  SETTINGS_CHANGED: "cortex:settings:changed"
 };
 const api = {
   // Window controls
@@ -35,6 +44,25 @@ const api = {
   maximizeWindow: () => electron.ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MAXIMIZE),
   closeWindow: () => electron.ipcRenderer.invoke(IPC_CHANNELS.WINDOW_CLOSE),
   isMaximized: () => electron.ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
+  zoomIn: async () => {
+    const current = electron.webFrame.getZoomFactor();
+    const next = Math.min(2.5, Math.round((current + 0.1) * 10) / 10);
+    electron.webFrame.setZoomFactor(next);
+    return next;
+  },
+  zoomOut: async () => {
+    const current = electron.webFrame.getZoomFactor();
+    const next = Math.max(0.5, Math.round((current - 0.1) * 10) / 10);
+    electron.webFrame.setZoomFactor(next);
+    return next;
+  },
+  resetZoom: async () => {
+    electron.webFrame.setZoomFactor(1);
+    return 1;
+  },
+  getZoomFactor: async () => {
+    return electron.webFrame.getZoomFactor();
+  },
   // Dialogs
   openFileDialog: () => electron.ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_FILE),
   openDirectoryDialog: () => electron.ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_DIRECTORY),
@@ -59,7 +87,7 @@ const api = {
     };
   },
   // Terminal
-  createTerminal: (id, cwd) => electron.ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_CREATE, id, cwd),
+  createTerminal: (id, cwd, shellType) => electron.ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_CREATE, id, cwd, shellType),
   writeTerminal: (id, data) => electron.ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_WRITE, id, data),
   resizeTerminal: (id, cols, rows) => electron.ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_RESIZE, id, cols, rows),
   killTerminal: (id) => electron.ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_KILL, id),
@@ -79,6 +107,35 @@ const api = {
     electron.ipcRenderer.on(IPC_CHANNELS.TERMINAL_EXIT, subscription);
     return () => {
       electron.ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_EXIT, subscription);
+    };
+  },
+  // Search & Replace
+  searchWorkspace: (workspacePath, query, options) => electron.ipcRenderer.invoke(IPC_CHANNELS.SEARCH_WORKSPACE, workspacePath, query, options),
+  replaceInFile: (filePath, query, replaceText, options) => electron.ipcRenderer.invoke(
+    IPC_CHANNELS.SEARCH_REPLACE_FILE,
+    filePath,
+    query,
+    replaceText,
+    options
+  ),
+  replaceAll: (workspacePath, query, replaceText, options) => electron.ipcRenderer.invoke(
+    IPC_CHANNELS.SEARCH_REPLACE_ALL,
+    workspacePath,
+    query,
+    replaceText,
+    options
+  ),
+  // Settings
+  openSettingsWindow: () => electron.ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_OPEN),
+  getSettings: () => electron.ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
+  updateSettings: (settings) => electron.ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_UPDATE, settings),
+  onSettingsChanged: (callback) => {
+    const subscription = (_event, updatedSettings) => {
+      callback(updatedSettings);
+    };
+    electron.ipcRenderer.on(IPC_CHANNELS.SETTINGS_CHANGED, subscription);
+    return () => {
+      electron.ipcRenderer.removeListener(IPC_CHANNELS.SETTINGS_CHANGED, subscription);
     };
   }
 };

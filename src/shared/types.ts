@@ -44,6 +44,60 @@ export interface EditorSettings {
   wordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded'
   minimap: boolean
   theme: string
+  autoSave: boolean
+  autoSaveDelay: number
+  lineHeight?: number
+  cursorBlinking?: 'blink' | 'smooth' | 'phase' | 'expand' | 'solid'
+  cursorStyle?: 'line' | 'block' | 'underline' | 'line-thin' | 'block-outline' | 'underline-thin'
+  bracketPairColorization?: boolean
+  formatOnSave?: boolean
+  terminalFontSize?: number
+  terminalFontFamily?: string
+  terminalCursorStyle?: 'block' | 'underline' | 'bar'
+  terminalDefaultShell?: ShellType
+  aiModelProvider?: string
+  aiApiKey?: string
+  aiTemperature?: number
+  aiMaxTokens?: number
+}
+
+export type ShellType = 'powershell' | 'cmd' | 'bash' | 'wsl' | 'default'
+
+export interface TerminalSession {
+  id: string
+  name: string
+  shell: ShellType
+}
+
+export interface SearchOptions {
+  isRegex?: boolean
+  matchCase?: boolean
+  matchWholeWord?: boolean
+  includePattern?: string
+  excludePattern?: string
+  maxResults?: number
+}
+
+export interface SearchMatch {
+  filePath: string
+  relativePath: string
+  fileName: string
+  line: number
+  column: number
+  lineContent: string
+  matchLength: number
+}
+
+export interface SearchResultGroup {
+  filePath: string
+  relativePath: string
+  fileName: string
+  matches: SearchMatch[]
+}
+
+export interface ReplaceResult {
+  totalReplacements: number
+  filesModified: number
 }
 
 export interface CortexAPI {
@@ -52,6 +106,10 @@ export interface CortexAPI {
   maximizeWindow: () => Promise<void>
   closeWindow: () => Promise<void>
   isMaximized: () => Promise<boolean>
+  zoomIn: () => Promise<number>
+  zoomOut: () => Promise<number>
+  resetZoom: () => Promise<number>
+  getZoomFactor: () => Promise<number>
 
   // Dialogs
   openFileDialog: () => Promise<string | null>
@@ -72,10 +130,35 @@ export interface CortexAPI {
   onFileChange: (callback: (event: FileChangeEvent) => void) => () => void
 
   // Terminal
-  createTerminal: (id: string, cwd?: string) => Promise<boolean>
+  createTerminal: (id: string, cwd?: string, shellType?: string) => Promise<boolean>
   writeTerminal: (id: string, data: string) => Promise<void>
   resizeTerminal: (id: string, cols: number, rows: number) => Promise<void>
   killTerminal: (id: string) => Promise<void>
   onTerminalData: (callback: (payload: TerminalDataPayload) => void) => () => void
   onTerminalExit: (callback: (payload: { id: string; exitCode: number }) => void) => () => void
+
+  // Search & Replace
+  searchWorkspace: (
+    workspacePath: string,
+    query: string,
+    options?: SearchOptions
+  ) => Promise<SearchResultGroup[]>
+  replaceInFile: (
+    filePath: string,
+    query: string,
+    replaceText: string,
+    options?: SearchOptions
+  ) => Promise<number>
+  replaceAll: (
+    workspacePath: string,
+    query: string,
+    replaceText: string,
+    options?: SearchOptions
+  ) => Promise<ReplaceResult>
+
+  // Settings
+  openSettingsWindow: () => Promise<void>
+  getSettings: () => Promise<Partial<EditorSettings>>
+  updateSettings: (settings: Partial<EditorSettings>) => Promise<void>
+  onSettingsChanged: (callback: (settings: Partial<EditorSettings>) => void) => () => void
 }

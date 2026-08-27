@@ -56,7 +56,7 @@ export const FileTree: React.FC = () => {
   if (!rootPath || !rootNode) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none">
-        <div className="w-12 h-12 rounded-xl bg-cortex-surface border border-cortex-border flex items-center justify-center text-indigo-400 mb-3 shadow-inner">
+        <div className="w-12 h-12 rounded-xl bg-cortex-surface border border-cortex-border flex items-center justify-center text-cortex-accent mb-3 shadow-inner">
           <FolderCode size={24} />
         </div>
         <h4 className="text-xs font-semibold text-cortex-text mb-1">No Folder Opened</h4>
@@ -65,7 +65,7 @@ export const FileTree: React.FC = () => {
         </p>
         <button
           onClick={() => openFolder()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-all shadow-md active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#337418] hover:bg-[#5DD62C] hover:text-[#0F0F0F] text-white text-xs font-medium transition-all shadow-md active:scale-95"
         >
           <FolderOpen size={13} />
           <span>Open Folder</span>
@@ -102,7 +102,7 @@ export const FileTree: React.FC = () => {
             onClick={() => refreshTree()}
             title="Refresh Explorer"
             className={`p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors ${
-              isLoading ? 'animate-spin text-indigo-400' : ''
+              isLoading ? 'animate-spin text-cortex-accent' : ''
             }`}
           >
             <RefreshCw size={13} />
@@ -120,7 +120,7 @@ export const FileTree: React.FC = () => {
               {creatingItem.type === 'file' ? (
                 <File size={14} className="text-cortex-muted" />
               ) : (
-                <Folder size={14} className="text-indigo-400" />
+                <Folder size={14} className="text-cortex-accent" />
               )}
             </span>
             <input
@@ -134,7 +134,7 @@ export const FileTree: React.FC = () => {
                 if (e.key === 'Enter') handleRootCreate()
                 if (e.key === 'Escape') setCreatingItem(null)
               }}
-              className="flex-1 bg-cortex-bg border border-indigo-500 rounded px-1.5 py-0.5 text-xs text-white outline-none"
+              className="flex-1 bg-cortex-bg border border-cortex-accent rounded px-1.5 py-0.5 text-xs text-white outline-none"
             />
           </div>
         )}

@@ -1,9 +1,11 @@
 "use strict";
+Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const electron = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
 const chokidar = require("chokidar");
 const os = require("os");
+const fsSync = require("fs");
 const child_process = require("child_process");
 function _interopNamespaceDefault(e) {
   const n = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
@@ -24,6 +26,7 @@ function _interopNamespaceDefault(e) {
 const path__namespace = /* @__PURE__ */ _interopNamespaceDefault(path);
 const fs__namespace = /* @__PURE__ */ _interopNamespaceDefault(fs);
 const os__namespace = /* @__PURE__ */ _interopNamespaceDefault(os);
+const fsSync__namespace = /* @__PURE__ */ _interopNamespaceDefault(fsSync);
 const IPC_CHANNELS = {
   // Window
   WINDOW_MINIMIZE: "cortex:window:minimize",
@@ -51,9 +54,18 @@ const IPC_CHANNELS = {
   TERMINAL_RESIZE: "cortex:terminal:resize",
   TERMINAL_KILL: "cortex:terminal:kill",
   TERMINAL_DATA: "cortex:terminal:data",
-  TERMINAL_EXIT: "cortex:terminal:exit"
+  TERMINAL_EXIT: "cortex:terminal:exit",
+  // Search & Replace
+  SEARCH_WORKSPACE: "cortex:search:workspace",
+  SEARCH_REPLACE_FILE: "cortex:search:replaceFile",
+  SEARCH_REPLACE_ALL: "cortex:search:replaceAll",
+  // Settings
+  SETTINGS_OPEN: "cortex:settings:open",
+  SETTINGS_GET: "cortex:settings:get",
+  SETTINGS_UPDATE: "cortex:settings:update",
+  SETTINGS_CHANGED: "cortex:settings:changed"
 };
-const IGNORED_DIRECTORIES = /* @__PURE__ */ new Set([
+const IGNORED_DIRECTORIES$1 = /* @__PURE__ */ new Set([
   ".git",
   "node_modules",
   "dist",
@@ -108,7 +120,7 @@ class FileService {
       const entries = await fs__namespace.readdir(dirPath, { withFileTypes: true });
       const children = [];
       for (const entry of entries) {
-        if (IGNORED_DIRECTORIES.has(entry.name)) {
+        if (IGNORED_DIRECTORIES$1.has(entry.name)) {
           continue;
         }
         const fullPath = path__namespace.join(dirPath, entry.name);
@@ -231,14 +243,47 @@ class TerminalService {
   setMainWindow(window) {
     this.mainWindow = window;
   }
-  async createTerminal(id, cwd) {
-    this.killTerminal(id);
+  resolveShell(shellType) {
     const isWindows = os__namespace.platform() === "win32";
+    const type = (shellType || "default").toLowerCase();
+    if (!isWindows) {
+      if (type === "bash") return { shell: "/bin/bash", args: ["-i"] };
+      if (type === "zsh") return { shell: "/bin/zsh", args: ["-i"] };
+      if (type === "sh") return { shell: "/bin/sh", args: ["-i"] };
+      return { shell: process.env.SHELL || "/bin/bash", args: ["-i"] };
+    }
+    if (type === "cmd") {
+      return { shell: process.env.COMSPEC || "cmd.exe", args: [] };
+    }
+    if (type === "bash" || type === "git-bash") {
+      const gitBashCandidates = [
+        "C:\\Program Files\\Git\\bin\\bash.exe",
+        "C:\\Program Files (x86)\\Git\\bin\\bash.exe",
+        path__namespace.join(process.env.LOCALAPPDATA || "", "Programs", "Git", "bin", "bash.exe"),
+        "bash.exe"
+      ];
+      for (const candidate of gitBashCandidates) {
+        if (candidate === "bash.exe" || fsSync__namespace.existsSync(candidate)) {
+          return { shell: candidate, args: ["--login", "-i"] };
+        }
+      }
+      return { shell: "bash.exe", args: ["--login", "-i"] };
+    }
+    if (type === "wsl") {
+      return { shell: "wsl.exe", args: [] };
+    }
+    return {
+      shell: process.env.SystemRoot ? `${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` : "powershell.exe",
+      args: ["-NoLogo"]
+    };
+  }
+  async createTerminal(id, cwd, shellType) {
+    this.killTerminal(id);
     const workingDirectory = cwd || os__namespace.homedir();
+    const { shell: resolvedShell, args: shellArgs } = this.resolveShell(shellType);
     try {
       const pty = require("node-pty");
-      const shell = isWindows ? process.env.COMSPEC || "powershell.exe" : process.env.SHELL || "/bin/bash";
-      const ptyProcess = pty.spawn(shell, [], {
+      const ptyProcess = pty.spawn(resolvedShell, shellArgs, {
         name: "xterm-256color",
         cols: 80,
         rows: 24,
@@ -272,16 +317,7 @@ class TerminalService {
       console.warn("node-pty native module unavailable, falling back to child_process shell:", nodePtyErr);
     }
     try {
-      let shellCmd;
-      let shellArgs = [];
-      if (isWindows) {
-        shellCmd = "powershell.exe";
-        shellArgs = ["-NoLogo"];
-      } else {
-        shellCmd = process.env.SHELL || "/bin/bash";
-        shellArgs = ["-i"];
-      }
-      const proc = child_process.spawn(shellCmd, shellArgs, {
+      const proc = child_process.spawn(resolvedShell, shellArgs, {
         cwd: workingDirectory,
         env: {
           ...process.env,
@@ -365,24 +401,237 @@ class TerminalService {
   }
 }
 const terminalService = new TerminalService();
-function registerIpcHandlers(mainWindow2) {
+const IGNORED_DIRECTORIES = /* @__PURE__ */ new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "out",
+  ".next",
+  ".turbo",
+  ".vscode",
+  ".idea",
+  "coverage",
+  ".DS_Store"
+]);
+const BINARY_EXTENSIONS = /* @__PURE__ */ new Set([
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "ico",
+  "webp",
+  "svgz",
+  "mp4",
+  "mp3",
+  "wav",
+  "ogg",
+  "zip",
+  "tar",
+  "gz",
+  "7z",
+  "rar",
+  "exe",
+  "dll",
+  "so",
+  "dylib",
+  "bin",
+  "pdf",
+  "woff",
+  "woff2",
+  "ttf",
+  "eot",
+  "node"
+]);
+class SearchService {
+  isBinaryFile(filePath) {
+    const ext = path__namespace.extname(filePath).slice(1).toLowerCase();
+    return BINARY_EXTENSIONS.has(ext);
+  }
+  matchesGlob(filePath, pattern) {
+    if (!pattern.trim()) return true;
+    const normalized = filePath.replace(/\\/g, "/");
+    const patterns = pattern.split(",").map((p) => p.trim());
+    for (const p of patterns) {
+      if (!p) continue;
+      const isNegated = p.startsWith("!");
+      const rawPattern = isNegated ? p.slice(1).trim() : p;
+      const regexPattern = rawPattern.replace(/\./g, "\\.").replace(/\*\*/g, ".*").replace(/(?<!\.)\*/g, "[^/]*");
+      const regex = new RegExp(regexPattern, "i");
+      const matched = regex.test(normalized);
+      if (isNegated && matched) return false;
+      if (!isNegated && !matched) return false;
+    }
+    return true;
+  }
+  createSearchRegex(query, options) {
+    if (!query) return null;
+    let pattern = query;
+    if (!options?.isRegex) {
+      pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    if (options?.matchWholeWord) {
+      pattern = `\\b${pattern}\\b`;
+    }
+    const flags = options?.matchCase ? "g" : "gi";
+    try {
+      return new RegExp(pattern, flags);
+    } catch {
+      return null;
+    }
+  }
+  async scanFiles(dirPath, filesList = []) {
+    try {
+      const entries = await fs__namespace.readdir(dirPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (IGNORED_DIRECTORIES.has(entry.name)) continue;
+        const fullPath = path__namespace.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          await this.scanFiles(fullPath, filesList);
+        } else if (entry.isFile()) {
+          if (!this.isBinaryFile(fullPath)) {
+            filesList.push(fullPath);
+          }
+        }
+      }
+    } catch {
+    }
+    return filesList;
+  }
+  async searchWorkspace(workspacePath, query, options) {
+    if (!query || !workspacePath) return [];
+    const regex = this.createSearchRegex(query, options);
+    if (!regex) return [];
+    const allFiles = await this.scanFiles(workspacePath);
+    const results = [];
+    const maxResults = options?.maxResults || 2e3;
+    let totalMatchesFound = 0;
+    for (const filePath of allFiles) {
+      if (totalMatchesFound >= maxResults) break;
+      const relPath = path__namespace.relative(workspacePath, filePath).replace(/\\/g, "/");
+      if (options?.includePattern && !this.matchesGlob(relPath, options.includePattern)) {
+        continue;
+      }
+      if (options?.excludePattern && this.matchesGlob(relPath, options.excludePattern)) {
+        continue;
+      }
+      try {
+        const content = await fs__namespace.readFile(filePath, "utf-8");
+        if (content.includes("\0")) continue;
+        const lines = content.split(/\r?\n/);
+        const fileMatches = [];
+        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+          const lineContent = lines[lineIdx];
+          regex.lastIndex = 0;
+          let match;
+          while ((match = regex.exec(lineContent)) !== null) {
+            fileMatches.push({
+              filePath,
+              relativePath: relPath,
+              fileName: path__namespace.basename(filePath),
+              line: lineIdx + 1,
+              column: match.index + 1,
+              lineContent,
+              matchLength: match[0].length
+            });
+            totalMatchesFound++;
+            if (totalMatchesFound >= maxResults) break;
+            if (match.index === regex.lastIndex) {
+              regex.lastIndex++;
+            }
+          }
+          if (totalMatchesFound >= maxResults) break;
+        }
+        if (fileMatches.length > 0) {
+          results.push({
+            filePath,
+            relativePath: relPath,
+            fileName: path__namespace.basename(filePath),
+            matches: fileMatches
+          });
+        }
+      } catch {
+      }
+    }
+    return results;
+  }
+  async replaceInFile(filePath, query, replaceText, options) {
+    const regex = this.createSearchRegex(query, options);
+    if (!regex) return 0;
+    try {
+      const content = await fs__namespace.readFile(filePath, "utf-8");
+      let count = 0;
+      const newContent = content.replace(regex, () => {
+        count++;
+        return replaceText;
+      });
+      if (count > 0) {
+        await fs__namespace.writeFile(filePath, newContent, "utf-8");
+      }
+      return count;
+    } catch {
+      return 0;
+    }
+  }
+  async replaceAll(workspacePath, query, replaceText, options) {
+    const searchGroups = await this.searchWorkspace(workspacePath, query, options);
+    let totalReplacements = 0;
+    let filesModified = 0;
+    for (const group of searchGroups) {
+      const count = await this.replaceInFile(group.filePath, query, replaceText, options);
+      if (count > 0) {
+        totalReplacements += count;
+        filesModified++;
+      }
+    }
+    return { totalReplacements, filesModified };
+  }
+}
+const searchService = new SearchService();
+let storedSettings = {};
+function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
   fileService.setMainWindow(mainWindow2);
   terminalService.setMainWindow(mainWindow2);
-  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, () => {
-    mainWindow2.minimize();
-  });
-  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, () => {
-    if (mainWindow2.isMaximized()) {
-      mainWindow2.unmaximize();
-    } else {
-      mainWindow2.maximize();
+  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
+    const win = electron.BrowserWindow.fromWebContents(event.sender) || mainWindow2;
+    if (win && !win.isDestroyed()) {
+      win.minimize();
     }
   });
-  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_CLOSE, () => {
-    mainWindow2.close();
+  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, (event) => {
+    const win = electron.BrowserWindow.fromWebContents(event.sender) || mainWindow2;
+    if (win && !win.isDestroyed()) {
+      if (win.isMaximized()) {
+        win.unmaximize();
+      } else {
+        win.maximize();
+      }
+    }
   });
-  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_IS_MAXIMIZED, () => {
-    return mainWindow2.isMaximized();
+  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_CLOSE, (event) => {
+    const win = electron.BrowserWindow.fromWebContents(event.sender) || mainWindow2;
+    if (win && !win.isDestroyed()) {
+      win.close();
+    }
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.WINDOW_IS_MAXIMIZED, (event) => {
+    const win = electron.BrowserWindow.fromWebContents(event.sender) || mainWindow2;
+    return win && !win.isDestroyed() ? win.isMaximized() : false;
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.SETTINGS_OPEN, () => {
+    if (openSettingsWindow2) {
+      openSettingsWindow2();
+    }
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, () => {
+    return storedSettings;
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE, (_, partialSettings) => {
+    storedSettings = { ...storedSettings, ...partialSettings };
+    electron.BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.SETTINGS_CHANGED, partialSettings);
+      }
+    });
   });
   electron.ipcMain.handle(IPC_CHANNELS.DIALOG_OPEN_FILE, async () => {
     return await fileService.openFileDialog();
@@ -417,9 +666,12 @@ function registerIpcHandlers(mainWindow2) {
   electron.ipcMain.handle(IPC_CHANNELS.WATCHER_STOP, async () => {
     fileService.stopWatcher();
   });
-  electron.ipcMain.handle(IPC_CHANNELS.TERMINAL_CREATE, async (_, id, cwd) => {
-    return await terminalService.createTerminal(id, cwd);
-  });
+  electron.ipcMain.handle(
+    IPC_CHANNELS.TERMINAL_CREATE,
+    async (_, id, cwd, shellType) => {
+      return await terminalService.createTerminal(id, cwd, shellType);
+    }
+  );
   electron.ipcMain.handle(IPC_CHANNELS.TERMINAL_WRITE, (_, id, data) => {
     terminalService.writeTerminal(id, data);
   });
@@ -429,8 +681,74 @@ function registerIpcHandlers(mainWindow2) {
   electron.ipcMain.handle(IPC_CHANNELS.TERMINAL_KILL, (_, id) => {
     terminalService.killTerminal(id);
   });
+  electron.ipcMain.handle(
+    IPC_CHANNELS.SEARCH_WORKSPACE,
+    async (_, workspacePath, query, options) => {
+      return await searchService.searchWorkspace(workspacePath, query, options);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.SEARCH_REPLACE_FILE,
+    async (_, filePath, query, replaceText, options) => {
+      return await searchService.replaceInFile(filePath, query, replaceText, options);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.SEARCH_REPLACE_ALL,
+    async (_, workspacePath, query, replaceText, options) => {
+      return await searchService.replaceAll(workspacePath, query, replaceText, options);
+    }
+  );
 }
 let mainWindow = null;
+let settingsWindow = null;
+function openSettingsWindow() {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    if (settingsWindow.isMinimized()) {
+      settingsWindow.restore();
+    }
+    settingsWindow.show();
+    settingsWindow.focus();
+    return settingsWindow;
+  }
+  settingsWindow = new electron.BrowserWindow({
+    width: 780,
+    height: 560,
+    minWidth: 640,
+    minHeight: 460,
+    show: false,
+    autoHideMenuBar: true,
+    frame: false,
+    titleBarStyle: "hidden",
+    backgroundColor: "#0f1117",
+    webPreferences: {
+      preload: path.join(__dirname, "../preload/index.js"),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  settingsWindow.on("ready-to-show", () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.show();
+    }
+  });
+  settingsWindow.on("closed", () => {
+    settingsWindow = null;
+  });
+  settingsWindow.webContents.setWindowOpenHandler((details) => {
+    electron.shell.openExternal(details.url);
+    return { action: "deny" };
+  });
+  if (process.env["ELECTRON_RENDERER_URL"]) {
+    settingsWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/settings`);
+  } else {
+    settingsWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+      hash: "/settings"
+    });
+  }
+  return settingsWindow;
+}
 function createWindow() {
   mainWindow = new electron.BrowserWindow({
     width: 1280,
@@ -449,7 +767,7 @@ function createWindow() {
       nodeIntegration: false
     }
   });
-  registerIpcHandlers(mainWindow);
+  registerIpcHandlers(mainWindow, openSettingsWindow);
   mainWindow.on("ready-to-show", () => {
     if (mainWindow) {
       mainWindow.show();
@@ -482,3 +800,4 @@ electron.app.on("before-quit", () => {
   fileService.stopWatcher();
   terminalService.killAll();
 });
+exports.openSettingsWindow = openSettingsWindow;

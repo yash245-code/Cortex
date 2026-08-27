@@ -29,7 +29,18 @@ export const IPC_CHANNELS = {
   TERMINAL_RESIZE: 'cortex:terminal:resize',
   TERMINAL_KILL: 'cortex:terminal:kill',
   TERMINAL_DATA: 'cortex:terminal:data',
-  TERMINAL_EXIT: 'cortex:terminal:exit'
+  TERMINAL_EXIT: 'cortex:terminal:exit',
+
+  // Search & Replace
+  SEARCH_WORKSPACE: 'cortex:search:workspace',
+  SEARCH_REPLACE_FILE: 'cortex:search:replaceFile',
+  SEARCH_REPLACE_ALL: 'cortex:search:replaceAll',
+
+  // Settings
+  SETTINGS_OPEN: 'cortex:settings:open',
+  SETTINGS_GET: 'cortex:settings:get',
+  SETTINGS_UPDATE: 'cortex:settings:update',
+  SETTINGS_CHANGED: 'cortex:settings:changed'
 } as const
 
 export const EXTENSION_TO_LANGUAGE: Record<string, string> = {

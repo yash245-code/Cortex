@@ -33,12 +33,12 @@ export const EmptyState: React.FC = () => {
       <div className="flex flex-col items-center max-w-md w-full text-center">
         {/* Glow & Logo */}
         <div className="relative mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-2xl accent-glow">
+          <div className="w-16 h-16 rounded-2xl bg-cortex-accent/15 border border-cortex-accent/35 flex items-center justify-center text-cortex-accent shadow-2xl accent-glow">
             <FileCode2 size={32} />
           </div>
         </div>
 
-        <h1 className="text-xl font-bold bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent mb-2 tracking-tight">
+        <h1 className="text-xl font-bold bg-gradient-to-r from-white via-[#bdf59e] to-cortex-accent bg-clip-text text-transparent mb-2 tracking-tight">
           CORTEX EDITOR
         </h1>
         <p className="text-xs text-cortex-muted mb-8 leading-relaxed">
@@ -49,9 +49,9 @@ export const EmptyState: React.FC = () => {
         <div className="w-full grid grid-cols-2 gap-3 mb-8">
           <button
             onClick={() => openFolder()}
-            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-indigo-500/50 hover:bg-cortex-surface text-left transition-all group"
+            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-cortex-accent/50 hover:bg-cortex-surface text-left transition-all group"
           >
-            <div className="w-8 h-8 rounded-md bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-md bg-cortex-accent/10 flex items-center justify-center text-cortex-accent group-hover:scale-110 transition-transform">
               <FolderOpen size={16} />
             </div>
             <div>
@@ -62,9 +62,9 @@ export const EmptyState: React.FC = () => {
 
           <button
             onClick={handleOpenFile}
-            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-indigo-500/50 hover:bg-cortex-surface text-left transition-all group"
+            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-cortex-accent/50 hover:bg-cortex-surface text-left transition-all group"
           >
-            <div className="w-8 h-8 rounded-md bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-md bg-cortex-accent/10 flex items-center justify-center text-cortex-accent group-hover:scale-110 transition-transform">
               <FilePlus size={16} />
             </div>
             <div>
@@ -75,9 +75,9 @@ export const EmptyState: React.FC = () => {
 
           <button
             onClick={handleNewFile}
-            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-indigo-500/50 hover:bg-cortex-surface text-left transition-all group"
+            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-cortex-accent/50 hover:bg-cortex-surface text-left transition-all group"
           >
-            <div className="w-8 h-8 rounded-md bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-md bg-cortex-accent/10 flex items-center justify-center text-cortex-accent group-hover:scale-110 transition-transform">
               <FilePlus size={16} />
             </div>
             <div>
@@ -88,9 +88,9 @@ export const EmptyState: React.FC = () => {
 
           <button
             onClick={toggleTerminal}
-            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-indigo-500/50 hover:bg-cortex-surface text-left transition-all group"
+            className="flex items-center gap-3 p-3 rounded-lg bg-cortex-panel border border-cortex-border hover:border-cortex-accent/50 hover:bg-cortex-surface text-left transition-all group"
           >
-            <div className="w-8 h-8 rounded-md bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-md bg-cortex-accent/10 flex items-center justify-center text-cortex-accent group-hover:scale-110 transition-transform">
               <Terminal size={16} />
             </div>
             <div>
@@ -102,7 +102,7 @@ export const EmptyState: React.FC = () => {
 
         {/* Shortcuts Cheat Sheet */}
         <div className="w-full bg-cortex-panel/60 border border-cortex-border/70 rounded-lg p-3 text-left">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-300 mb-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-cortex-accent mb-2">
             <Keyboard size={13} />
             <span>Keybindings</span>
           </div>
