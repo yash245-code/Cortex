@@ -44,6 +44,7 @@ export interface EditorSettings {
   wordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded'
   minimap: boolean
   theme: string
+  accentColor?: string
   autoSave: boolean
   autoSaveDelay: number
   lineHeight?: number
@@ -98,6 +99,24 @@ export interface SearchResultGroup {
 export interface ReplaceResult {
   totalReplacements: number
   filesModified: number
+}
+
+export type GitFileStatusType = 'M' | 'U' | 'A' | 'D' | 'R' | 'C' | '??'
+
+export interface GitFileStatus {
+  path: string
+  relativePath: string
+  fileName: string
+  status: GitFileStatusType
+  staged: boolean
+}
+
+export interface GitStatusResult {
+  isRepo: boolean
+  branch: string | null
+  staged: GitFileStatus[]
+  unstaged: GitFileStatus[]
+  untracked: GitFileStatus[]
 }
 
 export interface CortexAPI {
@@ -161,4 +180,14 @@ export interface CortexAPI {
   getSettings: () => Promise<Partial<EditorSettings>>
   updateSettings: (settings: Partial<EditorSettings>) => Promise<void>
   onSettingsChanged: (callback: (settings: Partial<EditorSettings>) => void) => () => void
+
+  // Git Source Control
+  gitGetStatus: (workspacePath: string) => Promise<GitStatusResult>
+  gitGetBranch: (workspacePath: string) => Promise<string | null>
+  gitStage: (workspacePath: string, relativePath: string) => Promise<boolean>
+  gitUnstage: (workspacePath: string, relativePath: string) => Promise<boolean>
+  gitStageAll: (workspacePath: string) => Promise<boolean>
+  gitUnstageAll: (workspacePath: string) => Promise<boolean>
+  gitDiscard: (workspacePath: string, relativePath: string, isUntracked?: boolean) => Promise<boolean>
+  gitCommit: (workspacePath: string, message: string) => Promise<boolean>
 }

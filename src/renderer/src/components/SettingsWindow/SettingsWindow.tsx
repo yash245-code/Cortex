@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { EditorSettings, ShellType } from '../../../../shared/types'
+import { THEMES, ACCENT_COLORS } from '../../theme/themeRegistry'
 
 type SettingsCategory = 'editor' | 'appearance' | 'terminal' | 'files' | 'ai' | 'shortcuts'
 
@@ -421,56 +422,153 @@ export const SettingsWindow: React.FC = () => {
 
               {/* Category: APPEARANCE */}
               {activeCategory === 'appearance' && (
-                <div className="space-y-5 animate-fade-in">
+                <div className="space-y-6 animate-fade-in">
                   <div className="flex items-center justify-between pb-2 border-b border-cortex-border">
                     <div className="flex items-center gap-2">
                       <Palette size={16} className="text-cortex-accent" />
                       <h2 className="text-sm font-semibold text-cortex-text">
-                        Appearance & Theme
+                        Appearance & Theme Suite
                       </h2>
                     </div>
                     <span className="text-[11px] text-cortex-muted">
-                      Theme customization and color schemes
+                      Customizable color themes, typography & dynamic accent highlights
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-3">
-                    <div>
-                      <div className="font-medium text-cortex-text">Color Theme</div>
-                      <div className="text-[11px] text-cortex-muted">
-                        Select the editor and workbench visual palette.
+                  {/* Accent Color Customizer */}
+                  <div className="p-4 rounded-xl bg-cortex-panel border border-cortex-border space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                          <Sparkles size={14} className="text-cortex-accent" />
+                          <span>Accent Color Customizer</span>
+                        </div>
+                        <div className="text-[11px] text-cortex-muted mt-0.5">
+                          Highlights cursor, active lines, badges, buttons, and status indicators.
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          style={{ backgroundColor: settings.accentColor || '#5DD62C' }}
+                          className="w-4 h-4 rounded-full border border-white/20 shadow"
+                        />
+                        <span className="font-mono text-xs text-cortex-accent font-semibold">
+                          {settings.accentColor || '#5DD62C'}
+                        </span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <div
-                        onClick={() => handleSettingChange({ theme: 'cortex-dark' })}
-                        className="p-3 rounded-lg border-2 border-cortex-accent bg-[#0F0F0F] cursor-pointer relative shadow-[0_0_12px_#5DD62C20]"
-                      >
-                        <div className="flex items-center justify-between font-semibold text-cortex-accent">
-                          <span>Cortex Cyber Dark</span>
-                          <Check size={14} />
-                        </div>
-                        <div className="text-[11px] text-cortex-muted mt-1">
-                          Default obsidian deep black with emerald green accent highlights.
-                        </div>
-                      </div>
 
-                      <div
-                        onClick={() => handleSettingChange({ theme: 'vs-dark' })}
-                        className="p-3 rounded-lg border border-cortex-border bg-cortex-surface cursor-pointer hover:border-cortex-muted transition-colors opacity-75"
-                      >
-                        <div className="font-semibold text-cortex-text">Monaco Dark</div>
-                        <div className="text-[11px] text-cortex-muted mt-1">
-                          Standard Visual Studio dark code theme.
+                    {/* Accent Swatches Grid */}
+                    <div className="grid grid-cols-7 gap-2 pt-1">
+                      {ACCENT_COLORS.map((acc) => {
+                        const isSelected = (settings.accentColor || '#5DD62C') === acc.color
+                        return (
+                          <button
+                            key={acc.id}
+                            onClick={() => handleSettingChange({ accentColor: acc.color })}
+                            title={`${acc.name} (${acc.color})`}
+                            className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all ${
+                              isSelected
+                                ? 'bg-cortex-surface border-cortex-accent shadow-md scale-105'
+                                : 'bg-cortex-surface/40 border-cortex-border hover:border-cortex-muted hover:bg-cortex-surface'
+                            }`}
+                          >
+                            <span
+                              style={{ backgroundColor: acc.color }}
+                              className="w-5 h-5 rounded-full shadow border border-white/20 flex items-center justify-center text-black"
+                            >
+                              {isSelected && <Check size={10} strokeWidth={3} className="text-white" />}
+                            </span>
+                            <span className="text-[10px] font-medium text-cortex-muted truncate max-w-[60px]">
+                              {acc.name.split(' ')[1] || acc.name}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Theme Suite Gallery */}
+                  <div className="p-4 rounded-xl bg-cortex-panel border border-cortex-border space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                          <Palette size={14} className="text-cortex-accent" />
+                          <span>Editor & UI Theme Palette</span>
+                        </div>
+                        <div className="text-[11px] text-cortex-muted mt-0.5">
+                          Synchronizes Monaco editor tokens, TitleBar, Sidebar, and Panels.
                         </div>
                       </div>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-cortex-surface border border-cortex-border text-cortex-muted">
+                        {Object.keys(THEMES).length} themes available
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      {Object.values(THEMES).map((theme) => {
+                        const isSelected = (settings.theme || 'cortex-cyber') === theme.id
+                        return (
+                          <div
+                            key={theme.id}
+                            onClick={() => handleSettingChange({ theme: theme.id })}
+                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 ${
+                              isSelected
+                                ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(93,214,44,0.2))]'
+                                : 'border-cortex-border bg-cortex-surface/50 hover:border-cortex-muted hover:bg-cortex-surface'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                                  <span>{theme.name}</span>
+                                  {isSelected && (
+                                    <Check size={13} className="text-cortex-accent font-bold" />
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-cortex-muted mt-0.5 line-clamp-2">
+                                  {theme.description}
+                                </div>
+                              </div>
+
+                              <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-cortex-panel text-cortex-muted border border-cortex-border shrink-0">
+                                {theme.type}
+                              </span>
+                            </div>
+
+                            {/* Color Palette Swatches */}
+                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-cortex-bg/80 border border-cortex-border">
+                              <span
+                                style={{ backgroundColor: theme.previewColors.bg }}
+                                title="Background"
+                                className="w-4 h-4 rounded border border-white/10 shadow-sm"
+                              />
+                              <span
+                                style={{ backgroundColor: theme.previewColors.sidebar }}
+                                title="Sidebar"
+                                className="w-4 h-4 rounded border border-white/10 shadow-sm"
+                              />
+                              <span
+                                style={{ backgroundColor: theme.previewColors.panel }}
+                                title="Panel"
+                                className="w-4 h-4 rounded border border-white/10 shadow-sm"
+                              />
+                              <span
+                                style={{ backgroundColor: theme.previewColors.accent }}
+                                title="Theme Accent"
+                                className="w-4 h-4 rounded shadow-sm ml-auto"
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
 
                   {/* UI Scale / Zoom */}
-                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border flex items-center justify-between">
+                  <div className="p-3.5 rounded-xl bg-cortex-panel border border-cortex-border flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-cortex-text">Zoom Controls</div>
+                      <div className="font-medium text-xs text-cortex-text">Zoom Controls</div>
                       <div className="text-[11px] text-cortex-muted">
                         Adjust global UI scale factor (`Ctrl++` / `Ctrl+-`).
                       </div>

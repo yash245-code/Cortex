@@ -36,7 +36,16 @@ const IPC_CHANNELS = {
   SETTINGS_OPEN: "cortex:settings:open",
   SETTINGS_GET: "cortex:settings:get",
   SETTINGS_UPDATE: "cortex:settings:update",
-  SETTINGS_CHANGED: "cortex:settings:changed"
+  SETTINGS_CHANGED: "cortex:settings:changed",
+  // Git
+  GIT_STATUS: "cortex:git:status",
+  GIT_BRANCH: "cortex:git:branch",
+  GIT_STAGE: "cortex:git:stage",
+  GIT_UNSTAGE: "cortex:git:unstage",
+  GIT_STAGE_ALL: "cortex:git:stageAll",
+  GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
+  GIT_DISCARD: "cortex:git:discard",
+  GIT_COMMIT: "cortex:git:commit"
 };
 const api = {
   // Window controls
@@ -137,7 +146,16 @@ const api = {
     return () => {
       electron.ipcRenderer.removeListener(IPC_CHANNELS.SETTINGS_CHANGED, subscription);
     };
-  }
+  },
+  // Git Source Control
+  gitGetStatus: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_STATUS, workspacePath),
+  gitGetBranch: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_BRANCH, workspacePath),
+  gitStage: (workspacePath, relativePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE, workspacePath, relativePath),
+  gitUnstage: (workspacePath, relativePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE, workspacePath, relativePath),
+  gitStageAll: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_ALL, workspacePath),
+  gitUnstageAll: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_ALL, workspacePath),
+  gitDiscard: (workspacePath, relativePath, isUntracked) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD, workspacePath, relativePath, isUntracked),
+  gitCommit: (workspacePath, message) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message)
 };
 try {
   electron.contextBridge.exposeInMainWorld("cortexAPI", api);

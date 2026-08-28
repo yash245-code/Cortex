@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
-import { X, FileCode2, Cpu, Terminal, Sparkles, Check } from 'lucide-react'
+import { X, Cpu, Terminal, Sparkles, Check } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
+import { CortexLogo } from '../common/CortexLogo'
 
 export const AboutModal: React.FC = () => {
   const { isAboutModalOpen, setAboutModalOpen } = useEditorStore()
@@ -39,8 +40,8 @@ export const AboutModal: React.FC = () => {
 
         {/* Brand Icon & Name */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-cortex-accent/15 border border-cortex-accent/30 flex items-center justify-center text-cortex-accent shadow-lg shadow-cortex-accent/10">
-            <FileCode2 size={26} className="stroke-[2.5]" />
+          <div className="w-14 h-14 rounded-xl bg-cortex-accent/15 border border-cortex-accent/30 flex items-center justify-center shadow-lg shadow-cortex-accent/10 p-2">
+            <CortexLogo size={42} />
           </div>
           <div>
             <div className="flex items-center gap-2">

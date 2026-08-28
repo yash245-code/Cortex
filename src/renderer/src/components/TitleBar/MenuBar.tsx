@@ -280,6 +280,12 @@ export const MenuBar: React.FC = () => {
           onClick: () => toggleSidebarView('search')
         },
         {
+          label: 'Source Control',
+          shortcut: 'Ctrl+Shift+G',
+          icon: <Columns size={13} />,
+          onClick: () => toggleSidebarView('git')
+        },
+        {
           label: 'Toggle Primary Side Bar',
           shortcut: 'Ctrl+B',
           onClick: () => toggleSidebarView('explorer')
@@ -289,6 +295,16 @@ export const MenuBar: React.FC = () => {
           shortcut: 'Ctrl+`',
           icon: <Terminal size={13} />,
           onClick: () => toggleTerminal()
+        },
+        { label: '', divider: true },
+        {
+          label: 'Color Theme...',
+          shortcut: 'Ctrl+K Ctrl+T',
+          onClick: () => openPalette('themes')
+        },
+        {
+          label: 'Accent Color...',
+          onClick: () => openPalette('accents')
         },
         { label: '', divider: true },
         {

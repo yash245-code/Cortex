@@ -17,6 +17,8 @@ export function openSettingsWindow(): BrowserWindow {
     return settingsWindow
   }
 
+  const iconPath = join(__dirname, '../../resources/icon-taskbar.png')
+
   settingsWindow = new BrowserWindow({
     width: 780,
     height: 560,
@@ -27,6 +29,7 @@ export function openSettingsWindow(): BrowserWindow {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#0f1117',
+    icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -72,6 +75,7 @@ function createWindow(): void {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#0f1117',
+    icon: join(__dirname, '../../resources/icon-taskbar.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

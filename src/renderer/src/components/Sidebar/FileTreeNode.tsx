@@ -18,6 +18,7 @@ import {
 import { FileNode } from '@shared/types'
 import { useWorkspaceStore } from '../../store/useWorkspaceStore'
 import { useEditorStore } from '../../store/useEditorStore'
+import { useGitStore } from '../../store/useGitStore'
 
 interface FileTreeNodeProps {
   node: FileNode
@@ -87,6 +88,9 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
   } = useWorkspaceStore()
 
   const { openTab, activeTabId, pane2ActiveTabId } = useEditorStore()
+  const { getFileStatus } = useGitStore()
+
+  const gitStatus = !node.type || node.type === 'file' ? getFileStatus(node.path) : undefined
 
   const isDirectory = node.type === 'directory'
   const isExpanded = expandedPaths.has(node.path)
@@ -157,6 +161,16 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
     }
   }
 
+  // Determine text color based on git status
+  const getFileTextColor = (): string => {
+    if (isSelected) return 'text-white'
+    if (gitStatus === 'M') return 'text-amber-300'
+    if (gitStatus === 'U' || gitStatus === '??') return 'text-emerald-400'
+    if (gitStatus === 'A') return 'text-green-400'
+    if (gitStatus === 'D') return 'text-rose-400'
+    return 'text-gray-300'
+  }
+
   return (
     <div className="flex flex-col select-none">
       {/* Node Row */}
@@ -166,8 +180,8 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
         className={`group relative flex items-center h-7 pr-2 text-xs cursor-pointer rounded transition-colors ${
           isSelected
             ? 'bg-cortex-selection/40 text-white font-medium'
-            : 'text-gray-300 hover:bg-cortex-surface/60 hover:text-white'
-        }`}
+            : 'hover:bg-cortex-surface/60 hover:text-white'
+        } ${getFileTextColor()}`}
       >
         {/* Expand/Collapse Chevron for directories */}
         {isDirectory ? (
@@ -208,6 +222,36 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
           />
         ) : (
           <span className="truncate flex-1">{node.name}</span>
+        )}
+
+        {/* Git Status Badge */}
+        {!isRenaming && gitStatus && (
+          <span
+            title={
+              gitStatus === 'M'
+                ? 'Modified'
+                : gitStatus === 'U' || gitStatus === '??'
+                ? 'Untracked'
+                : gitStatus === 'A'
+                ? 'Added / Staged'
+                : gitStatus === 'D'
+                ? 'Deleted'
+                : gitStatus
+            }
+            className={`mr-1 px-1 py-0.2 rounded font-mono text-[9px] font-bold ${
+              gitStatus === 'M'
+                ? 'text-amber-400 bg-amber-400/10'
+                : gitStatus === 'U' || gitStatus === '??'
+                ? 'text-emerald-400 bg-emerald-400/10'
+                : gitStatus === 'A'
+                ? 'text-green-400 bg-green-400/10'
+                : gitStatus === 'D'
+                ? 'text-rose-400 bg-rose-400/10'
+                : 'text-cortex-muted bg-cortex-surface'
+            }`}
+          >
+            {gitStatus === '??' ? 'U' : gitStatus}
+          </span>
         )}
 
         {/* Hover Quick Actions */}

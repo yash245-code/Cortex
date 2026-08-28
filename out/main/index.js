@@ -63,7 +63,16 @@ const IPC_CHANNELS = {
   SETTINGS_OPEN: "cortex:settings:open",
   SETTINGS_GET: "cortex:settings:get",
   SETTINGS_UPDATE: "cortex:settings:update",
-  SETTINGS_CHANGED: "cortex:settings:changed"
+  SETTINGS_CHANGED: "cortex:settings:changed",
+  // Git
+  GIT_STATUS: "cortex:git:status",
+  GIT_BRANCH: "cortex:git:branch",
+  GIT_STAGE: "cortex:git:stage",
+  GIT_UNSTAGE: "cortex:git:unstage",
+  GIT_STAGE_ALL: "cortex:git:stageAll",
+  GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
+  GIT_DISCARD: "cortex:git:discard",
+  GIT_COMMIT: "cortex:git:commit"
 };
 const IGNORED_DIRECTORIES$1 = /* @__PURE__ */ new Set([
   ".git",
@@ -586,6 +595,198 @@ class SearchService {
     return { totalReplacements, filesModified };
   }
 }
+function runGit(args, cwd) {
+  return new Promise((resolve, reject) => {
+    child_process.execFile(
+      "git",
+      args,
+      {
+        cwd,
+        maxBuffer: 10 * 1024 * 1024,
+        windowsHide: true
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const err = new Error(stderr || stdout || error.message);
+          reject(err);
+        } else {
+          resolve(stdout);
+        }
+      }
+    );
+  });
+}
+class GitService {
+  async isGitRepo(workspacePath) {
+    if (!workspacePath) return false;
+    try {
+      const out = await runGit(["rev-parse", "--is-inside-work-tree"], workspacePath);
+      return out.trim() === "true";
+    } catch {
+      return false;
+    }
+  }
+  async getBranch(workspacePath) {
+    if (!workspacePath) return null;
+    try {
+      const branch = await runGit(["branch", "--show-current"], workspacePath);
+      const trimmed = branch.trim();
+      if (trimmed) return trimmed;
+      const shortHead = await runGit(["rev-parse", "--short", "HEAD"], workspacePath);
+      return shortHead.trim() ? `(${shortHead.trim()})` : null;
+    } catch {
+      return null;
+    }
+  }
+  async getStatus(workspacePath) {
+    const emptyResult = {
+      isRepo: false,
+      branch: null,
+      staged: [],
+      unstaged: [],
+      untracked: []
+    };
+    if (!workspacePath) return emptyResult;
+    const isRepo = await this.isGitRepo(workspacePath);
+    if (!isRepo) return emptyResult;
+    const branch = await this.getBranch(workspacePath);
+    try {
+      const output = await runGit(["status", "--porcelain=v1", "-uall"], workspacePath);
+      const lines = output.split(/\r?\n/).filter((l) => l.length >= 3);
+      const staged = [];
+      const unstaged = [];
+      const untracked = [];
+      for (const line of lines) {
+        const x = line[0];
+        const y = line[1];
+        let rawPath = line.substring(3).trim();
+        if (rawPath.startsWith('"') && rawPath.endsWith('"')) {
+          rawPath = rawPath.slice(1, -1);
+        }
+        if (rawPath.includes(" -> ")) {
+          const parts = rawPath.split(" -> ");
+          rawPath = parts[1];
+        }
+        const relPath = rawPath.replace(/\\/g, "/");
+        const fullPath = path__namespace.join(workspacePath, relPath).replace(/\\/g, "/");
+        const fileName = path__namespace.basename(fullPath);
+        if (x === "?" && y === "?") {
+          untracked.push({
+            path: fullPath,
+            relativePath: relPath,
+            fileName,
+            status: "U",
+            staged: false
+          });
+          continue;
+        }
+        if (x !== " " && x !== "?") {
+          staged.push({
+            path: fullPath,
+            relativePath: relPath,
+            fileName,
+            status: x,
+            staged: true
+          });
+        }
+        if (y !== " " && y !== "?") {
+          unstaged.push({
+            path: fullPath,
+            relativePath: relPath,
+            fileName,
+            status: y,
+            staged: false
+          });
+        }
+      }
+      return {
+        isRepo: true,
+        branch,
+        staged,
+        unstaged,
+        untracked
+      };
+    } catch (err) {
+      console.error("Failed to get git status:", err);
+      return {
+        isRepo: true,
+        branch,
+        staged: [],
+        unstaged: [],
+        untracked: []
+      };
+    }
+  }
+  async stageFile(workspacePath, relativePath) {
+    try {
+      await runGit(["add", "--", relativePath], workspacePath);
+      return true;
+    } catch (err) {
+      console.error(`Failed to stage file ${relativePath}:`, err);
+      return false;
+    }
+  }
+  async unstageFile(workspacePath, relativePath) {
+    try {
+      try {
+        await runGit(["restore", "--staged", "--", relativePath], workspacePath);
+      } catch {
+        await runGit(["reset", "HEAD", "--", relativePath], workspacePath);
+      }
+      return true;
+    } catch (err) {
+      console.error(`Failed to unstage file ${relativePath}:`, err);
+      return false;
+    }
+  }
+  async stageAll(workspacePath) {
+    try {
+      await runGit(["add", "-A"], workspacePath);
+      return true;
+    } catch (err) {
+      console.error("Failed to stage all files:", err);
+      return false;
+    }
+  }
+  async unstageAll(workspacePath) {
+    try {
+      await runGit(["reset"], workspacePath);
+      return true;
+    } catch (err) {
+      console.error("Failed to unstage all files:", err);
+      return false;
+    }
+  }
+  async discardFile(workspacePath, relativePath, isUntracked = false) {
+    try {
+      if (isUntracked) {
+        const fullPath = path__namespace.join(workspacePath, relativePath);
+        await fs__namespace.rm(fullPath, { recursive: true, force: true });
+      } else {
+        try {
+          await runGit(["restore", "--", relativePath], workspacePath);
+        } catch {
+          await runGit(["checkout", "--", relativePath], workspacePath);
+        }
+      }
+      return true;
+    } catch (err) {
+      console.error(`Failed to discard file ${relativePath}:`, err);
+      return false;
+    }
+  }
+  async commit(workspacePath, message) {
+    if (!message || !message.trim()) return false;
+    try {
+      await runGit(["commit", "-m", message.trim()], workspacePath);
+      return true;
+    } catch (err) {
+      console.error("Failed to commit:", err);
+      return false;
+    }
+  }
+}
+const gitService = new GitService();
 const searchService = new SearchService();
 let storedSettings = {};
 function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
@@ -699,6 +900,42 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
       return await searchService.replaceAll(workspacePath, query, replaceText, options);
     }
   );
+  electron.ipcMain.handle(IPC_CHANNELS.GIT_STATUS, async (_, workspacePath) => {
+    return await gitService.getStatus(workspacePath);
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.GIT_BRANCH, async (_, workspacePath) => {
+    return await gitService.getBranch(workspacePath);
+  });
+  electron.ipcMain.handle(
+    IPC_CHANNELS.GIT_STAGE,
+    async (_, workspacePath, relativePath) => {
+      return await gitService.stageFile(workspacePath, relativePath);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.GIT_UNSTAGE,
+    async (_, workspacePath, relativePath) => {
+      return await gitService.unstageFile(workspacePath, relativePath);
+    }
+  );
+  electron.ipcMain.handle(IPC_CHANNELS.GIT_STAGE_ALL, async (_, workspacePath) => {
+    return await gitService.stageAll(workspacePath);
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.GIT_UNSTAGE_ALL, async (_, workspacePath) => {
+    return await gitService.unstageAll(workspacePath);
+  });
+  electron.ipcMain.handle(
+    IPC_CHANNELS.GIT_DISCARD,
+    async (_, workspacePath, relativePath, isUntracked) => {
+      return await gitService.discardFile(workspacePath, relativePath, isUntracked);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.GIT_COMMIT,
+    async (_, workspacePath, message) => {
+      return await gitService.commit(workspacePath, message);
+    }
+  );
 }
 let mainWindow = null;
 let settingsWindow = null;
@@ -711,6 +948,7 @@ function openSettingsWindow() {
     settingsWindow.focus();
     return settingsWindow;
   }
+  const iconPath = path.join(__dirname, "../../resources/icon-taskbar.png");
   settingsWindow = new electron.BrowserWindow({
     width: 780,
     height: 560,
@@ -721,6 +959,7 @@ function openSettingsWindow() {
     frame: false,
     titleBarStyle: "hidden",
     backgroundColor: "#0f1117",
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -760,6 +999,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     backgroundColor: "#0f1117",
+    icon: path.join(__dirname, "../../resources/icon-taskbar.png"),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: false,

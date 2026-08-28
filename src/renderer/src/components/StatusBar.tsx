@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useEditorStore } from '../store/useEditorStore'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
+import { useGitStore } from '../store/useGitStore'
 
 export const StatusBar: React.FC = () => {
   const {
@@ -17,11 +18,19 @@ export const StatusBar: React.FC = () => {
     settings,
     isTerminalOpen,
     toggleTerminal,
-    toggleSidebar
+    toggleSidebar,
+    toggleSidebarView
   } = useEditorStore()
 
   const { rootPath } = useWorkspaceStore()
+  const { branch, isGitRepo, stagedFiles, unstagedFiles, untrackedFiles } = useGitStore()
   const activeTab = tabs.find((t) => t.id === activeTabId)
+
+  const totalChanges = stagedFiles.length + unstagedFiles.length + untrackedFiles.length
+
+  const handleBranchClick = (): void => {
+    toggleSidebarView('git')
+  }
 
   return (
     <div className="h-6 w-full bg-cortex-panel border-t border-cortex-border flex items-center justify-between px-3 text-[11px] select-none text-cortex-muted shrink-0 z-40">
@@ -35,10 +44,26 @@ export const StatusBar: React.FC = () => {
           <Columns size={12} />
         </button>
 
-        <div className="flex items-center gap-1 text-cortex-accent font-medium">
-          <GitBranch size={12} />
-          <span>main</span>
-        </div>
+        {isGitRepo && branch ? (
+          <button
+            onClick={handleBranchClick}
+            title={`Git Branch: ${branch} (${totalChanges} uncommitted changes) - Click to open Source Control`}
+            className="flex items-center gap-1.5 text-cortex-accent font-medium hover:brightness-125 transition-all cursor-pointer"
+          >
+            <GitBranch size={12} />
+            <span>{branch}</span>
+            {totalChanges > 0 && (
+              <span className="px-1 py-0.2 rounded bg-cortex-surface text-cortex-accent font-mono text-[9px] border border-cortex-border">
+                {totalChanges}*
+              </span>
+            )}
+          </button>
+        ) : (
+          <div className="flex items-center gap-1 text-cortex-muted">
+            <GitBranch size={12} />
+            <span>no repo</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-1 text-[#5DD62C]">
           <CheckCircle2 size={12} />

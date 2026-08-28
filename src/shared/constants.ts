@@ -40,7 +40,17 @@ export const IPC_CHANNELS = {
   SETTINGS_OPEN: 'cortex:settings:open',
   SETTINGS_GET: 'cortex:settings:get',
   SETTINGS_UPDATE: 'cortex:settings:update',
-  SETTINGS_CHANGED: 'cortex:settings:changed'
+  SETTINGS_CHANGED: 'cortex:settings:changed',
+
+  // Git
+  GIT_STATUS: 'cortex:git:status',
+  GIT_BRANCH: 'cortex:git:branch',
+  GIT_STAGE: 'cortex:git:stage',
+  GIT_UNSTAGE: 'cortex:git:unstage',
+  GIT_STAGE_ALL: 'cortex:git:stageAll',
+  GIT_UNSTAGE_ALL: 'cortex:git:unstageAll',
+  GIT_DISCARD: 'cortex:git:discard',
+  GIT_COMMIT: 'cortex:git:commit'
 } as const
 
 export const EXTENSION_TO_LANGUAGE: Record<string, string> = {

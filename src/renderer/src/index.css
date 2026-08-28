@@ -2,15 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --cortex-bg: #0F0F0F;
+  --cortex-sidebar: #171717;
+  --cortex-panel: #202020;
+  --cortex-surface: #282828;
+  --cortex-border: #2F2F2F;
+  --cortex-active: #333333;
+  --cortex-text: #F8F8F8;
+  --cortex-muted: #8E8E8E;
+  --cortex-selection: #33741866;
+  --cortex-accent: #5DD62C;
+  --cortex-accent-hover: #4ec023;
+  --cortex-accent-glow: rgba(93, 214, 44, 0.35);
+}
+
 @layer base {
   * {
     box-sizing: border-box;
-    border-color: #2F2F2F;
+    border-color: var(--cortex-border, #2F2F2F);
   }
 
   body {
-    background-color: #0F0F0F;
-    color: #F8F8F8;
+    background-color: var(--cortex-bg, #0F0F0F);
+    color: var(--cortex-text, #F8F8F8);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     user-select: none;
     -webkit-font-smoothing: antialiased;
@@ -27,12 +42,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #2F2F2F;
+    background: var(--cortex-border, #2F2F2F);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #337418;
+    background: var(--cortex-accent, #5DD62C);
   }
 }
 
@@ -56,7 +71,7 @@
 
 /* Glass & Glow effects */
 .tab-active-glow {
-  box-shadow: inset 0 -2px 0 0 #5DD62C, 0 0 15px -3px rgba(93, 214, 44, 0.25);
+  box-shadow: inset 0 -2px 0 0 var(--cortex-accent, #5DD62C), 0 0 15px -3px var(--cortex-accent-glow, rgba(93, 214, 44, 0.25));
 }
 
 /* Markdown Rendered Body Styles */

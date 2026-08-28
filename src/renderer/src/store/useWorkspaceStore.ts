@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { FileNode } from '@shared/types'
+import { useGitStore } from './useGitStore'
 
 interface WorkspaceState {
   rootPath: string | null
@@ -54,6 +55,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         isLoading: false
       })
 
+      // Sync Git status for newly opened folder
+      useGitStore.getState().refreshGitStatus()
+
       return targetDir
     } catch (err) {
       console.error('Failed to open folder:', err)
@@ -79,6 +83,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     try {
       const rootNode = await window.cortexAPI.readDirectory(rootPath)
       set({ rootNode })
+      useGitStore.getState().refreshGitStatus()
     } catch (err) {
       console.error('Failed to refresh tree:', err)
     }
@@ -118,6 +123,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       await get().refreshTree()
       get().setExpanded(parentPath, true)
       set({ creatingItem: null, selectedPath: newFilePath })
+      useGitStore.getState().refreshGitStatus()
       return newFilePath
     } catch (err) {
       console.error('Failed to create file:', err)
@@ -133,6 +139,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       await get().refreshTree()
       get().setExpanded(parentPath, true)
       set({ creatingItem: null })
+      useGitStore.getState().refreshGitStatus()
       return true
     } catch (err) {
       console.error('Failed to create folder:', err)
@@ -151,6 +158,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       await window.cortexAPI.renamePath(oldPath, newPath)
       await get().refreshTree()
       set({ renamingPath: null, selectedPath: newPath })
+      useGitStore.getState().refreshGitStatus()
       return newPath
     } catch (err) {
       console.error('Failed to rename item:', err)
@@ -165,6 +173,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       if (get().selectedPath === targetPath) {
         set({ selectedPath: null })
       }
+      useGitStore.getState().refreshGitStatus()
       return true
     } catch (err) {
       console.error('Failed to delete item:', err)
@@ -174,7 +183,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   initWatcher: () => {
     return window.cortexAPI.onFileChange((_event) => {
-      // Refresh file tree on watcher change
+      // Refresh file tree & git on watcher change
       get().refreshTree()
     })
   }

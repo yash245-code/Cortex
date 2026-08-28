@@ -93,6 +93,11 @@ export function useKeyboardShortcuts(): void {
         e.preventDefault()
         toggleSidebarView('search')
       }
+      // Source Control (Git): Ctrl+Shift+G
+      else if (e.key.toLowerCase() === 'g' && e.shiftKey) {
+        e.preventDefault()
+        toggleSidebarView('git')
+      }
       // Explorer: Ctrl+Shift+E
       else if (e.key.toLowerCase() === 'e' && e.shiftKey) {
         e.preventDefault()

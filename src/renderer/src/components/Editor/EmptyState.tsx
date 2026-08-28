@@ -1,6 +1,5 @@
 import React from 'react'
 import {
-  FileCode2,
   FolderOpen,
   FilePlus,
   Terminal,
@@ -8,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useWorkspaceStore } from '../../store/useWorkspaceStore'
 import { useEditorStore } from '../../store/useEditorStore'
+import { CortexLogo } from '../common/CortexLogo'
 
 export const EmptyState: React.FC = () => {
   const { openFolder, openFileDirectly, rootPath, setCreatingItem } = useWorkspaceStore()
@@ -31,11 +31,9 @@ export const EmptyState: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-cortex-bg select-none p-6">
       <div className="flex flex-col items-center max-w-md w-full text-center">
-        {/* Glow & Logo */}
-        <div className="relative mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-cortex-accent/15 border border-cortex-accent/35 flex items-center justify-center text-cortex-accent shadow-2xl accent-glow">
-            <FileCode2 size={32} />
-          </div>
+        {/* Logo */}
+        <div className="relative mb-6 flex items-center justify-center">
+          <CortexLogo size={96} className="drop-shadow-xl hover:scale-105 transition-transform duration-300" />
         </div>
 
         <h1 className="text-xl font-bold bg-gradient-to-r from-white via-[#bdf59e] to-cortex-accent bg-clip-text text-transparent mb-2 tracking-tight">

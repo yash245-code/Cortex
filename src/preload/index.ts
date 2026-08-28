@@ -130,7 +130,25 @@ const api: CortexAPI = {
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.SETTINGS_CHANGED, subscription)
     }
-  }
+  },
+
+  // Git Source Control
+  gitGetStatus: (workspacePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_STATUS, workspacePath),
+  gitGetBranch: (workspacePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_BRANCH, workspacePath),
+  gitStage: (workspacePath: string, relativePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE, workspacePath, relativePath),
+  gitUnstage: (workspacePath: string, relativePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE, workspacePath, relativePath),
+  gitStageAll: (workspacePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_ALL, workspacePath),
+  gitUnstageAll: (workspacePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_ALL, workspacePath),
+  gitDiscard: (workspacePath: string, relativePath: string, isUntracked?: boolean) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD, workspacePath, relativePath, isUntracked),
+  gitCommit: (workspacePath: string, message: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message)
 }
 
 try {

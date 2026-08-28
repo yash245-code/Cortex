@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Minus, Square, X, Copy, FileCode2, Search } from 'lucide-react'
+import { Minus, Square, X, Copy, Search } from 'lucide-react'
 import { useEditorStore } from '../store/useEditorStore'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
 import { MenuBar } from './TitleBar/MenuBar'
+import { CortexLogo } from './common/CortexLogo'
 
 export const TitleBar: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false)
@@ -49,19 +50,14 @@ export const TitleBar: React.FC = () => {
   }
 
   return (
-    <div className="h-9 w-full bg-cortex-sidebar border-b border-cortex-border flex items-center justify-between px-3 select-none draggable-region z-50">
+    <div className="h-11 w-full bg-cortex-sidebar border-b border-cortex-border flex items-center justify-between px-3 select-none draggable-region z-50">
       {/* Left section: Logo and Full Desktop Menu Bar */}
       <div className="flex items-center gap-2 non-draggable">
-        <div className="flex items-center gap-1.5 font-bold tracking-wide text-xs text-cortex-accent pr-1">
-          <div className="w-5 h-5 rounded bg-cortex-accent/15 border border-cortex-accent/30 flex items-center justify-center text-cortex-accent shadow-sm">
-            <FileCode2 size={13} className="stroke-[2.5]" />
-          </div>
-          <span className="bg-gradient-to-r from-[#5DD62C] via-[#9ee87f] to-white bg-clip-text text-transparent font-semibold tracking-wider">
-            CORTEX
-          </span>
+        <div className="flex items-center pr-1 pl-0.5" title="Cortex">
+          <CortexLogo size={52} className="hover:scale-105 transition-transform" />
         </div>
 
-        <div className="h-3 w-[1px] bg-cortex-border mx-0.5" />
+        <div className="h-4 w-[1px] bg-cortex-border mx-0.5" />
 
         {/* File, Edit, View, Run, Terminal, Help Menus */}
         <MenuBar />
@@ -86,21 +82,21 @@ export const TitleBar: React.FC = () => {
       <div className="flex items-center non-draggable">
         <button
           onClick={handleMinimize}
-          className="h-9 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors"
+          className="h-11 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors"
           title="Minimize"
         >
           <Minus size={13} />
         </button>
         <button
           onClick={handleMaximize}
-          className="h-9 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors"
+          className="h-11 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors"
           title={isMaximized ? 'Restore' : 'Maximize'}
         >
           {isMaximized ? <Copy size={11} className="rotate-180" /> : <Square size={11} />}
         </button>
         <button
           onClick={handleClose}
-          className="h-9 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-red-600 transition-colors"
+          className="h-11 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-red-600 transition-colors"
           title="Close"
         >
           <X size={14} />

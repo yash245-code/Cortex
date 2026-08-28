@@ -6,6 +6,7 @@ import { useEditorStore } from '../../store/useEditorStore'
 import { MarkdownPreview } from './MarkdownPreview'
 
 import { registerLanguageSnippets } from '../../services/snippetService'
+import { registerMonacoThemes } from '../../theme/themeRegistry'
 
 // Ensure Monaco Editor is loaded from the local npm package, not external CDN
 loader.config({ monaco })
@@ -44,34 +45,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     // Register language snippet providers (HTML, JS, TS, Python, CSS, etc.)
     registerLanguageSnippets()
 
-    // Define custom sleek dark theme matching Cortex styling
-    monacoInstance.editor.defineTheme('cortex-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '666666', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '5dd62c', fontStyle: 'bold' },
-        { token: 'identifier', foreground: 'f8f8f8' },
-        { token: 'string', foreground: 'a3e635' },
-        { token: 'number', foreground: '86efac' },
-        { token: 'type', foreground: '4ade80' },
-        { token: 'function', foreground: 'bef264' },
-        { token: 'operator', foreground: '5dd62c' }
-      ],
-      colors: {
-        'editor.background': '#0F0F0F',
-        'editor.foreground': '#F8F8F8',
-        'editor.lineHighlightBackground': '#181818',
-        'editor.selectionBackground': '#33741866',
-        'editorCursor.foreground': '#5DD62C',
-        'editorWhitespace.foreground': '#242424',
-        'editorIndentGuide.background': '#202020',
-        'editorIndentGuide.activeBackground': '#337418',
-        'editorLineNumber.foreground': '#555555',
-        'editorLineNumber.activeForeground': '#5DD62C',
-        'editorGutter.background': '#0F0F0F'
-      }
-    })
+    // Register all curated themes (Tokyo Night, Catppuccin, Dracula, One Dark, GitHub, Cortex Cyber)
+    registerMonacoThemes(monacoInstance)
   }
 
   const handleEditorDidMount: OnMount = (editorInstance, monacoInstance) => {
@@ -192,8 +167,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
   return (
     <div className="flex-1 w-full h-full relative overflow-hidden bg-cortex-bg">
       <Editor
-        key={activeTab.id}
-        theme="cortex-dark"
+        key={`${activeTab.id}-${settings.theme}`}
+        theme={settings.theme || 'cortex-cyber'}
         language={activeTab.language}
         value={activeTab.content}
         onChange={handleContentChange}

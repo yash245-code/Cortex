@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { Tab, EditorSettings, TerminalSession, ShellType } from '@shared/types'
 import { getLanguageForFile } from '@shared/constants'
+import { useGitStore } from './useGitStore'
+import { applyThemeAndAccent } from '../theme/themeRegistry'
 
 interface EditorState {
   tabs: Tab[]
@@ -14,9 +16,9 @@ interface EditorState {
   activeTerminalId: string
   isSidebarOpen: boolean
   sidebarWidth: number
-  activeSidebarView: 'explorer' | 'search' | 'settings' | null
+  activeSidebarView: 'explorer' | 'search' | 'git' | 'settings' | null
   isPaletteOpen: boolean
-  paletteMode: 'files' | 'commands'
+  paletteMode: 'files' | 'commands' | 'themes' | 'accents'
   isAboutModalOpen: boolean
   isSplitEditorOpen: boolean
   splitRatio: number
@@ -52,12 +54,12 @@ interface EditorState {
   toggleMarkdownPreview: () => void
   setMarkdownPreviewOpen: (open: boolean) => void
   toggleSidebar: () => void
-  toggleSidebarView: (view: 'explorer' | 'search' | 'settings') => void
-  setActiveSidebarView: (view: 'explorer' | 'search' | 'settings' | null) => void
+  toggleSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings') => void
+  setActiveSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings' | null) => void
   setSidebarWidth: (width: number) => void
-  openPalette: (mode?: 'files' | 'commands') => void
+  openPalette: (mode?: 'files' | 'commands' | 'themes' | 'accents') => void
   closePalette: () => void
-  togglePalette: (mode?: 'files' | 'commands') => void
+  togglePalette: (mode?: 'files' | 'commands' | 'themes' | 'accents') => void
   setAboutModalOpen: (open: boolean) => void
   openSettingsWindow: () => void
   initSettingsSync: () => () => void
@@ -82,7 +84,8 @@ const getDefaultSettings = (): EditorSettings => {
     tabSize: 2,
     wordWrap: 'on',
     minimap: true,
-    theme: 'vs-dark',
+    theme: 'cortex-cyber',
+    accentColor: '#5DD62C',
     autoSave: true,
     autoSaveDelay: 5000,
     lineHeight: 22,
@@ -104,11 +107,16 @@ const getDefaultSettings = (): EditorSettings => {
     try {
       const saved = localStorage.getItem('cortex_editor_settings')
       if (saved) {
-        return { ...defaults, ...JSON.parse(saved) }
+        const parsed = { ...defaults, ...JSON.parse(saved) }
+        // Ensure theme exists
+        if (parsed.theme === 'vs-dark') parsed.theme = 'cortex-cyber'
+        applyThemeAndAccent(parsed.theme, parsed.accentColor)
+        return parsed
       }
     } catch {
       // ignore
     }
+    applyThemeAndAccent(defaults.theme, defaults.accentColor)
   }
   return defaults
 }
@@ -310,6 +318,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         tabs: tabs.map(markSaved),
         pane2Tabs: pane2Tabs.map(markSaved)
       })
+      useGitStore.getState().refreshGitStatus()
       return true
     } catch (err) {
       console.error(`Failed to save tab ${tab.path}:`, err)
@@ -506,7 +515,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         activeSidebarView: willBeOpen ? state.activeSidebarView || 'explorer' : null
       }
     }),
-  toggleSidebarView: (view: 'explorer' | 'search' | 'settings') =>
+  toggleSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings') =>
     set((state) => {
       if (state.isSidebarOpen && state.activeSidebarView === view) {
         return { isSidebarOpen: false, activeSidebarView: null }
@@ -547,6 +556,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           } catch {
             // ignore
           }
+          applyThemeAndAccent(next.theme, next.accentColor)
           return { settings: next }
         })
       })
@@ -562,6 +572,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       } catch {
         // ignore
       }
+      applyThemeAndAccent(next.theme, next.accentColor)
       return { settings: next }
     })
     if (typeof window !== 'undefined' && window.cortexAPI?.updateSettings) {

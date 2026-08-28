@@ -3,6 +3,7 @@ import { IPC_CHANNELS } from '../shared/constants'
 import { fileService } from './services/fileService'
 import { terminalService } from './services/terminalService'
 import { SearchService } from './services/searchService'
+import { gitService } from './services/gitService'
 import { SearchOptions } from '../shared/types'
 
 const searchService = new SearchService()
@@ -166,6 +167,51 @@ export function registerIpcHandlers(
       options?: SearchOptions
     ) => {
       return await searchService.replaceAll(workspacePath, query, replaceText, options)
+    }
+  )
+
+  // Git Handlers
+  ipcMain.handle(IPC_CHANNELS.GIT_STATUS, async (_, workspacePath: string) => {
+    return await gitService.getStatus(workspacePath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_BRANCH, async (_, workspacePath: string) => {
+    return await gitService.getBranch(workspacePath)
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_STAGE,
+    async (_, workspacePath: string, relativePath: string) => {
+      return await gitService.stageFile(workspacePath, relativePath)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_UNSTAGE,
+    async (_, workspacePath: string, relativePath: string) => {
+      return await gitService.unstageFile(workspacePath, relativePath)
+    }
+  )
+
+  ipcMain.handle(IPC_CHANNELS.GIT_STAGE_ALL, async (_, workspacePath: string) => {
+    return await gitService.stageAll(workspacePath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_UNSTAGE_ALL, async (_, workspacePath: string) => {
+    return await gitService.unstageAll(workspacePath)
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_DISCARD,
+    async (_, workspacePath: string, relativePath: string, isUntracked?: boolean) => {
+      return await gitService.discardFile(workspacePath, relativePath, isUntracked)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_COMMIT,
+    async (_, workspacePath: string, message: string) => {
+      return await gitService.commit(workspacePath, message)
     }
   )
 }

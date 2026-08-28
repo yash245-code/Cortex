@@ -10,10 +10,15 @@ import {
   File,
   CornerDownLeft,
   ArrowUpDown,
-  X
+  X,
+  Palette,
+  Sparkles,
+  Check
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { useWorkspaceStore } from '../../store/useWorkspaceStore'
+import { useGitStore } from '../../store/useGitStore'
+import { THEMES, ACCENT_COLORS } from '../../theme/themeRegistry'
 import {
   flattenFileTree,
   fuzzyMatch,
@@ -89,10 +94,12 @@ export const CommandPalette: React.FC = () => {
   const {
     isPaletteOpen,
     paletteMode,
+    openPalette,
     closePalette,
     openTab,
     toggleTerminal,
     toggleSidebar,
+    toggleSidebarView,
     saveActiveTab,
     saveAllTabs,
     closeTab,
@@ -103,7 +110,9 @@ export const CommandPalette: React.FC = () => {
     decreaseFontSize,
     toggleMinimap,
     toggleWordWrap,
-    openSettingsWindow
+    openSettingsWindow,
+    settings,
+    updateSettings
   } = useEditorStore()
 
   const {
@@ -115,6 +124,8 @@ export const CommandPalette: React.FC = () => {
     setCreatingItem
   } = useWorkspaceStore()
 
+  const { refreshGitStatus, stageAll } = useGitStore()
+
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -123,7 +134,11 @@ export const CommandPalette: React.FC = () => {
   // Auto-focus input when opened & initialize query based on mode
   useEffect(() => {
     if (isPaletteOpen) {
-      setQuery(paletteMode === 'commands' ? '>' : '')
+      if (paletteMode === 'commands') {
+        setQuery('>')
+      } else {
+        setQuery('')
+      }
       setSelectedIndex(0)
       setTimeout(() => {
         inputRef.current?.focus()
@@ -136,9 +151,57 @@ export const CommandPalette: React.FC = () => {
     return flattenFileTree(rootNode, rootPath)
   }, [rootNode, rootPath])
 
+  // Theme list items
+  const themeItems = useMemo(() => {
+    return Object.values(THEMES).map((theme) => ({
+      id: theme.id,
+      name: theme.name,
+      description: theme.description,
+      type: theme.type,
+      preview: theme.previewColors
+    }))
+  }, [])
+
+  // Accent list items
+  const accentItems = useMemo(() => {
+    return ACCENT_COLORS
+  }, [])
+
   // Build command registry
   const allCommands = useMemo<EditorCommand[]>(() => {
-    return [
+    const list: EditorCommand[] = [
+      {
+        id: 'preferences.colorTheme',
+        title: 'Preferences: Color Theme',
+        category: 'Preferences',
+        shortcut: 'Ctrl+K Ctrl+T',
+        action: () => openPalette('themes')
+      },
+      {
+        id: 'preferences.accentColor',
+        title: 'Preferences: Accent Color',
+        category: 'Preferences',
+        action: () => openPalette('accents')
+      },
+      {
+        id: 'view.sourceControl',
+        title: 'View: Show Source Control (Git)',
+        category: 'View',
+        shortcut: 'Ctrl+Shift+G',
+        action: () => toggleSidebarView('git')
+      },
+      {
+        id: 'git.refresh',
+        title: 'Git: Refresh Status',
+        category: 'Git',
+        action: () => refreshGitStatus()
+      },
+      {
+        id: 'git.stageAll',
+        title: 'Git: Stage All Changes',
+        category: 'Git',
+        action: () => stageAll()
+      },
       {
         id: 'view.toggleTerminal',
         title: 'View: Toggle Integrated Terminal',
@@ -252,27 +315,25 @@ export const CommandPalette: React.FC = () => {
         category: 'Preferences',
         shortcut: 'Ctrl+,',
         action: () => openSettingsWindow()
-      },
-      {
-        id: 'window.minimize',
-        title: 'Window: Minimize',
-        category: 'Window',
-        action: () => window.cortexAPI?.minimizeWindow()
-      },
-      {
-        id: 'window.maximize',
-        title: 'Window: Maximize / Restore',
-        category: 'Window',
-        action: () => window.cortexAPI?.maximizeWindow()
-      },
-      {
-        id: 'window.close',
-        title: 'Window: Close Application',
-        category: 'Window',
-        action: () => window.cortexAPI?.closeWindow()
       }
     ]
+
+    // Append direct theme switcher commands
+    Object.values(THEMES).forEach((t) => {
+      list.push({
+        id: `theme.${t.id}`,
+        title: `Theme: ${t.name}`,
+        category: 'Theme',
+        action: () => updateSettings({ theme: t.id })
+      })
+    })
+
+    return list
   }, [
+    openPalette,
+    toggleSidebarView,
+    refreshGitStatus,
+    stageAll,
     openSettingsWindow,
     toggleTerminal,
     toggleSidebar,
@@ -291,16 +352,19 @@ export const CommandPalette: React.FC = () => {
     increaseFontSize,
     decreaseFontSize,
     toggleMinimap,
-    toggleWordWrap
+    toggleWordWrap,
+    updateSettings
   ])
 
   // Determine current active search mode
-  const isCommandMode = query.startsWith('>')
-  const searchFilter = isCommandMode ? query.slice(1).trim() : query.trim()
+  const isCommandMode = paletteMode === 'commands' || query.startsWith('>')
+  const isThemeMode = paletteMode === 'themes'
+  const isAccentMode = paletteMode === 'accents'
+  const searchFilter = isCommandMode ? query.replace(/^>/, '').trim() : query.trim()
 
   // Filter and score results
   const filteredFiles = useMemo(() => {
-    if (isCommandMode) return []
+    if (isCommandMode || isThemeMode || isAccentMode) return []
     if (!searchFilter) {
       return fileItems.slice(0, 50).map((file) => ({
         item: file,
@@ -323,7 +387,7 @@ export const CommandPalette: React.FC = () => {
     return scored
       .sort((a, b) => b.score - a.score)
       .slice(0, 50)
-  }, [isCommandMode, searchFilter, fileItems])
+  }, [isCommandMode, isThemeMode, isAccentMode, searchFilter, fileItems])
 
   const filteredCommands = useMemo(() => {
     if (!isCommandMode) return []
@@ -351,12 +415,36 @@ export const CommandPalette: React.FC = () => {
       .slice(0, 30)
   }, [isCommandMode, searchFilter, allCommands])
 
-  const totalItemsCount = isCommandMode ? filteredCommands.length : filteredFiles.length
+  const filteredThemes = useMemo(() => {
+    if (!isThemeMode) return []
+    if (!searchFilter) return themeItems
+    return themeItems.filter(
+      (t) =>
+        t.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        t.description.toLowerCase().includes(searchFilter.toLowerCase())
+    )
+  }, [isThemeMode, searchFilter, themeItems])
+
+  const filteredAccents = useMemo(() => {
+    if (!isAccentMode) return []
+    if (!searchFilter) return accentItems
+    return accentItems.filter((a) =>
+      a.name.toLowerCase().includes(searchFilter.toLowerCase())
+    )
+  }, [isAccentMode, searchFilter, accentItems])
+
+  const totalItemsCount = isThemeMode
+    ? filteredThemes.length
+    : isAccentMode
+    ? filteredAccents.length
+    : isCommandMode
+    ? filteredCommands.length
+    : filteredFiles.length
 
   // Ensure selectedIndex stays valid when list changes
   useEffect(() => {
     setSelectedIndex(0)
-  }, [query])
+  }, [query, paletteMode])
 
   // Scroll active item into view
   useEffect(() => {
@@ -371,7 +459,19 @@ export const CommandPalette: React.FC = () => {
   const executeSelected = useCallback(async (): Promise<void> => {
     if (totalItemsCount === 0) return
 
-    if (isCommandMode) {
+    if (isThemeMode) {
+      const theme = filteredThemes[selectedIndex]
+      if (theme) {
+        updateSettings({ theme: theme.id })
+        closePalette()
+      }
+    } else if (isAccentMode) {
+      const accent = filteredAccents[selectedIndex]
+      if (accent) {
+        updateSettings({ accentColor: accent.color })
+        closePalette()
+      }
+    } else if (isCommandMode) {
       const cmd = filteredCommands[selectedIndex]?.item
       if (cmd) {
         closePalette()
@@ -386,10 +486,15 @@ export const CommandPalette: React.FC = () => {
     }
   }, [
     totalItemsCount,
+    isThemeMode,
+    isAccentMode,
     isCommandMode,
+    filteredThemes,
+    filteredAccents,
     filteredCommands,
     filteredFiles,
     selectedIndex,
+    updateSettings,
     closePalette,
     openTab
   ])
@@ -422,13 +527,17 @@ export const CommandPalette: React.FC = () => {
       onClick={closePalette}
     >
       <div
-        className="w-full max-w-xl bg-cortex-panel border border-cortex-border rounded-xl shadow-2xl overflow-hidden flex flex-col accent-glow animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-xl bg-cortex-panel border border-cortex-border rounded-xl shadow-2xl overflow-hidden flex flex-col tab-active-glow animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Input Bar */}
         <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-cortex-surface/70 border-b border-cortex-border">
-          {isCommandMode ? (
+          {isThemeMode ? (
+            <Palette size={17} className="text-cortex-accent shrink-0" />
+          ) : isAccentMode ? (
+            <Sparkles size={17} className="text-cortex-accent shrink-0" />
+          ) : isCommandMode ? (
             <Terminal size={17} className="text-cortex-accent shrink-0 animate-pulse" />
           ) : (
             <Search size={17} className="text-cortex-accent shrink-0" />
@@ -440,7 +549,11 @@ export const CommandPalette: React.FC = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={
-              isCommandMode
+              isThemeMode
+                ? 'Select Color Theme...'
+                : isAccentMode
+                ? 'Select Accent Color...'
+                : isCommandMode
                 ? 'Type a command to run...'
                 : 'Type the name of a file to open (type > for commands)...'
             }
@@ -462,8 +575,90 @@ export const CommandPalette: React.FC = () => {
         >
           {totalItemsCount === 0 ? (
             <div className="py-8 text-center text-xs text-cortex-muted italic">
-              {isCommandMode ? 'No matching commands found' : 'No matching files found in workspace'}
+              {isThemeMode
+                ? 'No matching themes found'
+                : isAccentMode
+                ? 'No matching accents found'
+                : isCommandMode
+                ? 'No matching commands found'
+                : 'No matching files found in workspace'}
             </div>
+          ) : isThemeMode ? (
+            filteredThemes.map((theme, idx) => {
+              const isActive = idx === selectedIndex
+              const isCurrent = settings.theme === theme.id
+              return (
+                <div
+                  key={theme.id}
+                  data-active={isActive}
+                  onClick={() => {
+                    setSelectedIndex(idx)
+                    executeSelected()
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
+                    isActive
+                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
+                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 p-1 rounded bg-cortex-bg border border-cortex-border">
+                      <span
+                        style={{ backgroundColor: theme.preview.bg }}
+                        className="w-3 h-3 rounded-full border border-cortex-border"
+                      />
+                      <span
+                        style={{ backgroundColor: theme.preview.accent }}
+                        className="w-3 h-3 rounded-full shadow"
+                      />
+                    </div>
+                    <div>
+                      <div className="font-semibold flex items-center gap-1.5">
+                        <span>{theme.name}</span>
+                        {isCurrent && <Check size={12} className="text-cortex-accent" />}
+                      </div>
+                      <div className="text-[11px] text-cortex-muted">{theme.description}</div>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-cortex-panel text-cortex-muted border border-cortex-border">
+                    {theme.type}
+                  </span>
+                </div>
+              )
+            })
+          ) : isAccentMode ? (
+            filteredAccents.map((accent, idx) => {
+              const isActive = idx === selectedIndex
+              const isCurrent = settings.accentColor === accent.color
+              return (
+                <div
+                  key={accent.id}
+                  data-active={isActive}
+                  onClick={() => {
+                    setSelectedIndex(idx)
+                    executeSelected()
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
+                    isActive
+                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
+                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      style={{ backgroundColor: accent.color }}
+                      className="w-4 h-4 rounded-full border border-white/20 shadow-md"
+                    />
+                    <span className="font-semibold">{accent.name}</span>
+                    {isCurrent && <Check size={12} className="text-cortex-accent" />}
+                  </div>
+                  <span className="font-mono text-[10px] text-cortex-muted">{accent.color}</span>
+                </div>
+              )
+            })
           ) : isCommandMode ? (
             filteredCommands.map((itemObj, idx) => {
               const isActive = idx === selectedIndex
@@ -525,9 +720,14 @@ export const CommandPalette: React.FC = () => {
                     <span className="truncate font-medium">
                       <HighlightedText
                         text={fileObj.item.name}
-                        matchedIndices={fileObj.matchedIndices.filter(
-                          (i) => i >= fileObj.item.relativePath.length - fileObj.item.name.length
-                        ).map((i) => i - (fileObj.item.relativePath.length - fileObj.item.name.length))}
+                        matchedIndices={fileObj.matchedIndices
+                          .filter(
+                            (i) => i >= fileObj.item.relativePath.length - fileObj.item.name.length
+                          )
+                          .map(
+                            (i) =>
+                              i - (fileObj.item.relativePath.length - fileObj.item.name.length)
+                          )}
                       />
                     </span>
                   </div>
@@ -550,18 +750,25 @@ export const CommandPalette: React.FC = () => {
             </span>
             <span className="flex items-center gap-1">
               <CornerDownLeft size={11} className="text-cortex-accent" />
-              Open
+              Select
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            {!isCommandMode && (
+            {!isCommandMode && !isThemeMode && !isAccentMode && (
               <span className="text-cortex-muted">
                 Type <kbd className="px-1 py-0.2 rounded bg-cortex-surface text-cortex-accent border border-cortex-border font-mono">&gt;</kbd> for commands
               </span>
             )}
             <span className="text-[10px]">
-              {totalItemsCount} {isCommandMode ? 'commands' : 'files'}
+              {totalItemsCount}{' '}
+              {isThemeMode
+                ? 'themes'
+                : isAccentMode
+                ? 'accents'
+                : isCommandMode
+                ? 'commands'
+                : 'files'}
             </span>
           </div>
         </div>
