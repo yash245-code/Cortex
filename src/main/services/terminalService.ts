@@ -4,7 +4,7 @@ import * as fsSync from 'fs'
 import * as path from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { IPC_CHANNELS } from '../../shared/constants'
-import { TerminalDataPayload } from '../../shared/types'
+import { TerminalDataPayload, ShellProfile } from '../../shared/types'
 
 interface ITerminalInstance {
   write: (data: string) => void
@@ -14,10 +14,120 @@ interface ITerminalInstance {
 
 export class TerminalService {
   private terminals = new Map<string, ITerminalInstance>()
+  private pendingWrites = new Map<string, string[]>()
   private mainWindow: BrowserWindow | null = null
 
   public setMainWindow(window: BrowserWindow): void {
     this.mainWindow = window
+  }
+
+  public getAvailableShells(): ShellProfile[] {
+    const isWindows = os.platform() === 'win32'
+    const shells: ShellProfile[] = []
+
+    if (isWindows) {
+      // 1. Check PowerShell 7 / Core
+      const pwshCandidates = [
+        path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe'),
+        path.join(process.env.LOCALAPPDATA || '', 'Programs', 'PowerShell', '7', 'pwsh.exe')
+      ]
+      let foundPwsh = false
+      for (const p of pwshCandidates) {
+        if (fsSync.existsSync(p)) {
+          shells.push({
+            id: 'pwsh',
+            name: 'PowerShell 7',
+            shell: 'powershell',
+            path: p,
+            description: 'PowerShell Core 7 (Modern, Cross-Platform)',
+            iconType: 'powershell'
+          })
+          foundPwsh = true
+          break
+        }
+      }
+
+      // 2. Windows PowerShell (Built-in)
+      const winPsPath = process.env.SystemRoot
+        ? `${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
+        : 'powershell.exe'
+      shells.push({
+        id: 'powershell',
+        name: foundPwsh ? 'Windows PowerShell' : 'PowerShell',
+        shell: 'powershell',
+        path: winPsPath,
+        description: 'Default Windows PowerShell',
+        iconType: 'powershell'
+      })
+
+      // 3. Command Prompt
+      const cmdPath = process.env.COMSPEC || `${process.env.SystemRoot || 'C:\\Windows'}\\System32\\cmd.exe`
+      shells.push({
+        id: 'cmd',
+        name: 'Command Prompt',
+        shell: 'cmd',
+        path: cmdPath,
+        description: 'Windows CMD Shell',
+        iconType: 'cmd'
+      })
+
+      // 4. Git Bash
+      const gitBashCandidates = [
+        'C:\\Program Files\\Git\\bin\\bash.exe',
+        'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+        path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe')
+      ]
+      for (const candidate of gitBashCandidates) {
+        if (fsSync.existsSync(candidate)) {
+          shells.push({
+            id: 'git-bash',
+            name: 'Git Bash',
+            shell: 'bash',
+            path: candidate,
+            description: 'Bash for Windows with Git tools',
+            iconType: 'bash'
+          })
+          break
+        }
+      }
+
+      // 5. WSL (Windows Subsystem for Linux)
+      const wslPath = `${process.env.SystemRoot || 'C:\\Windows'}\\System32\\wsl.exe`
+      if (fsSync.existsSync(wslPath)) {
+        shells.push({
+          id: 'wsl',
+          name: 'WSL / Ubuntu',
+          shell: 'wsl',
+          path: wslPath,
+          description: 'Windows Subsystem for Linux',
+          iconType: 'wsl'
+        })
+      }
+    } else {
+      // macOS / Linux
+      if (fsSync.existsSync('/bin/zsh')) {
+        shells.push({
+          id: 'zsh',
+          name: 'Zsh',
+          shell: 'bash',
+          path: '/bin/zsh',
+          description: 'Z Shell',
+          iconType: 'bash'
+        })
+      }
+      if (fsSync.existsSync('/bin/bash')) {
+        shells.push({
+          id: 'bash',
+          name: 'Bash',
+          shell: 'bash',
+          path: '/bin/bash',
+          description: 'Bourne Again Shell',
+          iconType: 'bash'
+        })
+      }
+    }
+
+    return shells
   }
 
   private resolveShell(shellType?: string): { shell: string; args: string[] } {
@@ -32,7 +142,7 @@ export class TerminalService {
     }
 
     if (type === 'cmd') {
-      return { shell: process.env.COMSPEC || 'cmd.exe', args: [] }
+      return { shell: process.env.COMSPEC || 'cmd.exe', args: ['/K'] }
     }
 
     if (type === 'bash' || type === 'git-bash') {
@@ -54,6 +164,18 @@ export class TerminalService {
       return { shell: 'wsl.exe', args: [] }
     }
 
+    if (type === 'pwsh') {
+      const pwshCandidates = [
+        path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe'),
+        path.join(process.env.LOCALAPPDATA || '', 'Programs', 'PowerShell', '7', 'pwsh.exe')
+      ]
+      for (const p of pwshCandidates) {
+        if (fsSync.existsSync(p)) {
+          return { shell: p, args: ['-NoLogo'] }
+        }
+      }
+    }
+
     // Default to PowerShell
     return {
       shell: process.env.SystemRoot
@@ -66,7 +188,7 @@ export class TerminalService {
   public async createTerminal(id: string, cwd?: string, shellType?: string): Promise<boolean> {
     this.killTerminal(id)
 
-    const workingDirectory = cwd || os.homedir()
+    const workingDirectory = cwd && fsSync.existsSync(cwd) ? cwd : os.homedir()
     const { shell: resolvedShell, args: shellArgs } = this.resolveShell(shellType)
 
     // 1. Try spawning with node-pty first
@@ -82,20 +204,19 @@ export class TerminalService {
         env: process.env as Record<string, string>
       })
 
-      ptyProcess.onData((data: string) => {
-        this.sendData(id, data)
-      })
-
-      ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
-        this.terminals.delete(id)
-        this.sendExit(id, exitCode)
-      })
-
-      this.terminals.set(id, {
-        write: (data: string) => ptyProcess.write(data),
+      const instance: ITerminalInstance = {
+        write: (data: string) => {
+          try {
+            ptyProcess.write(data)
+          } catch {
+            // ignore
+          }
+        },
         resize: (cols: number, rows: number) => {
           try {
-            ptyProcess.resize(cols, rows)
+            if (cols >= 2 && rows >= 2 && !isNaN(cols) && !isNaN(rows)) {
+              ptyProcess.resize(Math.floor(cols), Math.floor(rows))
+            }
           } catch {
             // ignore resize failure
           }
@@ -107,7 +228,31 @@ export class TerminalService {
             // ignore
           }
         }
+      }
+
+      this.terminals.set(id, instance)
+
+      ptyProcess.onData((data: string) => {
+        this.sendData(id, data)
       })
+
+      ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
+        // Only clean up if this instance is still the active one
+        if (this.terminals.get(id) === instance) {
+          this.terminals.delete(id)
+          this.pendingWrites.delete(id)
+          this.sendExit(id, exitCode)
+        }
+      })
+
+      // Flush any pending keystrokes queued before process finished spawning
+      const queued = this.pendingWrites.get(id)
+      if (queued && queued.length > 0) {
+        for (const data of queued) {
+          instance.write(data)
+        }
+        this.pendingWrites.delete(id)
+      }
 
       return true
     } catch (nodePtyErr) {
@@ -116,7 +261,11 @@ export class TerminalService {
 
     // 2. Fallback to child_process interactive shell
     try {
-      const proc: ChildProcess = spawn(resolvedShell, shellArgs, {
+      const fallbackArgs = resolvedShell.toLowerCase().includes('powershell')
+        ? ['-NoLogo', '-NoExit', '-Command', '-']
+        : shellArgs
+
+      const proc: ChildProcess = spawn(resolvedShell, fallbackArgs, {
         cwd: workingDirectory,
         env: {
           ...process.env,
@@ -126,23 +275,14 @@ export class TerminalService {
         stdio: ['pipe', 'pipe', 'pipe']
       })
 
-      proc.stdout?.on('data', (data: Buffer) => {
-        this.sendData(id, data.toString('utf-8'))
-      })
-
-      proc.stderr?.on('data', (data: Buffer) => {
-        this.sendData(id, data.toString('utf-8'))
-      })
-
-      proc.on('exit', (code: number | null) => {
-        this.terminals.delete(id)
-        this.sendExit(id, code ?? 0)
-      })
-
-      this.terminals.set(id, {
+      const instance: ITerminalInstance = {
         write: (data: string) => {
-          if (proc.stdin && !proc.stdin.destroyed) {
-            proc.stdin.write(data)
+          try {
+            if (proc.stdin && !proc.stdin.destroyed) {
+              proc.stdin.write(data)
+            }
+          } catch {
+            // ignore
           }
         },
         resize: () => {
@@ -155,10 +295,37 @@ export class TerminalService {
             // ignore
           }
         }
+      }
+
+      this.terminals.set(id, instance)
+
+      proc.stdout?.on('data', (data: Buffer) => {
+        this.sendData(id, data.toString('utf-8'))
       })
 
-      // Send initial welcome/cwd notice
-      this.sendData(id, `\x1b[38;2;99;102;241m[Cortex Terminal - Ready at ${workingDirectory}]\x1b[0m\r\n`)
+      proc.stderr?.on('data', (data: Buffer) => {
+        this.sendData(id, data.toString('utf-8'))
+      })
+
+      proc.on('exit', (code: number | null) => {
+        if (this.terminals.get(id) === instance) {
+          this.terminals.delete(id)
+          this.pendingWrites.delete(id)
+          this.sendExit(id, code ?? 0)
+        }
+      })
+
+      // Flush queued writes
+      const queued = this.pendingWrites.get(id)
+      if (queued && queued.length > 0) {
+        for (const data of queued) {
+          instance.write(data)
+        }
+        this.pendingWrites.delete(id)
+      }
+
+      // Send initial welcome notice
+      this.sendData(id, `\x1b[38;2;93;214;44m[Cortex Terminal Ready: ${workingDirectory}]\x1b[0m\r\n`)
 
       return true
     } catch (fallbackErr) {
@@ -168,20 +335,22 @@ export class TerminalService {
   }
 
   private sendData(id: string, data: string): void {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_DATA, {
-        id,
-        data
-      } as TerminalDataPayload)
+    const payload: TerminalDataPayload = { id, data }
+    const windows = BrowserWindow.getAllWindows()
+    for (const win of windows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.TERMINAL_DATA, payload)
+      }
     }
   }
 
   private sendExit(id: string, exitCode: number): void {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_EXIT, {
-        id,
-        exitCode
-      })
+    const payload = { id, exitCode }
+    const windows = BrowserWindow.getAllWindows()
+    for (const win of windows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.TERMINAL_EXIT, payload)
+      }
     }
   }
 
@@ -189,10 +358,17 @@ export class TerminalService {
     const term = this.terminals.get(id)
     if (term) {
       term.write(data)
+    } else {
+      const queued = this.pendingWrites.get(id) || []
+      queued.push(data)
+      this.pendingWrites.set(id, queued)
     }
   }
 
   public resizeTerminal(id: string, cols: number, rows: number): void {
+    if (!cols || !rows || cols < 2 || rows < 2 || isNaN(cols) || isNaN(rows)) {
+      return
+    }
     const term = this.terminals.get(id)
     if (term) {
       term.resize(cols, rows)
@@ -202,15 +378,17 @@ export class TerminalService {
   public killTerminal(id: string): void {
     const term = this.terminals.get(id)
     if (term) {
-      term.kill()
       this.terminals.delete(id)
+      term.kill()
     }
+    this.pendingWrites.delete(id)
   }
 
   public killAll(): void {
     for (const [id] of this.terminals) {
       this.killTerminal(id)
     }
+    this.pendingWrites.clear()
   }
 }
 

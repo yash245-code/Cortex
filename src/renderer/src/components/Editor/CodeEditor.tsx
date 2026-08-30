@@ -1,12 +1,16 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
 import Editor, { OnMount, BeforeMount, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import type { editor } from 'monaco-editor'
 import { useEditorStore } from '../../store/useEditorStore'
+import { useWorkspaceStore } from '../../store/useWorkspaceStore'
+import { useGitStore } from '../../store/useGitStore'
 import { MarkdownPreview } from './MarkdownPreview'
-
+import { DiffViewer } from './DiffViewer'
+import { computeLineDiff } from '../../utils/gitDiffUtils'
 import { registerLanguageSnippets } from '../../services/snippetService'
-import { registerMonacoThemes } from '../../theme/themeRegistry'
+import { registerMonacoThemes, applyThemeAndAccent } from '../../theme/themeRegistry'
+import { getFontTheme } from '../../theme/fontRegistry'
 
 // Ensure Monaco Editor is loaded from the local npm package, not external CDN
 loader.config({ monaco })
@@ -32,7 +36,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     toggleMarkdownPreview
   } = useEditorStore()
 
+  const { rootPath } = useWorkspaceStore()
+  const { isGitRepo, stagedFiles, unstagedFiles, untrackedFiles } = useGitStore()
+
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const gutterDecorationsRef = useRef<string[]>([])
+  const headContentRef = useRef<string | null>(null)
+  const diffDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const currentTabs = pane === 1 ? tabs : pane2Tabs
   const currentActiveId = pane === 1 ? activeTabId : pane2ActiveTabId
@@ -41,12 +51,93 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
   const isMarkdownFile =
     activeTab?.name.endsWith('.md') || activeTab?.name.endsWith('.markdown')
 
+  // Calculate and apply Monaco line gutter decorations (Git change markers)
+  const applyGutterDecorations = useCallback(
+    (currentContent: string, headContent: string | null) => {
+      if (!editorRef.current || headContent === null) {
+        if (editorRef.current && gutterDecorationsRef.current.length > 0) {
+          gutterDecorationsRef.current = editorRef.current.deltaDecorations(
+            gutterDecorationsRef.current,
+            []
+          )
+        }
+        return
+      }
+
+      const lineChanges = computeLineDiff(headContent, currentContent)
+      const newDecorations: editor.IModelDeltaDecoration[] = lineChanges.map((change) => {
+        let className = 'cortex-git-gutter-modified'
+        let hoverMessage = 'Git: Modified line'
+
+        if (change.type === 'added') {
+          className = 'cortex-git-gutter-added'
+          hoverMessage = 'Git: Added line'
+        } else if (change.type === 'deleted') {
+          className = 'cortex-git-gutter-deleted'
+          hoverMessage = 'Git: Deleted line above'
+        }
+
+        return {
+          range: new monaco.Range(
+            change.startLineNumber,
+            1,
+            change.endLineNumber,
+            1
+          ),
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: className,
+            hoverMessage: { value: hoverMessage }
+          }
+        }
+      })
+
+      gutterDecorationsRef.current = editorRef.current.deltaDecorations(
+        gutterDecorationsRef.current,
+        newDecorations
+      )
+    },
+    []
+  )
+
+  // Fetch Git HEAD content for active file
+  const fetchHeadAndDecorate = useCallback(async () => {
+    if (!activeTab || activeTab.isDiff || !rootPath || !isGitRepo || !window.cortexAPI) {
+      headContentRef.current = null
+      applyGutterDecorations('', null)
+      return
+    }
+
+    try {
+      const relativePath = activeTab.path.startsWith(rootPath)
+        ? activeTab.path.slice(rootPath.length).replace(/^[/\\]+/, '')
+        : activeTab.path
+
+      const head = await window.cortexAPI.gitGetFileAtHead(rootPath, relativePath)
+      headContentRef.current = head
+      applyGutterDecorations(activeTab.content, head)
+    } catch {
+      headContentRef.current = null
+      applyGutterDecorations('', null)
+    }
+  }, [activeTab?.path, activeTab?.content, activeTab?.isDiff, rootPath, isGitRepo, applyGutterDecorations])
+
+  // Refetch git HEAD snapshot whenever active tab or git status changes
+  useEffect(() => {
+    fetchHeadAndDecorate()
+  }, [activeTab?.id, stagedFiles.length, unstagedFiles.length, untrackedFiles.length, fetchHeadAndDecorate])
+
+  // Dynamically update Monaco text colors when theme or accent color changes
+  useEffect(() => {
+    applyThemeAndAccent(settings.theme || 'cortex-cyber', settings.accentColor)
+  }, [settings.theme, settings.accentColor])
+
   const handleEditorWillMount: BeforeMount = (monacoInstance) => {
     // Register language snippet providers (HTML, JS, TS, Python, CSS, etc.)
     registerLanguageSnippets()
 
-    // Register all curated themes (Tokyo Night, Catppuccin, Dracula, One Dark, GitHub, Cortex Cyber)
-    registerMonacoThemes(monacoInstance)
+    // Register all curated themes with active accent color text harmonization
+    registerMonacoThemes(monacoInstance, settings.accentColor)
   }
 
   const handleEditorDidMount: OnMount = (editorInstance, monacoInstance) => {
@@ -87,11 +178,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
       )
     }
     editorInstance.focus()
+
+    // Run initial gutter decoration calculation
+    if (activeTab && headContentRef.current !== null) {
+      applyGutterDecorations(activeTab.content, headContentRef.current)
+    }
   }
 
   // Focus and position cursor at the end of text when switching tabs
   useEffect(() => {
-    if (editorRef.current && activeTab && !targetEditorLocation) {
+    if (editorRef.current && activeTab && !targetEditorLocation && !activeTab.isDiff) {
       const model = editorRef.current.getModel()
       if (model) {
         const lineCount = model.getLineCount()
@@ -142,6 +238,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
   const handleContentChange = (value: string | undefined): void => {
     if (activeTab && value !== undefined) {
       updateTabContent(activeTab.id, value)
+
+      // Debounce gutter decoration updates while typing
+      if (diffDebounceTimerRef.current) {
+        clearTimeout(diffDebounceTimerRef.current)
+      }
+      diffDebounceTimerRef.current = setTimeout(() => {
+        if (headContentRef.current !== null) {
+          applyGutterDecorations(value, headContentRef.current)
+        }
+      }, 250)
     }
   }
 
@@ -151,6 +257,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
         <span>No file open in this pane</span>
       </div>
     )
+  }
+
+  // If Tab is in Diff view mode, render DiffViewer
+  if (activeTab.isDiff) {
+    return <DiffViewer pane={pane} />
   }
 
   // If Markdown Preview is active for markdown files, render preview component
@@ -164,10 +275,18 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     )
   }
 
+  const fontThemeDef = getFontTheme(settings.fontTheme)
+  const activeFontFamily =
+    settings.fontTheme === 'custom' ? settings.fontFamily : fontThemeDef.fontFamily
+  const activeFontLigatures =
+    settings.fontLigatures !== false ? fontThemeDef.fontLigatures : false
+  const activeLineHeight =
+    settings.lineHeight || Math.round(settings.fontSize * fontThemeDef.lineHeightMultiplier)
+
   return (
-    <div className="flex-1 w-full h-full relative overflow-hidden bg-cortex-bg">
+    <div className={`flex-1 w-full h-full relative overflow-hidden bg-cortex-bg ${fontThemeDef.className}`}>
       <Editor
-        key={`${activeTab.id}-${settings.theme}`}
+        key={`${activeTab.id}-${settings.theme}-${settings.fontTheme}`}
         theme={settings.theme || 'cortex-cyber'}
         language={activeTab.language}
         value={activeTab.content}
@@ -176,7 +295,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
         onMount={handleEditorDidMount}
         options={{
           fontSize: settings.fontSize,
-          fontFamily: settings.fontFamily,
+          fontFamily: activeFontFamily,
+          fontWeight: '400',
+          fontLigatures: activeFontLigatures,
+          letterSpacing: fontThemeDef.letterSpacing,
+          lineHeight: activeLineHeight,
           tabSize: settings.tabSize,
           wordWrap: settings.wordWrap,
           minimap: { enabled: settings.minimap },

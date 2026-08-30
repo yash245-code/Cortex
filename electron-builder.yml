@@ -12,7 +12,7 @@ asarUnpack:
   - node_modules/node-pty/**/*
 win:
   executableName: Cortex
-  signAndEditExecutable: false
+  icon: resources/icon.ico
   target:
     - target: nsis
       arch:
@@ -26,4 +26,7 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Cortex
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+  installerHeaderIcon: resources/icon.ico
 

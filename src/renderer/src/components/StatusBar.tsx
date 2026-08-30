@@ -65,7 +65,7 @@ export const StatusBar: React.FC = () => {
           </div>
         )}
 
-        <div className="flex items-center gap-1 text-[#5DD62C]">
+        <div className="flex items-center gap-1 text-cortex-accent">
           <CheckCircle2 size={12} />
           <span>Ready</span>
         </div>

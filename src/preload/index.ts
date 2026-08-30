@@ -4,7 +4,8 @@ import {
   CortexAPI,
   FileChangeEvent,
   FileNode,
-  TerminalDataPayload
+  TerminalDataPayload,
+  ShellProfile
 } from '../shared/types'
 
 const api: CortexAPI = {
@@ -97,6 +98,8 @@ const api: CortexAPI = {
       ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_EXIT, subscription)
     }
   },
+  terminalGetAvailableShells: (): Promise<ShellProfile[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_GET_AVAILABLE_SHELLS),
 
   // Search & Replace
   searchWorkspace: (workspacePath, query, options) =>
@@ -137,6 +140,10 @@ const api: CortexAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.GIT_STATUS, workspacePath),
   gitGetBranch: (workspacePath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.GIT_BRANCH, workspacePath),
+  gitGetFileAtHead: (workspacePath: string, relativePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_FILE_AT_HEAD, workspacePath, relativePath),
+  gitGetDiff: (workspacePath: string, relativePath: string, staged?: boolean) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_DIFF, workspacePath, relativePath, staged),
   gitStage: (workspacePath: string, relativePath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE, workspacePath, relativePath),
   gitUnstage: (workspacePath: string, relativePath: string) =>

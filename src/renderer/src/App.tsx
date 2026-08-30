@@ -11,23 +11,96 @@ import { AboutModal } from './components/AboutModal/AboutModal'
 import { useEditorStore } from './store/useEditorStore'
 import { useWorkspaceStore } from './store/useWorkspaceStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { sessionService } from './services/sessionService'
 
 export const App: React.FC = () => {
   const {
     tabs,
+    pane2Tabs,
+    activeTabId,
+    pane2ActiveTabId,
     isSplitEditorOpen,
     splitRatio,
     setSplitRatio,
+    isTerminalOpen,
+    terminalHeight,
+    terminalSessions,
+    activeTerminalId,
+    restoreSession,
     settings,
     initSettingsSync
   } = useEditorStore()
-  const { initWatcher } = useWorkspaceStore()
+  const { rootPath, initWatcher, openFolder } = useWorkspaceStore()
 
   const isResizingSplitRef = useRef(false)
   const splitContainerRef = useRef<HTMLDivElement>(null)
+  const isRestoredRef = useRef(false)
 
   // Initialize global shortcuts
   useKeyboardShortcuts()
+
+  // Rehydrate previous workspace session on launch
+  useEffect(() => {
+    if (isRestoredRef.current) return
+    isRestoredRef.current = true
+
+    const saved = sessionService.loadSession()
+    if (saved) {
+      if (saved.rootPath) {
+        openFolder(saved.rootPath)
+      }
+      restoreSession({
+        tabs: saved.tabs || [],
+        activeTabId: saved.activeTabId || null,
+        pane2Tabs: saved.pane2Tabs || [],
+        pane2ActiveTabId: saved.pane2ActiveTabId || null,
+        isSplitEditorOpen: !!saved.isSplitEditorOpen,
+        splitRatio: saved.splitRatio || 0.5,
+        isTerminalOpen: !!saved.isTerminalOpen,
+        terminalHeight: saved.terminalHeight || 240,
+        terminalSessions:
+          saved.terminalSessions && saved.terminalSessions.length > 0
+            ? saved.terminalSessions
+            : undefined,
+        activeTerminalId: saved.activeTerminalId || ''
+      })
+    }
+  }, [openFolder, restoreSession])
+
+  // Debounced auto-save of workspace session whenever layout or files change
+  useEffect(() => {
+    if (!isRestoredRef.current) return
+
+    const timer = setTimeout(() => {
+      sessionService.saveSession({
+        rootPath,
+        tabs,
+        activeTabId,
+        pane2Tabs,
+        pane2ActiveTabId,
+        isSplitEditorOpen,
+        splitRatio,
+        isTerminalOpen,
+        terminalHeight,
+        terminalSessions,
+        activeTerminalId
+      })
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [
+    rootPath,
+    tabs,
+    activeTabId,
+    pane2Tabs,
+    pane2ActiveTabId,
+    isSplitEditorOpen,
+    splitRatio,
+    isTerminalOpen,
+    terminalHeight,
+    terminalSessions,
+    activeTerminalId
+  ])
 
   // Initialize file watcher and settings subscriptions
   useEffect(() => {
@@ -93,12 +166,16 @@ export const App: React.FC = () => {
       <TitleBar />
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div
+        className={`flex-1 flex overflow-hidden relative px-2 pb-2 pt-1 gap-2 ${
+          settings.sidebarPosition === 'right' ? 'flex-row-reverse' : 'flex-row'
+        }`}
+      >
         {/* Dockable Sidebar */}
         <Sidebar />
 
         {/* Editor & Terminal Area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-cortex-bg relative">
+        <div className="flex-1 flex flex-col overflow-hidden bg-cortex-bg border border-cortex-border/80 rounded-2xl relative shadow-md">
           {/* Main Editor Section */}
           <div ref={splitContainerRef} className="flex-1 flex overflow-hidden relative">
             {isSplitEditorOpen ? (

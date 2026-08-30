@@ -65,6 +65,7 @@ export const MenuBar: React.FC = () => {
     toggleMinimap,
     toggleWordWrap,
     toggleAutoSave,
+    toggleSidebarPosition,
     settings,
     setAboutModalOpen,
     openSettingsWindow,
@@ -291,6 +292,10 @@ export const MenuBar: React.FC = () => {
           onClick: () => toggleSidebarView('explorer')
         },
         {
+          label: (settings.sidebarPosition || 'left') === 'right' ? 'Move Primary Side Bar Left' : 'Move Primary Side Bar Right',
+          onClick: () => toggleSidebarPosition()
+        },
+        {
           label: 'Toggle Integrated Terminal',
           shortcut: 'Ctrl+`',
           icon: <Terminal size={13} />,
@@ -464,7 +469,7 @@ export const MenuBar: React.FC = () => {
   ]
 
   return (
-    <div ref={menuBarRef} className="flex items-center gap-0.5 text-xs select-none">
+    <div ref={menuBarRef} className="flex items-center gap-1 select-none">
       {menus.map((menu) => {
         const isOpen = activeMenu === menu.name
         return (
@@ -473,9 +478,9 @@ export const MenuBar: React.FC = () => {
             <button
               onClick={() => handleMenuClick(menu.name)}
               onMouseEnter={() => handleMenuMouseEnter(menu.name)}
-              className={`px-2 py-0.5 rounded text-[11.5px] transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-[13px] font-medium transition-colors ${
                 isOpen
-                  ? 'bg-cortex-surface text-cortex-accent font-medium shadow-sm'
+                  ? 'bg-cortex-surface text-cortex-accent font-semibold shadow-sm'
                   : 'text-cortex-muted hover:text-cortex-text hover:bg-cortex-surface/70'
               }`}
             >
@@ -495,7 +500,7 @@ export const MenuBar: React.FC = () => {
                       key={item.label}
                       disabled={item.disabled}
                       onClick={() => executeAction(item.onClick)}
-                      className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors ${
+                      className={`w-full flex items-center justify-between px-3 py-1.5 text-[13px] text-left transition-colors ${
                         item.disabled
                           ? 'opacity-40 cursor-not-allowed text-cortex-muted'
                           : 'text-cortex-text hover:bg-cortex-surface hover:text-white group'
@@ -509,13 +514,13 @@ export const MenuBar: React.FC = () => {
                               : 'text-cortex-muted group-hover:text-cortex-accent transition-colors'
                           }`}
                         >
-                          {item.icon || <div className="w-1 h-1 rounded-full bg-cortex-muted/30" />}
+                          {item.icon || <div className="w-1.5 h-1.5 rounded-full bg-cortex-muted/30" />}
                         </span>
                         <span className="truncate">{item.label}</span>
                       </div>
 
                       {item.shortcut && (
-                        <span className="text-[10px] font-mono text-cortex-muted group-hover:text-cortex-muted/90 pl-3">
+                        <span className="text-[11px] font-mono text-cortex-muted group-hover:text-cortex-muted/90 pl-3">
                           {item.shortcut}
                         </span>
                       )}

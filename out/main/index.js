@@ -3,10 +3,10 @@ Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const electron = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
+const child_process = require("child_process");
 const chokidar = require("chokidar");
 const os = require("os");
 const fsSync = require("fs");
-const child_process = require("child_process");
 function _interopNamespaceDefault(e) {
   const n = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
   if (e) {
@@ -55,6 +55,7 @@ const IPC_CHANNELS = {
   TERMINAL_KILL: "cortex:terminal:kill",
   TERMINAL_DATA: "cortex:terminal:data",
   TERMINAL_EXIT: "cortex:terminal:exit",
+  TERMINAL_GET_AVAILABLE_SHELLS: "cortex:terminal:getAvailableShells",
   // Search & Replace
   SEARCH_WORKSPACE: "cortex:search:workspace",
   SEARCH_REPLACE_FILE: "cortex:search:replaceFile",
@@ -67,6 +68,8 @@ const IPC_CHANNELS = {
   // Git
   GIT_STATUS: "cortex:git:status",
   GIT_BRANCH: "cortex:git:branch",
+  GIT_GET_FILE_AT_HEAD: "cortex:git:getFileAtHead",
+  GIT_GET_DIFF: "cortex:git:getDiff",
   GIT_STAGE: "cortex:git:stage",
   GIT_UNSTAGE: "cortex:git:unstage",
   GIT_STAGE_ALL: "cortex:git:stageAll",
@@ -116,7 +119,6 @@ class FileService {
     return result.filePaths[0];
   }
   async readDirectory(dirPath) {
-    const stats = await fs__namespace.stat(dirPath);
     const name = path__namespace.basename(dirPath) || dirPath;
     const rootNode = {
       id: dirPath,
@@ -125,6 +127,12 @@ class FileService {
       type: "directory",
       children: []
     };
+    let stats;
+    try {
+      stats = await fs__namespace.stat(dirPath);
+    } catch {
+      return rootNode;
+    }
     try {
       const entries = await fs__namespace.readdir(dirPath, { withFileTypes: true });
       const children = [];
@@ -167,34 +175,108 @@ class FileService {
       });
       rootNode.children = children;
     } catch (err) {
-      console.error(`Failed to read directory at ${dirPath}:`, err);
+      console.warn(`Failed to read directory at ${dirPath}:`, err);
     }
     return rootNode;
   }
   async readFile(filePath) {
-    return await fs__namespace.readFile(filePath, "utf-8");
+    try {
+      return await fs__namespace.readFile(filePath, "utf-8");
+    } catch (err) {
+      if (err.code === "ENOENT") {
+        return "";
+      }
+      console.warn(`[FileService] Failed to read file ${filePath}:`, err.message);
+      return "";
+    }
   }
   async writeFile(filePath, content) {
-    await fs__namespace.mkdir(path__namespace.dirname(filePath), { recursive: true });
-    await fs__namespace.writeFile(filePath, content, "utf-8");
-    return true;
+    try {
+      await fs__namespace.mkdir(path__namespace.dirname(filePath), { recursive: true });
+      await fs__namespace.writeFile(filePath, content, "utf-8");
+      return true;
+    } catch (err) {
+      console.error(`[FileService] Failed to write file ${filePath}:`, err);
+      return false;
+    }
   }
   async createFile(filePath) {
-    await fs__namespace.mkdir(path__namespace.dirname(filePath), { recursive: true });
-    await fs__namespace.writeFile(filePath, "", "utf-8");
-    return true;
+    try {
+      await fs__namespace.mkdir(path__namespace.dirname(filePath), { recursive: true });
+      await fs__namespace.writeFile(filePath, "", "utf-8");
+      return true;
+    } catch (err) {
+      console.error(`[FileService] Failed to create file ${filePath}:`, err);
+      return false;
+    }
   }
   async createDirectory(dirPath) {
-    await fs__namespace.mkdir(dirPath, { recursive: true });
-    return true;
+    try {
+      await fs__namespace.mkdir(dirPath, { recursive: true });
+      return true;
+    } catch (err) {
+      console.error(`[FileService] Failed to create directory ${dirPath}:`, err);
+      return false;
+    }
   }
   async renamePath(oldPath, newPath) {
-    await fs__namespace.rename(oldPath, newPath);
-    return true;
+    try {
+      await fs__namespace.rename(oldPath, newPath);
+      return true;
+    } catch (err) {
+      console.error(`[FileService] Failed to rename ${oldPath} to ${newPath}:`, err);
+      return false;
+    }
   }
   async deletePath(targetPath) {
-    await fs__namespace.rm(targetPath, { recursive: true, force: true });
-    return true;
+    if (!targetPath) return false;
+    try {
+      try {
+        await fs__namespace.access(targetPath);
+      } catch {
+        return true;
+      }
+      if (this.watcher) {
+        try {
+          await this.watcher.unwatch(targetPath);
+        } catch {
+        }
+      }
+      await fs__namespace.rm(targetPath, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100
+      });
+      return true;
+    } catch (rmErr) {
+      console.warn(`Standard fs.rm failed on "${targetPath}", executing OS force deletion:`, rmErr?.message);
+      if (process.platform === "win32") {
+        try {
+          const stat = await fs__namespace.stat(targetPath).catch(() => null);
+          if (stat?.isDirectory()) {
+            await new Promise((resolve, reject) => {
+              child_process.exec(`rmdir /s /q "${targetPath}"`, (err) => {
+                if (err) reject(err);
+                else resolve();
+              });
+            });
+          } else {
+            await new Promise((resolve, reject) => {
+              child_process.exec(`del /f /q /a "${targetPath}"`, (err) => {
+                if (err) reject(err);
+                else resolve();
+              });
+            });
+          }
+          return true;
+        } catch (fallbackErr) {
+          console.error(`Fallback force deletion failed for "${targetPath}":`, fallbackErr);
+          return false;
+        }
+      }
+      return false;
+    }
   }
   startWatcher(dirPath) {
     this.stopWatcher();
@@ -232,7 +314,7 @@ class FileService {
       }, 50);
       this.debounceTimers.set(key, timer);
     };
-    this.watcher.on("add", (filePath) => sendChangeEvent("add", filePath)).on("change", (filePath) => sendChangeEvent("change", filePath)).on("unlink", (filePath) => sendChangeEvent("unlink", filePath)).on("addDir", (dirPath2) => sendChangeEvent("addDir", dirPath2)).on("unlinkDir", (dirPath2) => sendChangeEvent("unlinkDir", dirPath2));
+    this.watcher.on("add", (filePath) => sendChangeEvent("add", filePath)).on("change", (filePath) => sendChangeEvent("change", filePath)).on("unlink", (filePath) => sendChangeEvent("unlink", filePath)).on("addDir", (dirPath2) => sendChangeEvent("addDir", dirPath2)).on("unlinkDir", (dirPath2) => sendChangeEvent("unlinkDir", dirPath2)).on("error", (err) => console.warn("[Watcher] Watcher error:", err));
   }
   stopWatcher() {
     if (this.watcher) {
@@ -248,9 +330,104 @@ class FileService {
 const fileService = new FileService();
 class TerminalService {
   terminals = /* @__PURE__ */ new Map();
+  pendingWrites = /* @__PURE__ */ new Map();
   mainWindow = null;
   setMainWindow(window) {
     this.mainWindow = window;
+  }
+  getAvailableShells() {
+    const isWindows = os__namespace.platform() === "win32";
+    const shells = [];
+    if (isWindows) {
+      const pwshCandidates = [
+        path__namespace.join(process.env.ProgramFiles || "C:\\Program Files", "PowerShell", "7", "pwsh.exe"),
+        path__namespace.join(process.env.LOCALAPPDATA || "", "Programs", "PowerShell", "7", "pwsh.exe")
+      ];
+      let foundPwsh = false;
+      for (const p of pwshCandidates) {
+        if (fsSync__namespace.existsSync(p)) {
+          shells.push({
+            id: "pwsh",
+            name: "PowerShell 7",
+            shell: "powershell",
+            path: p,
+            description: "PowerShell Core 7 (Modern, Cross-Platform)",
+            iconType: "powershell"
+          });
+          foundPwsh = true;
+          break;
+        }
+      }
+      const winPsPath = process.env.SystemRoot ? `${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` : "powershell.exe";
+      shells.push({
+        id: "powershell",
+        name: foundPwsh ? "Windows PowerShell" : "PowerShell",
+        shell: "powershell",
+        path: winPsPath,
+        description: "Default Windows PowerShell",
+        iconType: "powershell"
+      });
+      const cmdPath = process.env.COMSPEC || `${process.env.SystemRoot || "C:\\Windows"}\\System32\\cmd.exe`;
+      shells.push({
+        id: "cmd",
+        name: "Command Prompt",
+        shell: "cmd",
+        path: cmdPath,
+        description: "Windows CMD Shell",
+        iconType: "cmd"
+      });
+      const gitBashCandidates = [
+        "C:\\Program Files\\Git\\bin\\bash.exe",
+        "C:\\Program Files (x86)\\Git\\bin\\bash.exe",
+        path__namespace.join(process.env.LOCALAPPDATA || "", "Programs", "Git", "bin", "bash.exe")
+      ];
+      for (const candidate of gitBashCandidates) {
+        if (fsSync__namespace.existsSync(candidate)) {
+          shells.push({
+            id: "git-bash",
+            name: "Git Bash",
+            shell: "bash",
+            path: candidate,
+            description: "Bash for Windows with Git tools",
+            iconType: "bash"
+          });
+          break;
+        }
+      }
+      const wslPath = `${process.env.SystemRoot || "C:\\Windows"}\\System32\\wsl.exe`;
+      if (fsSync__namespace.existsSync(wslPath)) {
+        shells.push({
+          id: "wsl",
+          name: "WSL / Ubuntu",
+          shell: "wsl",
+          path: wslPath,
+          description: "Windows Subsystem for Linux",
+          iconType: "wsl"
+        });
+      }
+    } else {
+      if (fsSync__namespace.existsSync("/bin/zsh")) {
+        shells.push({
+          id: "zsh",
+          name: "Zsh",
+          shell: "bash",
+          path: "/bin/zsh",
+          description: "Z Shell",
+          iconType: "bash"
+        });
+      }
+      if (fsSync__namespace.existsSync("/bin/bash")) {
+        shells.push({
+          id: "bash",
+          name: "Bash",
+          shell: "bash",
+          path: "/bin/bash",
+          description: "Bourne Again Shell",
+          iconType: "bash"
+        });
+      }
+    }
+    return shells;
   }
   resolveShell(shellType) {
     const isWindows = os__namespace.platform() === "win32";
@@ -262,7 +439,7 @@ class TerminalService {
       return { shell: process.env.SHELL || "/bin/bash", args: ["-i"] };
     }
     if (type === "cmd") {
-      return { shell: process.env.COMSPEC || "cmd.exe", args: [] };
+      return { shell: process.env.COMSPEC || "cmd.exe", args: ["/K"] };
     }
     if (type === "bash" || type === "git-bash") {
       const gitBashCandidates = [
@@ -281,6 +458,17 @@ class TerminalService {
     if (type === "wsl") {
       return { shell: "wsl.exe", args: [] };
     }
+    if (type === "pwsh") {
+      const pwshCandidates = [
+        path__namespace.join(process.env.ProgramFiles || "C:\\Program Files", "PowerShell", "7", "pwsh.exe"),
+        path__namespace.join(process.env.LOCALAPPDATA || "", "Programs", "PowerShell", "7", "pwsh.exe")
+      ];
+      for (const p of pwshCandidates) {
+        if (fsSync__namespace.existsSync(p)) {
+          return { shell: p, args: ["-NoLogo"] };
+        }
+      }
+    }
     return {
       shell: process.env.SystemRoot ? `${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` : "powershell.exe",
       args: ["-NoLogo"]
@@ -288,7 +476,7 @@ class TerminalService {
   }
   async createTerminal(id, cwd, shellType) {
     this.killTerminal(id);
-    const workingDirectory = cwd || os__namespace.homedir();
+    const workingDirectory = cwd && fsSync__namespace.existsSync(cwd) ? cwd : os__namespace.homedir();
     const { shell: resolvedShell, args: shellArgs } = this.resolveShell(shellType);
     try {
       const pty = require("node-pty");
@@ -299,18 +487,18 @@ class TerminalService {
         cwd: workingDirectory,
         env: process.env
       });
-      ptyProcess.onData((data) => {
-        this.sendData(id, data);
-      });
-      ptyProcess.onExit(({ exitCode }) => {
-        this.terminals.delete(id);
-        this.sendExit(id, exitCode);
-      });
-      this.terminals.set(id, {
-        write: (data) => ptyProcess.write(data),
+      const instance = {
+        write: (data) => {
+          try {
+            ptyProcess.write(data);
+          } catch {
+          }
+        },
         resize: (cols, rows) => {
           try {
-            ptyProcess.resize(cols, rows);
+            if (cols >= 2 && rows >= 2 && !isNaN(cols) && !isNaN(rows)) {
+              ptyProcess.resize(Math.floor(cols), Math.floor(rows));
+            }
           } catch {
           }
         },
@@ -320,13 +508,32 @@ class TerminalService {
           } catch {
           }
         }
+      };
+      this.terminals.set(id, instance);
+      ptyProcess.onData((data) => {
+        this.sendData(id, data);
       });
+      ptyProcess.onExit(({ exitCode }) => {
+        if (this.terminals.get(id) === instance) {
+          this.terminals.delete(id);
+          this.pendingWrites.delete(id);
+          this.sendExit(id, exitCode);
+        }
+      });
+      const queued = this.pendingWrites.get(id);
+      if (queued && queued.length > 0) {
+        for (const data of queued) {
+          instance.write(data);
+        }
+        this.pendingWrites.delete(id);
+      }
       return true;
     } catch (nodePtyErr) {
       console.warn("node-pty native module unavailable, falling back to child_process shell:", nodePtyErr);
     }
     try {
-      const proc = child_process.spawn(resolvedShell, shellArgs, {
+      const fallbackArgs = resolvedShell.toLowerCase().includes("powershell") ? ["-NoLogo", "-NoExit", "-Command", "-"] : shellArgs;
+      const proc = child_process.spawn(resolvedShell, fallbackArgs, {
         cwd: workingDirectory,
         env: {
           ...process.env,
@@ -335,20 +542,13 @@ class TerminalService {
         },
         stdio: ["pipe", "pipe", "pipe"]
       });
-      proc.stdout?.on("data", (data) => {
-        this.sendData(id, data.toString("utf-8"));
-      });
-      proc.stderr?.on("data", (data) => {
-        this.sendData(id, data.toString("utf-8"));
-      });
-      proc.on("exit", (code) => {
-        this.terminals.delete(id);
-        this.sendExit(id, code ?? 0);
-      });
-      this.terminals.set(id, {
+      const instance = {
         write: (data) => {
-          if (proc.stdin && !proc.stdin.destroyed) {
-            proc.stdin.write(data);
+          try {
+            if (proc.stdin && !proc.stdin.destroyed) {
+              proc.stdin.write(data);
+            }
+          } catch {
           }
         },
         resize: () => {
@@ -359,8 +559,29 @@ class TerminalService {
           } catch {
           }
         }
+      };
+      this.terminals.set(id, instance);
+      proc.stdout?.on("data", (data) => {
+        this.sendData(id, data.toString("utf-8"));
       });
-      this.sendData(id, `\x1B[38;2;99;102;241m[Cortex Terminal - Ready at ${workingDirectory}]\x1B[0m\r
+      proc.stderr?.on("data", (data) => {
+        this.sendData(id, data.toString("utf-8"));
+      });
+      proc.on("exit", (code) => {
+        if (this.terminals.get(id) === instance) {
+          this.terminals.delete(id);
+          this.pendingWrites.delete(id);
+          this.sendExit(id, code ?? 0);
+        }
+      });
+      const queued = this.pendingWrites.get(id);
+      if (queued && queued.length > 0) {
+        for (const data of queued) {
+          instance.write(data);
+        }
+        this.pendingWrites.delete(id);
+      }
+      this.sendData(id, `\x1B[38;2;93;214;44m[Cortex Terminal Ready: ${workingDirectory}]\x1B[0m\r
 `);
       return true;
     } catch (fallbackErr) {
@@ -369,28 +590,37 @@ class TerminalService {
     }
   }
   sendData(id, data) {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_DATA, {
-        id,
-        data
-      });
+    const payload = { id, data };
+    const windows = electron.BrowserWindow.getAllWindows();
+    for (const win of windows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.TERMINAL_DATA, payload);
+      }
     }
   }
   sendExit(id, exitCode) {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_EXIT, {
-        id,
-        exitCode
-      });
+    const payload = { id, exitCode };
+    const windows = electron.BrowserWindow.getAllWindows();
+    for (const win of windows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.TERMINAL_EXIT, payload);
+      }
     }
   }
   writeTerminal(id, data) {
     const term = this.terminals.get(id);
     if (term) {
       term.write(data);
+    } else {
+      const queued = this.pendingWrites.get(id) || [];
+      queued.push(data);
+      this.pendingWrites.set(id, queued);
     }
   }
   resizeTerminal(id, cols, rows) {
+    if (!cols || !rows || cols < 2 || rows < 2 || isNaN(cols) || isNaN(rows)) {
+      return;
+    }
     const term = this.terminals.get(id);
     if (term) {
       term.resize(cols, rows);
@@ -399,14 +629,16 @@ class TerminalService {
   killTerminal(id) {
     const term = this.terminals.get(id);
     if (term) {
-      term.kill();
       this.terminals.delete(id);
+      term.kill();
     }
+    this.pendingWrites.delete(id);
   }
   killAll() {
     for (const [id] of this.terminals) {
       this.killTerminal(id);
     }
+    this.pendingWrites.clear();
   }
 }
 const terminalService = new TerminalService();
@@ -775,6 +1007,32 @@ class GitService {
       return false;
     }
   }
+  async getFileAtHead(workspacePath, relativePath) {
+    if (!workspacePath || !relativePath) return null;
+    try {
+      const gitRelPath = relativePath.replace(/\\/g, "/");
+      const content = await runGit(["show", `HEAD:${gitRelPath}`], workspacePath);
+      return content;
+    } catch {
+      return "";
+    }
+  }
+  async getDiff(workspacePath, relativePath, staged = false) {
+    if (!workspacePath || !relativePath) return "";
+    try {
+      const gitRelPath = relativePath.replace(/\\/g, "/");
+      if (staged) {
+        return await runGit(["diff", "--staged", "--", gitRelPath], workspacePath);
+      }
+      try {
+        return await runGit(["diff", "HEAD", "--", gitRelPath], workspacePath);
+      } catch {
+        return await runGit(["diff", "--", gitRelPath], workspacePath);
+      }
+    } catch {
+      return "";
+    }
+  }
   async commit(workspacePath, message) {
     if (!message || !message.trim()) return false;
     try {
@@ -882,6 +1140,9 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
   electron.ipcMain.handle(IPC_CHANNELS.TERMINAL_KILL, (_, id) => {
     terminalService.killTerminal(id);
   });
+  electron.ipcMain.handle(IPC_CHANNELS.TERMINAL_GET_AVAILABLE_SHELLS, () => {
+    return terminalService.getAvailableShells();
+  });
   electron.ipcMain.handle(
     IPC_CHANNELS.SEARCH_WORKSPACE,
     async (_, workspacePath, query, options) => {
@@ -906,6 +1167,18 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
   electron.ipcMain.handle(IPC_CHANNELS.GIT_BRANCH, async (_, workspacePath) => {
     return await gitService.getBranch(workspacePath);
   });
+  electron.ipcMain.handle(
+    IPC_CHANNELS.GIT_GET_FILE_AT_HEAD,
+    async (_, workspacePath, relativePath) => {
+      return await gitService.getFileAtHead(workspacePath, relativePath);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.GIT_GET_DIFF,
+    async (_, workspacePath, relativePath, staged) => {
+      return await gitService.getDiff(workspacePath, relativePath, staged);
+    }
+  );
   electron.ipcMain.handle(
     IPC_CHANNELS.GIT_STAGE,
     async (_, workspacePath, relativePath) => {
@@ -939,6 +1212,14 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
 }
 let mainWindow = null;
 let settingsWindow = null;
+function getAppIconPath() {
+  const isDev = !electron.app.isPackaged;
+  const filename = process.platform === "win32" ? "icon.ico" : "icon.png";
+  if (isDev) {
+    return path.join(__dirname, "../../resources", filename);
+  }
+  return path.join(process.resourcesPath, filename);
+}
 function openSettingsWindow() {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     if (settingsWindow.isMinimized()) {
@@ -948,8 +1229,9 @@ function openSettingsWindow() {
     settingsWindow.focus();
     return settingsWindow;
   }
-  const iconPath = path.join(__dirname, "../../resources/icon-taskbar.png");
+  const iconPath = getAppIconPath();
   settingsWindow = new electron.BrowserWindow({
+    title: "Settings - Cortex",
     width: 780,
     height: 560,
     minWidth: 640,
@@ -960,6 +1242,7 @@ function openSettingsWindow() {
     titleBarStyle: "hidden",
     backgroundColor: "#0f1117",
     icon: iconPath,
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : void 0,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -990,6 +1273,7 @@ function openSettingsWindow() {
 }
 function createWindow() {
   mainWindow = new electron.BrowserWindow({
+    title: "Cortex",
     width: 1280,
     height: 800,
     minWidth: 900,
@@ -999,7 +1283,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     backgroundColor: "#0f1117",
-    icon: path.join(__dirname, "../../resources/icon-taskbar.png"),
+    icon: getAppIconPath(),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -1012,6 +1296,17 @@ function createWindow() {
     if (mainWindow) {
       mainWindow.show();
     }
+  });
+  mainWindow.on("close", () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.close();
+    }
+  });
+  mainWindow.on("closed", () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.close();
+    }
+    mainWindow = null;
   });
   mainWindow.webContents.setWindowOpenHandler((details) => {
     electron.shell.openExternal(details.url);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Minus, Square, X, Copy, Search } from 'lucide-react'
+import { Minus, Square, X, Copy, Search, Settings } from 'lucide-react'
 import { useEditorStore } from '../store/useEditorStore'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
 import { MenuBar } from './TitleBar/MenuBar'
@@ -7,7 +7,7 @@ import { CortexLogo } from './common/CortexLogo'
 
 export const TitleBar: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false)
-  const { tabs, activeTabId, openPalette } = useEditorStore()
+  const { tabs, activeTabId, openPalette, openSettingsWindow } = useEditorStore()
   const { rootPath } = useWorkspaceStore()
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
@@ -53,9 +53,13 @@ export const TitleBar: React.FC = () => {
     <div className="h-11 w-full bg-cortex-sidebar border-b border-cortex-border flex items-center justify-between px-3 select-none draggable-region z-50 relative">
       {/* Left section: Logo and Quick Open Search Bar */}
       <div className="flex items-center gap-3 non-draggable z-10">
-        <div className="flex items-center pr-1 pl-0.5" title="Cortex">
-          <CortexLogo size={52} className="hover:scale-105 transition-transform" />
-        </div>
+        <button
+          onClick={() => openPalette('accents')}
+          title="Cortex - Click to customize Accent Color & Theme"
+          className="flex items-center pr-1 pl-0.5 cursor-pointer hover:scale-110 active:scale-95 transition-all group focus:outline-none"
+        >
+          <CortexLogo size={52} />
+        </button>
 
         <div className="h-4 w-[1px] bg-cortex-border" />
 
@@ -80,6 +84,13 @@ export const TitleBar: React.FC = () => {
 
       {/* Right section: Window Controls */}
       <div className="flex items-center non-draggable z-10">
+        <button
+          onClick={openSettingsWindow}
+          className="h-11 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors"
+          title="Settings (Ctrl+,)"
+        >
+          <Settings size={14} />
+        </button>
         <button
           onClick={handleMinimize}
           className="h-11 w-11 flex items-center justify-center text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors"

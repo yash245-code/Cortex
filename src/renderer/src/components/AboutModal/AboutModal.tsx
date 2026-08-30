@@ -28,7 +28,7 @@ export const AboutModal: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glow Header Accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#5DD62C] via-[#9ee87f] to-[#337418]" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cortex-accent via-white/40 to-cortex-accent/30" />
 
         {/* Close Button */}
         <button

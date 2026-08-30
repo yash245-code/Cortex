@@ -219,6 +219,42 @@ export class GitService {
     }
   }
 
+  public async getFileAtHead(
+    workspacePath: string,
+    relativePath: string
+  ): Promise<string | null> {
+    if (!workspacePath || !relativePath) return null
+    try {
+      const gitRelPath = relativePath.replace(/\\/g, '/')
+      const content = await runGit(['show', `HEAD:${gitRelPath}`], workspacePath)
+      return content
+    } catch {
+      // File might be untracked or newly added in index
+      return ''
+    }
+  }
+
+  public async getDiff(
+    workspacePath: string,
+    relativePath: string,
+    staged = false
+  ): Promise<string> {
+    if (!workspacePath || !relativePath) return ''
+    try {
+      const gitRelPath = relativePath.replace(/\\/g, '/')
+      if (staged) {
+        return await runGit(['diff', '--staged', '--', gitRelPath], workspacePath)
+      }
+      try {
+        return await runGit(['diff', 'HEAD', '--', gitRelPath], workspacePath)
+      } catch {
+        return await runGit(['diff', '--', gitRelPath], workspacePath)
+      }
+    } catch {
+      return ''
+    }
+  }
+
   public async commit(workspacePath: string, message: string): Promise<boolean> {
     if (!message || !message.trim()) return false
     try {

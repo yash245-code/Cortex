@@ -10,7 +10,8 @@ import {
   ChevronRight,
   GitCommit,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  GitCompare
 } from 'lucide-react'
 import { useGitStore } from '../../store/useGitStore'
 import { useWorkspaceStore } from '../../store/useWorkspaceStore'
@@ -56,7 +57,7 @@ export const SourceControlPanel: React.FC = () => {
   } = useGitStore()
 
   const { rootPath, openFolder } = useWorkspaceStore()
-  const { openTab } = useEditorStore()
+  const { openTab, openDiffTab } = useEditorStore()
 
   const [isStagedOpen, setIsStagedOpen] = useState(true)
   const [isChangesOpen, setIsChangesOpen] = useState(true)
@@ -129,7 +130,13 @@ export const SourceControlPanel: React.FC = () => {
     return (
       <div
         key={`${type}-${item.relativePath}`}
-        onClick={() => openTab(item.path)}
+        onClick={() => {
+          if (type === 'untracked') {
+            openTab(item.path)
+          } else {
+            openDiffTab(item.path)
+          }
+        }}
         className="group flex items-center h-7 px-3 text-xs text-cortex-text hover:bg-cortex-surface/60 rounded cursor-pointer transition-colors"
       >
         <File size={13} className="text-cortex-muted mr-1.5 shrink-0 group-hover:text-cortex-text" />
@@ -142,6 +149,18 @@ export const SourceControlPanel: React.FC = () => {
 
         {/* Hover Action Buttons */}
         <div className="hidden group-hover:flex items-center gap-0.5 mr-1.5">
+          {/* Open Diff View Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              openDiffTab(item.path)
+            }}
+            title="Open Changes (Diff View)"
+            className="p-1 text-cortex-muted hover:text-amber-400 hover:bg-cortex-active rounded transition-colors"
+          >
+            <GitCompare size={12} />
+          </button>
+
           {type === 'staged' && (
             <button
               onClick={(e) => {
@@ -302,7 +321,7 @@ export const SourceControlPanel: React.FC = () => {
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 space-y-1">
         {totalChanges === 0 ? (
           <div className="p-6 flex flex-col items-center justify-center text-center text-cortex-muted">
-            <CheckCircle2 size={28} className="text-[#5DD62C] mb-2 opacity-80" />
+            <CheckCircle2 size={28} className="text-cortex-accent mb-2 opacity-80" />
             <span className="text-xs font-medium text-cortex-text">Working tree clean</span>
             <span className="text-[11px] text-cortex-muted mt-0.5">No changes to commit</span>
           </div>

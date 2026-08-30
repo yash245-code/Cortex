@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { Tab, EditorSettings, TerminalSession, ShellType } from '@shared/types'
 import { getLanguageForFile } from '@shared/constants'
 import { useGitStore } from './useGitStore'
+import { useWorkspaceStore } from './useWorkspaceStore'
 import { applyThemeAndAccent } from '../theme/themeRegistry'
 
 interface EditorState {
@@ -18,15 +19,25 @@ interface EditorState {
   sidebarWidth: number
   activeSidebarView: 'explorer' | 'search' | 'git' | 'settings' | null
   isPaletteOpen: boolean
-  paletteMode: 'files' | 'commands' | 'themes' | 'accents'
+  paletteMode: 'files' | 'commands' | 'themes' | 'accents' | 'recent-workspaces' | 'fonts'
   isAboutModalOpen: boolean
   isSplitEditorOpen: boolean
   splitRatio: number
   pane2Tabs: Tab[]
   pane2ActiveTabId: string | null
   isMarkdownPreviewOpen: boolean
+  diffViewMode: 'side-by-side' | 'inline'
+  isTerminalSearchOpen: boolean
 
   // Actions
+  toggleDiffViewMode: () => void
+  openDiffTab: (
+    filePath: string,
+    originalContent?: string,
+    diffTitle?: string,
+    pane?: 1 | 2
+  ) => Promise<void>
+  toggleDiffMode: (tabId?: string, pane?: 1 | 2) => Promise<void>
   openTab: (filePath: string, initialContent?: string) => Promise<void>
   openInPane2: (filePath: string, initialContent?: string) => Promise<void>
   openFileAtLocation: (filePath: string, line: number, col: number) => Promise<void>
@@ -47,7 +58,13 @@ interface EditorState {
   setTerminalHeight: (height: number) => void
   addTerminalSession: (shell?: ShellType) => string
   removeTerminalSession: (id: string) => void
+  splitTerminalSession: (sessionId: string, shell?: ShellType) => void
+  closeSplitSession: (sessionId: string) => void
+  setTerminalSplitRatio: (sessionId: string, ratio: number) => void
+  setTerminalSearchOpen: (open: boolean) => void
+  toggleTerminalSearch: () => void
   setActiveTerminalId: (id: string) => void
+  restoreSession: (session: Partial<EditorState>) => void
   toggleSplitEditor: () => void
   setSplitEditorOpen: (open: boolean) => void
   setSplitRatio: (ratio: number) => void
@@ -57,9 +74,13 @@ interface EditorState {
   toggleSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings') => void
   setActiveSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings' | null) => void
   setSidebarWidth: (width: number) => void
-  openPalette: (mode?: 'files' | 'commands' | 'themes' | 'accents') => void
+  openPalette: (
+    mode?: 'files' | 'commands' | 'themes' | 'accents' | 'recent-workspaces' | 'fonts'
+  ) => void
   closePalette: () => void
-  togglePalette: (mode?: 'files' | 'commands' | 'themes' | 'accents') => void
+  togglePalette: (
+    mode?: 'files' | 'commands' | 'themes' | 'accents' | 'recent-workspaces' | 'fonts'
+  ) => void
   setAboutModalOpen: (open: boolean) => void
   openSettingsWindow: () => void
   initSettingsSync: () => () => void
@@ -69,6 +90,7 @@ interface EditorState {
   toggleMinimap: () => void
   toggleWordWrap: () => void
   toggleAutoSave: () => void
+  toggleSidebarPosition: () => void
 }
 
 const initialTerminalSession: TerminalSession = {
@@ -81,11 +103,14 @@ const getDefaultSettings = (): EditorSettings => {
   const defaults: EditorSettings = {
     fontSize: 14,
     fontFamily: "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace",
+    fontTheme: 'fira-code',
+    fontLigatures: true,
     tabSize: 2,
     wordWrap: 'on',
     minimap: true,
     theme: 'cortex-cyber',
     accentColor: '#5DD62C',
+    sidebarPosition: 'left',
     autoSave: true,
     autoSaveDelay: 5000,
     lineHeight: 22,
@@ -127,7 +152,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   cursorPosition: { line: 1, col: 1 },
   targetEditorLocation: null,
   settings: getDefaultSettings(),
-  isTerminalOpen: true,
+  isTerminalOpen: false,
   terminalHeight: 240,
   terminalSessions: [initialTerminalSession],
   activeTerminalId: 'term-1',
@@ -142,6 +167,104 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   pane2Tabs: [],
   pane2ActiveTabId: null,
   isMarkdownPreviewOpen: false,
+  diffViewMode: 'side-by-side',
+
+  toggleDiffViewMode: () => {
+    set((state) => ({
+      diffViewMode: state.diffViewMode === 'side-by-side' ? 'inline' : 'side-by-side'
+    }))
+  },
+
+  openDiffTab: async (
+    filePath: string,
+    originalContent?: string,
+    diffTitle?: string,
+    pane = 1
+  ) => {
+    const { tabs, pane2Tabs } = get()
+    const currentTabs = pane === 1 ? tabs : pane2Tabs
+    const diffTabId = `diff:${filePath}`
+    const existing = currentTabs.find((t) => t.id === diffTabId)
+
+    if (existing) {
+      if (pane === 1) {
+        set({ activeTabId: existing.id })
+      } else {
+        set({ pane2ActiveTabId: existing.id })
+      }
+      return
+    }
+
+    try {
+      let content = ''
+      const existingRegularTab = currentTabs.find((t) => t.path === filePath && !t.isDiff)
+      if (existingRegularTab) {
+        content = existingRegularTab.content
+      } else {
+        content = await window.cortexAPI.readFile(filePath)
+      }
+
+      let original = originalContent
+      if (original === undefined && window.cortexAPI) {
+        const { rootPath } = useWorkspaceStore.getState()
+        if (rootPath) {
+          const relativePath = filePath.startsWith(rootPath)
+            ? filePath.slice(rootPath.length).replace(/^[/\\]+/, '')
+            : filePath
+          original = (await window.cortexAPI.gitGetFileAtHead(rootPath, relativePath)) ?? ''
+        }
+      }
+
+      const fileName = filePath.split(/[/\\]/).pop() || 'Untitled'
+      const language = getLanguageForFile(fileName)
+
+      const newTab: Tab = {
+        id: diffTabId,
+        path: filePath,
+        name: `Diff: ${fileName}`,
+        content,
+        savedContent: content,
+        isDirty: false,
+        language,
+        isDiff: true,
+        originalContent: original ?? '',
+        diffTitle: diffTitle || `${fileName} (Working Tree ↔ HEAD)`
+      }
+
+      if (pane === 1) {
+        set({ tabs: [...tabs, newTab], activeTabId: newTab.id })
+      } else {
+        set({ pane2Tabs: [...pane2Tabs, newTab], pane2ActiveTabId: newTab.id })
+      }
+    } catch (err) {
+      console.error(`Failed to open diff tab for ${filePath}:`, err)
+    }
+  },
+
+  toggleDiffMode: async (tabId?: string, pane = 1) => {
+    const { tabs, activeTabId, pane2Tabs, pane2ActiveTabId, openDiffTab } = get()
+    const currentTabs = pane === 1 ? tabs : pane2Tabs
+    const currentActiveId = tabId || (pane === 1 ? activeTabId : pane2ActiveTabId)
+    const activeTab = currentTabs.find((t) => t.id === currentActiveId)
+    if (!activeTab) return
+
+    if (activeTab.isDiff) {
+      const normalTab = currentTabs.find((t) => t.path === activeTab.path && !t.isDiff)
+      if (normalTab) {
+        if (pane === 1) set({ activeTabId: normalTab.id })
+        else set({ pane2ActiveTabId: normalTab.id })
+      } else {
+        const fileName = activeTab.path.split(/[/\\]/).pop() || 'Untitled'
+        const updated = currentTabs.map((t) =>
+          t.id === activeTab.id ? { ...t, isDiff: false, name: fileName } : t
+        )
+        if (pane === 1) set({ tabs: updated })
+        else set({ pane2Tabs: updated })
+      }
+    } else {
+      await openDiffTab(activeTab.path, undefined, undefined, pane)
+    }
+  },
 
   openTab: async (filePath: string, initialContent?: string) => {
     const { tabs } = get()
@@ -450,8 +573,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ cursorPosition: { line, col } })
   },
 
-  toggleTerminal: () => set((state) => ({ isTerminalOpen: !state.isTerminalOpen })),
-  setTerminalOpen: (open: boolean) => set({ isTerminalOpen: open }),
+  toggleTerminal: () => {
+    const state = get()
+    const willOpen = !state.isTerminalOpen
+    if (willOpen && state.terminalSessions.length === 0) {
+      // Auto-create a default session when opening with none
+      const id = `term-${Date.now()}`
+      set({
+        isTerminalOpen: true,
+        terminalSessions: [{ id, name: '1: powershell', shell: 'powershell' }],
+        activeTerminalId: id
+      })
+    } else {
+      set({ isTerminalOpen: willOpen })
+    }
+  },
+  setTerminalOpen: (open: boolean) => {
+    const state = get()
+    if (open && state.terminalSessions.length === 0) {
+      const id = `term-${Date.now()}`
+      set({
+        isTerminalOpen: true,
+        terminalSessions: [{ id, name: '1: powershell', shell: 'powershell' }],
+        activeTerminalId: id
+      })
+    } else {
+      set({ isTerminalOpen: open })
+    }
+  },
   setTerminalHeight: (height: number) =>
     set({ terminalHeight: Math.max(120, Math.min(height, window.innerHeight - 150)) }),
 
@@ -481,15 +630,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     const remaining = terminalSessions.filter((s) => s.id !== id)
     if (remaining.length === 0) {
-      const fallbackId = `term-${Date.now()}`
-      const fallbackSession: TerminalSession = {
-        id: fallbackId,
-        name: '1: powershell',
-        shell: 'powershell'
-      }
+      // Close the terminal panel entirely — a fresh session is
+      // created automatically next time the panel is opened
       set({
-        terminalSessions: [fallbackSession],
-        activeTerminalId: fallbackId
+        terminalSessions: [],
+        activeTerminalId: '',
+        isTerminalOpen: false
       })
       return
     }
@@ -505,7 +651,85 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     })
   },
 
+  isTerminalSearchOpen: false,
+  setTerminalSearchOpen: (open: boolean) => set({ isTerminalSearchOpen: open }),
+  toggleTerminalSearch: () => set((state) => ({ isTerminalSearchOpen: !state.isTerminalSearchOpen })),
+
+  splitTerminalSession: (sessionId: string, shell = 'powershell') => {
+    const { terminalSessions } = get()
+    const parentSession = terminalSessions.find((s) => s.id === sessionId)
+    if (!parentSession) return
+
+    // If already split, do nothing
+    if (parentSession.splitSessionId) return
+
+    const splitId = `term-split-${Date.now()}`
+    const childSession: TerminalSession = {
+      id: splitId,
+      name: `${parentSession.name} (Split)`,
+      shell: shell as ShellType
+    }
+
+    const updatedSessions = terminalSessions.map((s) => {
+      if (s.id === sessionId) {
+        return {
+          ...s,
+          splitSessionId: splitId,
+          splitRatio: s.splitRatio || 0.5
+        }
+      }
+      return s
+    })
+
+    set({
+      terminalSessions: [...updatedSessions, childSession]
+    })
+  },
+
+  closeSplitSession: (sessionId: string) => {
+    const { terminalSessions } = get()
+    const parentSession = terminalSessions.find((s) => s.id === sessionId)
+    if (!parentSession || !parentSession.splitSessionId) return
+
+    const splitId = parentSession.splitSessionId
+    if (window.cortexAPI?.killTerminal) {
+      window.cortexAPI.killTerminal(splitId)
+    }
+
+    const updatedSessions = terminalSessions
+      .filter((s) => s.id !== splitId)
+      .map((s) => {
+        if (s.id === sessionId) {
+          return {
+            ...s,
+            splitSessionId: undefined
+          }
+        }
+        return s
+      })
+
+    set({ terminalSessions: updatedSessions })
+  },
+
+  setTerminalSplitRatio: (sessionId: string, ratio: number) => {
+    const { terminalSessions } = get()
+    const updated = terminalSessions.map((s) => {
+      if (s.id === sessionId) {
+        return { ...s, splitRatio: Math.max(0.2, Math.min(0.8, ratio)) }
+      }
+      return s
+    })
+    set({ terminalSessions: updated })
+  },
+
   setActiveTerminalId: (id: string) => set({ activeTerminalId: id, isTerminalOpen: true }),
+
+  restoreSession: (restored: Partial<EditorState>) => {
+    set((state) => ({
+      ...state,
+      ...restored
+    }))
+  },
 
   toggleSidebar: () =>
     set((state) => {
@@ -607,6 +831,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   toggleAutoSave: () => {
     get().updateSettings({
       autoSave: !get().settings.autoSave
+    })
+  },
+
+  toggleSidebarPosition: () => {
+    const current = get().settings.sidebarPosition || 'left'
+    get().updateSettings({
+      sidebarPosition: current === 'right' ? 'left' : 'right'
     })
   }
 }))

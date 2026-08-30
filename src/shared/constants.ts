@@ -30,6 +30,7 @@ export const IPC_CHANNELS = {
   TERMINAL_KILL: 'cortex:terminal:kill',
   TERMINAL_DATA: 'cortex:terminal:data',
   TERMINAL_EXIT: 'cortex:terminal:exit',
+  TERMINAL_GET_AVAILABLE_SHELLS: 'cortex:terminal:getAvailableShells',
 
   // Search & Replace
   SEARCH_WORKSPACE: 'cortex:search:workspace',
@@ -45,6 +46,8 @@ export const IPC_CHANNELS = {
   // Git
   GIT_STATUS: 'cortex:git:status',
   GIT_BRANCH: 'cortex:git:branch',
+  GIT_GET_FILE_AT_HEAD: 'cortex:git:getFileAtHead',
+  GIT_GET_DIFF: 'cortex:git:getDiff',
   GIT_STAGE: 'cortex:git:stage',
   GIT_UNSTAGE: 'cortex:git:unstage',
   GIT_STAGE_ALL: 'cortex:git:stageAll',

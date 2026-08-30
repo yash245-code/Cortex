@@ -136,6 +136,10 @@ export function registerIpcHandlers(
     terminalService.killTerminal(id)
   })
 
+  ipcMain.handle(IPC_CHANNELS.TERMINAL_GET_AVAILABLE_SHELLS, () => {
+    return terminalService.getAvailableShells()
+  })
+
   // Workspace Search & Replace
   ipcMain.handle(
     IPC_CHANNELS.SEARCH_WORKSPACE,
@@ -178,6 +182,20 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC_CHANNELS.GIT_BRANCH, async (_, workspacePath: string) => {
     return await gitService.getBranch(workspacePath)
   })
+
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_GET_FILE_AT_HEAD,
+    async (_, workspacePath: string, relativePath: string) => {
+      return await gitService.getFileAtHead(workspacePath, relativePath)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_GET_DIFF,
+    async (_, workspacePath: string, relativePath: string, staged?: boolean) => {
+      return await gitService.getDiff(workspacePath, relativePath, staged)
+    }
+  )
 
   ipcMain.handle(
     IPC_CHANNELS.GIT_STAGE,

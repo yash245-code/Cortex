@@ -23,9 +23,11 @@ export const Sidebar: React.FC = () => {
     toggleSidebarView,
     toggleTerminal,
     isTerminalOpen,
-    openSettingsWindow
+    openSettingsWindow,
+    settings
   } = useEditorStore()
 
+  const isRight = settings.sidebarPosition === 'right'
   const { openFolder } = useWorkspaceStore()
   const { stagedFiles, unstagedFiles, untrackedFiles, isGitRepo } = useGitStore()
   const isResizingRef = useRef(false)
@@ -39,8 +41,11 @@ export const Sidebar: React.FC = () => {
 
       const handleMouseMove = (moveEvent: MouseEvent): void => {
         if (!isResizingRef.current) return
-        // Subtract activity bar width (48px)
-        const newWidth = moveEvent.clientX - 48
+        const isRightAligned = useEditorStore.getState().settings.sidebarPosition === 'right'
+        // Subtract activity bar width (48px) and outer workspace padding (8px)
+        const newWidth = isRightAligned
+          ? window.innerWidth - moveEvent.clientX - 48 - 8
+          : moveEvent.clientX - 48 - 8
         setSidebarWidth(newWidth)
       }
 
@@ -60,16 +65,26 @@ export const Sidebar: React.FC = () => {
   const isSearchActive = isSidebarOpen && activeSidebarView === 'search'
   const isGitActive = isSidebarOpen && activeSidebarView === 'git'
 
+  const indicatorClass = isRight
+    ? 'absolute right-0 top-1 bottom-1 w-[3px] bg-cortex-accent rounded-l shadow-[0_0_8px_var(--cortex-accent)]'
+    : 'absolute left-0 top-1 bottom-1 w-[3px] bg-cortex-accent rounded-r shadow-[0_0_8px_var(--cortex-accent)]'
+
   return (
-    <div className="flex h-full select-none shrink-0 relative bg-cortex-sidebar border-r border-cortex-border">
-      {/* Persistent Activity Bar (Slim left 48px rail) */}
-      <div className="w-12 h-full bg-cortex-panel border-r border-cortex-border flex flex-col items-center py-3 justify-between shrink-0 z-30">
+    <div
+      className={`flex h-full select-none shrink-0 relative bg-cortex-sidebar border border-cortex-border/80 rounded-2xl overflow-hidden shadow-lg transition-all duration-200 ${
+        isRight ? 'flex-row-reverse' : 'flex-row'
+      }`}
+    >
+      {/* Persistent Activity Bar (Slim 48px rail) */}
+      <div
+        className={`w-12 h-full bg-cortex-panel flex flex-col items-center py-3 justify-between shrink-0 z-30 ${
+          isSidebarOpen ? (isRight ? 'border-l border-cortex-border/60' : 'border-r border-cortex-border/60') : ''
+        }`}
+      >
         <div className="flex flex-col items-center gap-3 w-full">
           {/* Explorer Button */}
           <div className="relative w-full flex justify-center">
-            {isExplorerActive && (
-              <div className="absolute left-0 top-1 bottom-1 w-[3px] bg-cortex-accent rounded-r shadow-[0_0_8px_var(--cortex-accent)]" />
-            )}
+            {isExplorerActive && <div className={indicatorClass} />}
             <button
               onClick={() => toggleSidebarView('explorer')}
               title="Explorer (Ctrl+Shift+E)"
@@ -85,9 +100,7 @@ export const Sidebar: React.FC = () => {
 
           {/* Search Button */}
           <div className="relative w-full flex justify-center">
-            {isSearchActive && (
-              <div className="absolute left-0 top-1 bottom-1 w-[3px] bg-cortex-accent rounded-r shadow-[0_0_8px_var(--cortex-accent)]" />
-            )}
+            {isSearchActive && <div className={indicatorClass} />}
             <button
               onClick={() => toggleSidebarView('search')}
               title="Search (Ctrl+Shift+F)"
@@ -103,9 +116,7 @@ export const Sidebar: React.FC = () => {
 
           {/* Source Control Button */}
           <div className="relative w-full flex justify-center">
-            {isGitActive && (
-              <div className="absolute left-0 top-1 bottom-1 w-[3px] bg-cortex-accent rounded-r shadow-[0_0_8px_var(--cortex-accent)]" />
-            )}
+            {isGitActive && <div className={indicatorClass} />}
             <button
               onClick={() => toggleSidebarView('git')}
               title="Source Control (Ctrl+Shift+G)"
@@ -180,7 +191,9 @@ export const Sidebar: React.FC = () => {
           {/* Horizontal Resizer Line */}
           <div
             onMouseDown={handleMouseDown}
-            className="w-1 absolute right-0 top-0 bottom-0 cursor-col-resize hover:bg-cortex-accent/50 active:bg-cortex-accent transition-colors z-20"
+            className={`w-1.5 absolute top-0 bottom-0 cursor-col-resize hover:bg-cortex-accent/50 active:bg-cortex-accent transition-colors z-20 ${
+              isRight ? 'left-0' : 'right-0'
+            }`}
           />
         </>
       )}

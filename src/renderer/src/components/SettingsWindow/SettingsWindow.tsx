@@ -15,11 +15,16 @@ import {
   Check,
   Code2,
   Lock,
-  ChevronRight
+  ChevronRight,
+  PanelLeft,
+  PanelRight,
+  Layout,
+  Type
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { EditorSettings, ShellType } from '../../../../shared/types'
-import { THEMES, ACCENT_COLORS } from '../../theme/themeRegistry'
+import { THEMES, ACCENT_COLORS, getAccentsForTheme } from '../../theme/themeRegistry'
+import { FONT_THEMES } from '../../theme/fontRegistry'
 
 type SettingsCategory = 'editor' | 'appearance' | 'terminal' | 'files' | 'ai' | 'shortcuts'
 
@@ -30,8 +35,9 @@ export const SettingsWindow: React.FC = () => {
   const [showApiKey, setShowApiKey] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
 
-  // Listen to cross-window sync
+  // Listen to cross-window sync and set window title
   useEffect(() => {
+    document.title = 'Settings - Cortex'
     const unsub = initSettingsSync()
     return () => {
       unsub()
@@ -60,6 +66,7 @@ export const SettingsWindow: React.FC = () => {
       wordWrap: 'on',
       minimap: true,
       theme: 'vs-dark',
+      sidebarPosition: 'left',
       autoSave: true,
       autoSaveDelay: 5000,
       lineHeight: 22,
@@ -123,7 +130,7 @@ export const SettingsWindow: React.FC = () => {
         className="h-10 bg-cortex-sidebar border-b border-cortex-border flex items-center justify-between px-3 shrink-0 select-none z-30"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-5 h-5 rounded-md bg-cortex-accent/20 border border-cortex-accent/50 flex items-center justify-center text-cortex-accent shadow-[0_0_8px_#5DD62C40]">
+          <div className="w-5 h-5 rounded-md bg-cortex-accent/20 border border-cortex-accent/50 flex items-center justify-center text-cortex-accent shadow-[0_0_8px_var(--cortex-accent-glow)]">
             <Sliders size={12} />
           </div>
           <span className="text-xs font-semibold tracking-wide text-cortex-text">
@@ -234,6 +241,70 @@ export const SettingsWindow: React.FC = () => {
                 <span>Search Results for "{searchQuery}"</span>
               </h2>
 
+              {/* Matching Settings */}
+              {(searchQuery.toLowerCase().includes('side') ||
+                searchQuery.toLowerCase().includes('bar') ||
+                searchQuery.toLowerCase().includes('pos') ||
+                searchQuery.toLowerCase().includes('left') ||
+                searchQuery.toLowerCase().includes('right') ||
+                searchQuery.toLowerCase().includes('layout')) && (
+                <div className="p-4 rounded-xl bg-cortex-panel border border-cortex-border space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                        <Layout size={14} className="text-cortex-accent" />
+                        <span>Side Bar Location</span>
+                      </div>
+                      <div className="text-[11px] text-cortex-muted mt-0.5">
+                        Controls whether the primary side bar (Explorer, Search, Git) appears on the left or right.
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-cortex-surface border border-cortex-border text-cortex-accent font-semibold uppercase">
+                      {settings.sidebarPosition || 'left'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSettingChange({ sidebarPosition: 'left' })}
+                      className={`p-3 rounded-xl border-2 transition-all flex items-center gap-3 text-left ${
+                        (settings.sidebarPosition || 'left') === 'left'
+                          ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(93,214,44,0.2))]'
+                          : 'border-cortex-border bg-cortex-surface/40 hover:border-cortex-muted hover:bg-cortex-surface'
+                      }`}
+                    >
+                      <PanelLeft size={13} className="text-cortex-accent" />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-xs text-cortex-text">Left Side</span>
+                        <div className="text-[10px] text-cortex-muted">Standard default layout</div>
+                      </div>
+                      {(settings.sidebarPosition || 'left') === 'left' && (
+                        <Check size={13} className="text-cortex-accent font-bold" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSettingChange({ sidebarPosition: 'right' })}
+                      className={`p-3 rounded-xl border-2 transition-all flex items-center gap-3 text-left ${
+                        settings.sidebarPosition === 'right'
+                          ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(93,214,44,0.2))]'
+                          : 'border-cortex-border bg-cortex-surface/40 hover:border-cortex-muted hover:bg-cortex-surface'
+                      }`}
+                    >
+                      <PanelRight size={13} className="text-cortex-accent" />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-xs text-cortex-text">Right Side</span>
+                        <div className="text-[10px] text-cortex-muted">Docked to right edge</div>
+                      </div>
+                      {settings.sidebarPosition === 'right' && (
+                        <Check size={13} className="text-cortex-accent font-bold" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Filtered shortcuts */}
               <div className="space-y-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-cortex-muted">
@@ -299,24 +370,110 @@ export const SettingsWindow: React.FC = () => {
                         onChange={(e) =>
                           handleSettingChange({ fontSize: Number(e.target.value) })
                         }
-                        className="flex-1 accent-[#5DD62C] cursor-pointer"
+                        style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                        className="flex-1 cursor-pointer"
                       />
                       <span className="text-[10px] text-cortex-muted">32px</span>
                     </div>
                   </div>
 
-                  {/* Font Family */}
-                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
-                    <div className="font-medium text-cortex-text">Font Family</div>
-                    <div className="text-[11px] text-cortex-muted">
-                      Specify the monospace typeface fallback chain.
+                  {/* Editor Font Themes & Vibes */}
+                  <div className="p-4 rounded-xl bg-cortex-panel border border-cortex-border space-y-3.5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                          <Type size={14} className="text-cortex-accent" />
+                          <span>Editor Font Theme & Vibe</span>
+                        </div>
+                        <div className="text-[11px] text-cortex-muted mt-0.5">
+                          Curated typography themes with distinct personalities (applies strictly to the code editor area).
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cortex-surface border border-cortex-border text-cortex-accent font-semibold uppercase">
+                        {settings.fontTheme || 'fira-code'}
+                      </span>
                     </div>
-                    <input
-                      type="text"
-                      value={settings.fontFamily}
-                      onChange={(e) => handleSettingChange({ fontFamily: e.target.value })}
-                      className="w-full bg-cortex-surface text-xs font-mono text-cortex-text px-3 py-1.5 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none"
-                    />
+
+                    {/* Font Theme Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                      {Object.values(FONT_THEMES).map((font) => {
+                        const isCurrent = (settings.fontTheme || 'fira-code') === font.id
+                        return (
+                          <button
+                            key={font.id}
+                            type="button"
+                            onClick={() => handleSettingChange({ fontTheme: font.id })}
+                            className={`p-3 rounded-xl border-2 transition-all flex flex-col gap-1.5 text-left ${
+                              isCurrent
+                                ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(93,214,44,0.2))]'
+                                : 'border-cortex-border bg-cortex-surface/40 hover:border-cortex-muted hover:bg-cortex-surface'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-xs text-cortex-text">
+                                  {font.name}
+                                </span>
+                                {font.badge && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-cortex-panel text-cortex-accent border border-cortex-border font-mono font-medium">
+                                    {font.badge}
+                                  </span>
+                                )}
+                              </div>
+                              {isCurrent && (
+                                <Check size={13} className="text-cortex-accent font-bold shrink-0" />
+                              )}
+                            </div>
+
+                            <div className="text-[10px] text-cortex-muted">{font.vibe}</div>
+
+                            <div
+                              style={{ fontFamily: font.fontFamily }}
+                              className="mt-1 px-2 py-1 rounded bg-cortex-bg border border-cortex-border/70 text-[10px] text-emerald-400 font-mono overflow-hidden truncate w-full"
+                            >
+                              {font.sampleCode}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Custom Font Family Override (when custom selected) */}
+                    {settings.fontTheme === 'custom' && (
+                      <div className="pt-2 border-t border-cortex-border space-y-1.5">
+                        <div className="font-medium text-xs text-cortex-text">Custom Font Family Chain</div>
+                        <input
+                          type="text"
+                          value={settings.fontFamily}
+                          onChange={(e) => handleSettingChange({ fontFamily: e.target.value })}
+                          placeholder="e.g. 'Fira Code', Consolas, monospace"
+                          className="w-full bg-cortex-surface text-xs font-mono text-cortex-text px-3 py-1.5 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none"
+                        />
+                      </div>
+                    )}
+
+                    {/* Font Ligatures Toggle */}
+                    <div className="pt-2 border-t border-cortex-border flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-xs text-cortex-text">Programming Ligatures</div>
+                        <div className="text-[10px] text-cortex-muted">
+                          Renders special multi-character symbol ligatures like <code className="text-cortex-accent font-mono">=&gt;</code>, <code className="text-cortex-accent font-mono">!==</code>, <code className="text-cortex-accent font-mono">&lt;!--</code>.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSettingChange({ fontLigatures: !(settings.fontLigatures !== false) })
+                        }
+                        className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                          settings.fontLigatures !== false
+                            ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40 shadow-sm'
+                            : 'bg-cortex-surface text-cortex-muted hover:text-white border border-cortex-border'
+                        }`}
+                      >
+                        {settings.fontLigatures !== false ? 'Ligatures: ON' : 'Ligatures: OFF'}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Tab Size */}
@@ -410,7 +567,7 @@ export const SettingsWindow: React.FC = () => {
                       }}
                       className="p-3 bg-[#0F0F0F] rounded border border-cortex-border font-mono text-cortex-text overflow-x-auto leading-relaxed"
                     >
-                      <span className="text-[#5DD62C]">const</span>{' '}
+                      <span className="text-cortex-accent">const</span>{' '}
                       <span className="text-[#F8F8F8]">cortex</span> = {'{\n'}
                       {'  '}status: <span className="text-[#A3E635]">'ultra-fast'</span>,{'\n'}
                       {'  '}tabSize: <span className="text-[#86EFAC]">{settings.tabSize}</span>
@@ -436,7 +593,7 @@ export const SettingsWindow: React.FC = () => {
                   </div>
 
                   {/* Accent Color Customizer */}
-                  <div className="p-4 rounded-xl bg-cortex-panel border border-cortex-border space-y-3 shadow-sm">
+                  <div className="p-4 rounded-xl bg-cortex-panel border border-cortex-border space-y-3.5 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
@@ -458,33 +615,75 @@ export const SettingsWindow: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Accent Swatches Grid */}
-                    <div className="grid grid-cols-7 gap-2 pt-1">
-                      {ACCENT_COLORS.map((acc) => {
-                        const isSelected = (settings.accentColor || '#5DD62C') === acc.color
-                        return (
-                          <button
-                            key={acc.id}
-                            onClick={() => handleSettingChange({ accentColor: acc.color })}
-                            title={`${acc.name} (${acc.color})`}
-                            className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all ${
-                              isSelected
-                                ? 'bg-cortex-surface border-cortex-accent shadow-md scale-105'
-                                : 'bg-cortex-surface/40 border-cortex-border hover:border-cortex-muted hover:bg-cortex-surface'
-                            }`}
-                          >
-                            <span
-                              style={{ backgroundColor: acc.color }}
-                              className="w-5 h-5 rounded-full shadow border border-white/20 flex items-center justify-center text-black"
+                    {/* Curated Theme Accents (at least 5 per theme) */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-semibold text-cortex-text flex items-center justify-between">
+                        <span>
+                          Curated for {THEMES[settings.theme || 'cortex-cyber']?.name || 'Current Theme'} ({getAccentsForTheme(settings.theme).length} Accents)
+                        </span>
+                        <span className="text-cortex-muted font-normal text-[9px]">Recommended</span>
+                      </div>
+                      <div className="grid grid-cols-6 gap-2">
+                        {getAccentsForTheme(settings.theme).map((acc) => {
+                          const isSelected = (settings.accentColor || '#5DD62C').toLowerCase() === acc.color.toLowerCase()
+                          return (
+                            <button
+                              key={acc.id}
+                              onClick={() => handleSettingChange({ accentColor: acc.color })}
+                              title={`${acc.name} (${acc.color})`}
+                              className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all ${
+                                isSelected
+                                  ? 'bg-cortex-surface border-cortex-accent shadow-md scale-105'
+                                  : 'bg-cortex-surface/40 border-cortex-border hover:border-cortex-muted hover:bg-cortex-surface'
+                              }`}
                             >
-                              {isSelected && <Check size={10} strokeWidth={3} className="text-white" />}
-                            </span>
-                            <span className="text-[10px] font-medium text-cortex-muted truncate max-w-[60px]">
-                              {acc.name.split(' ')[1] || acc.name}
-                            </span>
-                          </button>
-                        )
-                      })}
+                              <span
+                                style={{ backgroundColor: acc.color }}
+                                className="w-5 h-5 rounded-full shadow border border-white/20 flex items-center justify-center text-black"
+                              >
+                                {isSelected && <Check size={10} strokeWidth={3} className="text-black drop-shadow-sm" />}
+                              </span>
+                              <span className="text-[10px] font-medium text-cortex-muted truncate max-w-[65px]">
+                                {acc.name}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* All Global Accent Colors */}
+                    <div className="space-y-1.5 pt-2 border-t border-cortex-border">
+                      <div className="text-[10px] font-semibold text-cortex-muted">
+                        All Global Accents
+                      </div>
+                      <div className="grid grid-cols-5 md:grid-cols-10 gap-1.5">
+                        {ACCENT_COLORS.map((acc) => {
+                          const isSelected = (settings.accentColor || '#5DD62C').toLowerCase() === acc.color.toLowerCase()
+                          return (
+                            <button
+                              key={acc.id}
+                              onClick={() => handleSettingChange({ accentColor: acc.color })}
+                              title={`${acc.name} (${acc.color})`}
+                              className={`flex flex-col items-center gap-1 p-1.5 rounded-md border transition-all ${
+                                isSelected
+                                  ? 'bg-cortex-surface border-cortex-accent shadow-sm'
+                                  : 'bg-cortex-surface/30 border-cortex-border hover:border-cortex-muted'
+                              }`}
+                            >
+                              <span
+                                style={{ backgroundColor: acc.color }}
+                                className="w-4 h-4 rounded-full shadow border border-white/20 flex items-center justify-center text-black"
+                              >
+                                {isSelected && <Check size={8} strokeWidth={3} className="text-black drop-shadow-sm" />}
+                              </span>
+                              <span className="text-[8px] font-medium text-cortex-muted truncate max-w-[45px]">
+                                {acc.name.split(' ')[0]}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                   </div>
 
@@ -505,7 +704,7 @@ export const SettingsWindow: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                       {Object.values(THEMES).map((theme) => {
                         const isSelected = (settings.theme || 'cortex-cyber') === theme.id
                         return (
@@ -514,7 +713,7 @@ export const SettingsWindow: React.FC = () => {
                             onClick={() => handleSettingChange({ theme: theme.id })}
                             className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 ${
                               isSelected
-                                ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(93,214,44,0.2))]'
+                                ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(142,182,155,0.2))]'
                                 : 'border-cortex-border bg-cortex-surface/50 hover:border-cortex-muted hover:bg-cortex-surface'
                             }`}
                           >
@@ -536,32 +735,140 @@ export const SettingsWindow: React.FC = () => {
                               </span>
                             </div>
 
-                            {/* Color Palette Swatches */}
-                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-cortex-bg/80 border border-cortex-border">
-                              <span
-                                style={{ backgroundColor: theme.previewColors.bg }}
-                                title="Background"
-                                className="w-4 h-4 rounded border border-white/10 shadow-sm"
-                              />
-                              <span
-                                style={{ backgroundColor: theme.previewColors.sidebar }}
-                                title="Sidebar"
-                                className="w-4 h-4 rounded border border-white/10 shadow-sm"
-                              />
-                              <span
-                                style={{ backgroundColor: theme.previewColors.panel }}
-                                title="Panel"
-                                className="w-4 h-4 rounded border border-white/10 shadow-sm"
-                              />
-                              <span
-                                style={{ backgroundColor: theme.previewColors.accent }}
-                                title="Theme Accent"
-                                className="w-4 h-4 rounded shadow-sm ml-auto"
-                              />
+                            {/* Color Palette Swatches & Theme Curated Accents */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-cortex-bg/80 border border-cortex-border">
+                                <span
+                                  style={{ backgroundColor: theme.previewColors.bg }}
+                                  title="Background"
+                                  className="w-4 h-4 rounded border border-white/10 shadow-sm"
+                                />
+                                <span
+                                  style={{ backgroundColor: theme.previewColors.sidebar }}
+                                  title="Sidebar"
+                                  className="w-4 h-4 rounded border border-white/10 shadow-sm"
+                                />
+                                <span
+                                  style={{ backgroundColor: theme.previewColors.panel }}
+                                  title="Panel"
+                                  className="w-4 h-4 rounded border border-white/10 shadow-sm"
+                                />
+                                <span
+                                  style={{ backgroundColor: theme.previewColors.text }}
+                                  title="Text Foreground"
+                                  className="w-4 h-4 rounded border border-white/10 shadow-sm"
+                                />
+                                <span
+                                  style={{ backgroundColor: theme.previewColors.accent }}
+                                  title="Default Accent"
+                                  className="w-4 h-4 rounded shadow-sm ml-auto"
+                                />
+                              </div>
+
+                              {/* 5+ Curated Accents Preview */}
+                              <div className="flex items-center gap-1 px-1">
+                                <span className="text-[9px] text-cortex-muted mr-1 font-mono">
+                                  {theme.accentOptions.length} accents:
+                                </span>
+                                {theme.accentOptions.map((acc) => (
+                                  <span
+                                    key={acc.id}
+                                    style={{ backgroundColor: acc.color }}
+                                    title={acc.name}
+                                    className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-xs"
+                                  />
+                                ))}
+                              </div>
                             </div>
                           </div>
                         )
                       })}
+                    </div>
+                  </div>
+
+                  {/* Side Bar Location */}
+                  <div className="p-4 rounded-xl bg-cortex-panel border border-cortex-border space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                          <Layout size={14} className="text-cortex-accent" />
+                          <span>Side Bar Location</span>
+                        </div>
+                        <div className="text-[11px] text-cortex-muted mt-0.5">
+                          Controls whether the primary side bar (Explorer, Search, Git) appears on the left or right.
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-cortex-surface border border-cortex-border text-cortex-accent font-semibold uppercase">
+                        {settings.sidebarPosition || 'left'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      {/* Left Option */}
+                      <button
+                        type="button"
+                        onClick={() => handleSettingChange({ sidebarPosition: 'left' })}
+                        className={`p-3 rounded-xl border-2 transition-all flex items-center gap-3 text-left ${
+                          (settings.sidebarPosition || 'left') === 'left'
+                            ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(93,214,44,0.2))]'
+                            : 'border-cortex-border bg-cortex-surface/40 hover:border-cortex-muted hover:bg-cortex-surface'
+                        }`}
+                      >
+                        <div className="w-12 h-10 rounded-lg bg-cortex-bg border border-cortex-border flex overflow-hidden shrink-0 shadow-inner">
+                          <div className="w-3.5 h-full bg-cortex-accent/40 border-r border-cortex-accent/60 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-cortex-accent" />
+                          </div>
+                          <div className="flex-1 h-full bg-cortex-sidebar/60 flex flex-col p-1 gap-0.5">
+                            <div className="w-full h-1 bg-cortex-border rounded" />
+                            <div className="w-2/3 h-1 bg-cortex-border rounded" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                            <PanelLeft size={13} className="text-cortex-accent" />
+                            <span>Left Side</span>
+                            {(settings.sidebarPosition || 'left') === 'left' && (
+                              <Check size={13} className="text-cortex-accent ml-auto font-bold" />
+                            )}
+                          </div>
+                          <div className="text-[10px] text-cortex-muted mt-0.5">
+                            Standard default layout (Left)
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Right Option */}
+                      <button
+                        type="button"
+                        onClick={() => handleSettingChange({ sidebarPosition: 'right' })}
+                        className={`p-3 rounded-xl border-2 transition-all flex items-center gap-3 text-left ${
+                          settings.sidebarPosition === 'right'
+                            ? 'border-cortex-accent bg-cortex-surface shadow-[0_0_16px_var(--cortex-accent-glow,rgba(93,214,44,0.2))]'
+                            : 'border-cortex-border bg-cortex-surface/40 hover:border-cortex-muted hover:bg-cortex-surface'
+                        }`}
+                      >
+                        <div className="w-12 h-10 rounded-lg bg-cortex-bg border border-cortex-border flex flex-row-reverse overflow-hidden shrink-0 shadow-inner">
+                          <div className="w-3.5 h-full bg-cortex-accent/40 border-l border-cortex-accent/60 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-cortex-accent" />
+                          </div>
+                          <div className="flex-1 h-full bg-cortex-sidebar/60 flex flex-col p-1 gap-0.5">
+                            <div className="w-full h-1 bg-cortex-border rounded" />
+                            <div className="w-2/3 h-1 bg-cortex-border rounded" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-xs text-cortex-text flex items-center gap-1.5">
+                            <PanelRight size={13} className="text-cortex-accent" />
+                            <span>Right Side</span>
+                            {settings.sidebarPosition === 'right' && (
+                              <Check size={13} className="text-cortex-accent ml-auto font-bold" />
+                            )}
+                          </div>
+                          <div className="text-[10px] text-cortex-muted mt-0.5">
+                            Docked to the right edge
+                          </div>
+                        </div>
+                      </button>
                     </div>
                   </div>
 
@@ -660,7 +967,8 @@ export const SettingsWindow: React.FC = () => {
                         onChange={(e) =>
                           handleSettingChange({ terminalFontSize: Number(e.target.value) })
                         }
-                        className="flex-1 accent-[#5DD62C] cursor-pointer"
+                        style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                        className="flex-1 cursor-pointer"
                       />
                       <span className="text-[10px] text-cortex-muted">24px</span>
                     </div>
@@ -728,7 +1036,8 @@ export const SettingsWindow: React.FC = () => {
                           onChange={(e) =>
                             handleSettingChange({ autoSaveDelay: Number(e.target.value) })
                           }
-                          className="flex-1 accent-[#5DD62C] cursor-pointer"
+                          style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                          className="flex-1 cursor-pointer"
                         />
                         <span className="text-[10px] text-cortex-muted">15s</span>
                       </div>
@@ -828,7 +1137,8 @@ export const SettingsWindow: React.FC = () => {
                         onChange={(e) =>
                           handleSettingChange({ aiTemperature: Number(e.target.value) })
                         }
-                        className="flex-1 accent-[#5DD62C] cursor-pointer"
+                        style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                        className="flex-1 cursor-pointer"
                       />
                       <span className="text-[10px] text-cortex-muted">1.0 (Creative)</span>
                     </div>

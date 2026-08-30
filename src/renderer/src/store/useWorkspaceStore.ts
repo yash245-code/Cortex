@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { FileNode } from '@shared/types'
+import { FileNode, RecentWorkspace } from '@shared/types'
 import { useGitStore } from './useGitStore'
+import { sessionService } from '../services/sessionService'
 
 interface WorkspaceState {
   rootPath: string | null
@@ -10,6 +11,7 @@ interface WorkspaceState {
   isLoading: boolean
   creatingItem: { parentPath: string; type: 'file' | 'directory' } | null
   renamingPath: string | null
+  recentWorkspaces: RecentWorkspace[]
 
   // Actions
   openFolder: (dirPath?: string) => Promise<string | null>
@@ -25,6 +27,8 @@ interface WorkspaceState {
   renameItem: (oldPath: string, newName: string) => Promise<string | null>
   deleteItem: (targetPath: string) => Promise<boolean>
   initWatcher: () => () => void
+  loadRecentWorkspaces: () => void
+  removeRecentWorkspace: (path: string) => void
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -35,6 +39,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   isLoading: false,
   creatingItem: null,
   renamingPath: null,
+  recentWorkspaces: sessionService.getRecentWorkspaces(),
+
+  loadRecentWorkspaces: () => {
+    set({ recentWorkspaces: sessionService.getRecentWorkspaces() })
+  },
+
+  removeRecentWorkspace: (path: string) => {
+    const updated = sessionService.removeRecentWorkspace(path)
+    set({ recentWorkspaces: updated })
+  },
 
   openFolder: async (dirPath?: string) => {
     try {
@@ -49,10 +63,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const expanded = new Set(get().expandedPaths)
       expanded.add(targetDir)
 
+      const updatedRecents = sessionService.addRecentWorkspace(targetDir)
+
       set({
         rootNode,
         expandedPaths: expanded,
-        isLoading: false
+        isLoading: false,
+        recentWorkspaces: updatedRecents
       })
 
       // Sync Git status for newly opened folder
@@ -167,12 +184,75 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   deleteItem: async (targetPath: string) => {
+    if (!targetPath) return false
     try {
-      await window.cortexAPI.deletePath(targetPath)
-      await get().refreshTree()
-      if (get().selectedPath === targetPath) {
-        set({ selectedPath: null })
+      const isSuccess = await window.cortexAPI.deletePath(targetPath)
+      if (!isSuccess) return false
+
+      const normalizedTarget = targetPath.replace(/[/\\]+$/, '').toLowerCase()
+
+      // 1. Close any open tabs matching this deleted file or folder
+      try {
+        const { useEditorStore } = await import('./useEditorStore')
+        const { tabs, pane2Tabs, closeTab } = useEditorStore.getState()
+        const isChildOrEqual = (tabPath: string): boolean => {
+          const norm = tabPath.replace(/[/\\]+$/, '').toLowerCase()
+          return (
+            norm === normalizedTarget ||
+            norm.startsWith(normalizedTarget + '/') ||
+            norm.startsWith(normalizedTarget + '\\')
+          )
+        }
+
+        for (const tab of tabs) {
+          if (isChildOrEqual(tab.path)) {
+            closeTab(tab.id, 1)
+          }
+        }
+        for (const tab of pane2Tabs) {
+          if (isChildOrEqual(tab.path)) {
+            closeTab(tab.id, 2)
+          }
+        }
+      } catch {
+        // ignore tab close error
       }
+
+      // 2. Clear selectedPath if deleted
+      const currentSelected = get().selectedPath
+      if (currentSelected) {
+        const normSelected = currentSelected.replace(/[/\\]+$/, '').toLowerCase()
+        if (
+          normSelected === normalizedTarget ||
+          normSelected.startsWith(normalizedTarget + '/') ||
+          normSelected.startsWith(normalizedTarget + '\\')
+        ) {
+          set({ selectedPath: null })
+        }
+      }
+
+      // 3. Clean up expandedPaths
+      const expanded = new Set(get().expandedPaths)
+      for (const p of expanded) {
+        const normP = p.replace(/[/\\]+$/, '').toLowerCase()
+        if (
+          normP === normalizedTarget ||
+          normP.startsWith(normalizedTarget + '/') ||
+          normP.startsWith(normalizedTarget + '\\')
+        ) {
+          expanded.delete(p)
+        }
+      }
+      set({ expandedPaths: expanded })
+
+      // 4. If root workspace itself was deleted
+      const currentRoot = get().rootPath
+      if (currentRoot && currentRoot.replace(/[/\\]+$/, '').toLowerCase() === normalizedTarget) {
+        set({ rootPath: null, rootNode: null })
+      } else {
+        await get().refreshTree()
+      }
+
       useGitStore.getState().refreshGitStatus()
       return true
     } catch (err) {
@@ -182,7 +262,33 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   initWatcher: () => {
-    return window.cortexAPI.onFileChange((_event) => {
+    return window.cortexAPI.onFileChange((event) => {
+      // Auto-close tabs if files are deleted from external terminal or explorer
+      if (event.type === 'unlink' || event.type === 'unlinkDir') {
+        const normalizedTarget = event.path.replace(/[/\\]+$/, '').toLowerCase()
+        import('./useEditorStore').then(({ useEditorStore }) => {
+          const { tabs, pane2Tabs, closeTab } = useEditorStore.getState()
+          const isChildOrEqual = (tabPath: string): boolean => {
+            const norm = tabPath.replace(/[/\\]+$/, '').toLowerCase()
+            return (
+              norm === normalizedTarget ||
+              norm.startsWith(normalizedTarget + '/') ||
+              norm.startsWith(normalizedTarget + '\\')
+            )
+          }
+          for (const tab of tabs) {
+            if (!tab.isDirty && isChildOrEqual(tab.path)) {
+              closeTab(tab.id, 1)
+            }
+          }
+          for (const tab of pane2Tabs) {
+            if (!tab.isDirty && isChildOrEqual(tab.path)) {
+              closeTab(tab.id, 2)
+            }
+          }
+        })
+      }
+
       // Refresh file tree & git on watcher change
       get().refreshTree()
     })

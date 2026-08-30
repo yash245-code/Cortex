@@ -65,7 +65,7 @@ export const FileTree: React.FC = () => {
         </p>
         <button
           onClick={() => openFolder()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#337418] hover:bg-[#5DD62C] hover:text-[#0F0F0F] text-white text-xs font-medium transition-all shadow-md active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cortex-accent hover:brightness-110 text-black text-xs font-semibold transition-all shadow-md active:scale-95"
         >
           <FolderOpen size={13} />
           <span>Open Folder</span>

@@ -19,6 +19,9 @@ export interface Tab {
   savedContent: string
   isDirty: boolean
   language: string
+  isDiff?: boolean
+  originalContent?: string
+  diffTitle?: string
 }
 
 export interface TerminalDataPayload {
@@ -40,11 +43,14 @@ export interface FileChangeEvent {
 export interface EditorSettings {
   fontSize: number
   fontFamily: string
+  fontTheme?: string
+  fontLigatures?: boolean
   tabSize: number
   wordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded'
   minimap: boolean
   theme: string
   accentColor?: string
+  sidebarPosition?: 'left' | 'right'
   autoSave: boolean
   autoSaveDelay: number
   lineHeight?: number
@@ -64,10 +70,41 @@ export interface EditorSettings {
 
 export type ShellType = 'powershell' | 'cmd' | 'bash' | 'wsl' | 'default'
 
+export interface ShellProfile {
+  id: string
+  name: string
+  shell: ShellType
+  path: string
+  description: string
+  iconType: 'powershell' | 'cmd' | 'bash' | 'wsl' | 'default'
+}
+
 export interface TerminalSession {
   id: string
   name: string
   shell: ShellType
+  splitSessionId?: string
+  splitRatio?: number
+}
+
+export interface RecentWorkspace {
+  path: string
+  name: string
+  lastOpened: number
+}
+
+export interface WorkspaceSession {
+  rootPath: string | null
+  tabs: Tab[]
+  activeTabId: string | null
+  pane2Tabs: Tab[]
+  pane2ActiveTabId: string | null
+  isSplitEditorOpen: boolean
+  splitRatio: number
+  isTerminalOpen: boolean
+  terminalHeight: number
+  terminalSessions: TerminalSession[]
+  activeTerminalId: string
 }
 
 export interface SearchOptions {
@@ -155,6 +192,7 @@ export interface CortexAPI {
   killTerminal: (id: string) => Promise<void>
   onTerminalData: (callback: (payload: TerminalDataPayload) => void) => () => void
   onTerminalExit: (callback: (payload: { id: string; exitCode: number }) => void) => () => void
+  terminalGetAvailableShells: () => Promise<ShellProfile[]>
 
   // Search & Replace
   searchWorkspace: (
@@ -184,6 +222,8 @@ export interface CortexAPI {
   // Git Source Control
   gitGetStatus: (workspacePath: string) => Promise<GitStatusResult>
   gitGetBranch: (workspacePath: string) => Promise<string | null>
+  gitGetFileAtHead: (workspacePath: string, relativePath: string) => Promise<string | null>
+  gitGetDiff: (workspacePath: string, relativePath: string, staged?: boolean) => Promise<string>
   gitStage: (workspacePath: string, relativePath: string) => Promise<boolean>
   gitUnstage: (workspacePath: string, relativePath: string) => Promise<boolean>
   gitStageAll: (workspacePath: string) => Promise<boolean>

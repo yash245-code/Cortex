@@ -7,6 +7,15 @@ import { terminalService } from './services/terminalService'
 let mainWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
 
+function getAppIconPath(): string {
+  const isDev = !app.isPackaged
+  const filename = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
+  if (isDev) {
+    return join(__dirname, '../../resources', filename)
+  }
+  return join(process.resourcesPath, filename)
+}
+
 export function openSettingsWindow(): BrowserWindow {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     if (settingsWindow.isMinimized()) {
@@ -17,9 +26,10 @@ export function openSettingsWindow(): BrowserWindow {
     return settingsWindow
   }
 
-  const iconPath = join(__dirname, '../../resources/icon-taskbar.png')
+  const iconPath = getAppIconPath()
 
   settingsWindow = new BrowserWindow({
+    title: 'Settings - Cortex',
     width: 780,
     height: 560,
     minWidth: 640,
@@ -30,6 +40,7 @@ export function openSettingsWindow(): BrowserWindow {
     titleBarStyle: 'hidden',
     backgroundColor: '#0f1117',
     icon: iconPath,
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -66,6 +77,7 @@ export function openSettingsWindow(): BrowserWindow {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
+    title: 'Cortex',
     width: 1280,
     height: 800,
     minWidth: 900,
@@ -75,7 +87,7 @@ function createWindow(): void {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#0f1117',
-    icon: join(__dirname, '../../resources/icon-taskbar.png'),
+    icon: getAppIconPath(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -90,6 +102,20 @@ function createWindow(): void {
     if (mainWindow) {
       mainWindow.show()
     }
+  })
+
+  // Automatically close settings window when main window closes
+  mainWindow.on('close', () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.close()
+    }
+  })
+
+  mainWindow.on('closed', () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.close()
+    }
+    mainWindow = null
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

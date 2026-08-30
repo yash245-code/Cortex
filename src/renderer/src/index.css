@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --cortex-bg: #0F0F0F;
-  --cortex-sidebar: #171717;
-  --cortex-panel: #202020;
-  --cortex-surface: #282828;
-  --cortex-border: #2F2F2F;
-  --cortex-active: #333333;
-  --cortex-text: #F8F8F8;
-  --cortex-muted: #8E8E8E;
-  --cortex-selection: #33741866;
+  --cortex-bg: #111111;
+  --cortex-sidebar: #181818;
+  --cortex-panel: #141414;
+  --cortex-surface: #252525;
+  --cortex-border: #2d2d2d;
+  --cortex-active: #2a2a2a;
+  --cortex-text: #F4F4F4;
+  --cortex-muted: #9E9E9E;
+  --cortex-selection: #5DD62C33;
   --cortex-accent: #5DD62C;
   --cortex-accent-hover: #4ec023;
   --cortex-accent-glow: rgba(93, 214, 44, 0.35);
@@ -63,6 +63,17 @@
 .xterm {
   padding: 8px 12px;
   height: 100%;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.xterm,
+.xterm *,
+.xterm-helper-textarea,
+.xterm-screen,
+.xterm-viewport {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .xterm-viewport {
@@ -176,3 +187,87 @@
 .accent-glow {
   box-shadow: 0 0 16px rgba(93, 214, 44, 0.35);
 }
+
+/* Monaco Git Gutter Indicators */
+.cortex-git-gutter-added {
+  border-left: 3.5px solid #22c55e !important;
+  margin-left: 2px;
+}
+
+.cortex-git-gutter-modified {
+  border-left: 3.5px solid #38bdf8 !important;
+  margin-left: 2px;
+}
+
+.cortex-git-gutter-deleted {
+  position: relative;
+}
+
+.cortex-git-gutter-deleted::after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid #f43f5e;
+}
+
+/* ==========================================================================
+   Monaco Editor Scoped Font Vibes (Applies ONLY to editor code canvas)
+   ========================================================================== */
+
+/* Base Typography Optimization - Smooth, Normal Weight & Easy on Eyes */
+.monaco-editor,
+.monaco-editor .view-lines,
+.monaco-editor .view-line,
+.monaco-editor span {
+  font-weight: 400 !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 1. Cyber Hacker */
+.font-vibe-cyber .monaco-editor {
+  font-feature-settings: "calt" 1, "liga" 1, "ss01" 1, "ss02" 1;
+}
+
+/* 2. Modern Studio */
+.font-vibe-studio .monaco-editor {
+  font-feature-settings: "calt" 1, "liga" 1;
+  letter-spacing: 0.2px;
+}
+
+/* 3. Operator Flow - Cursive Italic Comments */
+.font-vibe-operator .monaco-editor .mtk3,
+.font-vibe-operator .monaco-editor .token.comment,
+.font-vibe-operator .monaco-editor [class*="comment"] {
+  font-style: italic !important;
+  opacity: 0.85;
+}
+
+/* 4. 80s Cyberdeck / Retro CRT */
+.font-vibe-retro .monaco-editor .view-lines {
+  text-shadow: 0 0 1.5px rgba(93, 214, 44, 0.4);
+  letter-spacing: 0.75px;
+}
+
+/* 5. Typewriter Editorial */
+.font-vibe-editorial .monaco-editor {
+  letter-spacing: 0.5px;
+}
+
+/* 6. Arcade 8-Bit Pixel */
+.font-vibe-pixel .monaco-editor {
+  letter-spacing: 0.6px;
+  image-rendering: pixelated;
+}
+
+/* 7. Industrial Precision */
+.font-vibe-industrial .monaco-editor {
+  letter-spacing: 0.2px;
+}
+

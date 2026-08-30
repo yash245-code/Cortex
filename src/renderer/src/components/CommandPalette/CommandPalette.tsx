@@ -13,12 +13,16 @@ import {
   X,
   Palette,
   Sparkles,
-  Check
+  Check,
+  FolderGit2,
+  Clock,
+  Type
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { useWorkspaceStore } from '../../store/useWorkspaceStore'
 import { useGitStore } from '../../store/useGitStore'
 import { THEMES, ACCENT_COLORS } from '../../theme/themeRegistry'
+import { FONT_THEMES } from '../../theme/fontRegistry'
 import {
   flattenFileTree,
   fuzzyMatch,
@@ -110,6 +114,7 @@ export const CommandPalette: React.FC = () => {
     decreaseFontSize,
     toggleMinimap,
     toggleWordWrap,
+    toggleSidebarPosition,
     openSettingsWindow,
     settings,
     updateSettings
@@ -121,7 +126,9 @@ export const CommandPalette: React.FC = () => {
     openFolder,
     openFileDirectly,
     refreshTree,
-    setCreatingItem
+    setCreatingItem,
+    recentWorkspaces,
+    removeRecentWorkspace
   } = useWorkspaceStore()
 
   const { refreshGitStatus, stageAll } = useGitStore()
@@ -167,6 +174,11 @@ export const CommandPalette: React.FC = () => {
     return ACCENT_COLORS
   }, [])
 
+  // Font Theme list items
+  const fontItems = useMemo(() => {
+    return Object.values(FONT_THEMES)
+  }, [])
+
   // Build command registry
   const allCommands = useMemo<EditorCommand[]>(() => {
     const list: EditorCommand[] = [
@@ -179,9 +191,16 @@ export const CommandPalette: React.FC = () => {
       },
       {
         id: 'preferences.accentColor',
-        title: 'Preferences: Accent Color',
+        title: 'Preferences: Switch Accent Color',
         category: 'Preferences',
         action: () => openPalette('accents')
+      },
+      {
+        id: 'preferences.fontTheme',
+        title: 'Preferences: Switch Editor Font Vibe / Typography...',
+        category: 'Preferences',
+        shortcut: 'Ctrl+K Ctrl+F',
+        action: () => openPalette('fonts')
       },
       {
         id: 'view.sourceControl',
@@ -217,11 +236,24 @@ export const CommandPalette: React.FC = () => {
         action: () => toggleSidebar()
       },
       {
+        id: 'view.toggleSidebarPosition',
+        title: 'View: Toggle Side Bar Position (Left / Right)',
+        category: 'View',
+        action: () => toggleSidebarPosition()
+      },
+      {
         id: 'file.openFolder',
         title: 'File: Open Workspace Folder...',
         category: 'File',
         shortcut: 'Ctrl+Shift+O',
         action: () => openFolder()
+      },
+      {
+        id: 'file.openRecent',
+        title: 'File: Open Recent Project / Workspace...',
+        category: 'File',
+        shortcut: 'Ctrl+R',
+        action: () => openPalette('recent-workspaces')
       },
       {
         id: 'file.openFile',
@@ -328,6 +360,16 @@ export const CommandPalette: React.FC = () => {
       })
     })
 
+    // Append direct font vibe commands
+    Object.values(FONT_THEMES).forEach((f) => {
+      list.push({
+        id: `font.${f.id}`,
+        title: `Font: ${f.name} (${f.vibe})`,
+        category: 'Font Theme',
+        action: () => updateSettings({ fontTheme: f.id })
+      })
+    })
+
     return list
   }, [
     openPalette,
@@ -360,11 +402,14 @@ export const CommandPalette: React.FC = () => {
   const isCommandMode = paletteMode === 'commands' || query.startsWith('>')
   const isThemeMode = paletteMode === 'themes'
   const isAccentMode = paletteMode === 'accents'
+  const isFontMode = paletteMode === 'fonts'
+  const isRecentWorkspacesMode = paletteMode === 'recent-workspaces'
   const searchFilter = isCommandMode ? query.replace(/^>/, '').trim() : query.trim()
 
   // Filter and score results
   const filteredFiles = useMemo(() => {
-    if (isCommandMode || isThemeMode || isAccentMode) return []
+    if (isCommandMode || isThemeMode || isAccentMode || isFontMode || isRecentWorkspacesMode)
+      return []
     if (!searchFilter) {
       return fileItems.slice(0, 50).map((file) => ({
         item: file,
@@ -387,7 +432,15 @@ export const CommandPalette: React.FC = () => {
     return scored
       .sort((a, b) => b.score - a.score)
       .slice(0, 50)
-  }, [isCommandMode, isThemeMode, isAccentMode, searchFilter, fileItems])
+  }, [
+    isCommandMode,
+    isThemeMode,
+    isAccentMode,
+    isFontMode,
+    isRecentWorkspacesMode,
+    searchFilter,
+    fileItems
+  ])
 
   const filteredCommands = useMemo(() => {
     if (!isCommandMode) return []
@@ -433,10 +486,35 @@ export const CommandPalette: React.FC = () => {
     )
   }, [isAccentMode, searchFilter, accentItems])
 
+  const filteredFonts = useMemo(() => {
+    if (!isFontMode) return []
+    if (!searchFilter) return fontItems
+    return fontItems.filter(
+      (f) =>
+        f.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        f.vibe.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        f.description.toLowerCase().includes(searchFilter.toLowerCase())
+    )
+  }, [isFontMode, searchFilter, fontItems])
+
+  const filteredRecentWorkspaces = useMemo(() => {
+    if (!isRecentWorkspacesMode) return []
+    if (!searchFilter) return recentWorkspaces
+    return recentWorkspaces.filter(
+      (r) =>
+        r.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        r.path.toLowerCase().includes(searchFilter.toLowerCase())
+    )
+  }, [isRecentWorkspacesMode, searchFilter, recentWorkspaces])
+
   const totalItemsCount = isThemeMode
     ? filteredThemes.length
     : isAccentMode
     ? filteredAccents.length
+    : isFontMode
+    ? filteredFonts.length
+    : isRecentWorkspacesMode
+    ? filteredRecentWorkspaces.length
     : isCommandMode
     ? filteredCommands.length
     : filteredFiles.length
@@ -471,6 +549,18 @@ export const CommandPalette: React.FC = () => {
         updateSettings({ accentColor: accent.color })
         closePalette()
       }
+    } else if (isFontMode) {
+      const font = filteredFonts[selectedIndex]
+      if (font) {
+        updateSettings({ fontTheme: font.id })
+        closePalette()
+      }
+    } else if (isRecentWorkspacesMode) {
+      const rec = filteredRecentWorkspaces[selectedIndex]
+      if (rec) {
+        closePalette()
+        await openFolder(rec.path)
+      }
     } else if (isCommandMode) {
       const cmd = filteredCommands[selectedIndex]?.item
       if (cmd) {
@@ -488,14 +578,19 @@ export const CommandPalette: React.FC = () => {
     totalItemsCount,
     isThemeMode,
     isAccentMode,
+    isFontMode,
+    isRecentWorkspacesMode,
     isCommandMode,
     filteredThemes,
     filteredAccents,
+    filteredFonts,
+    filteredRecentWorkspaces,
     filteredCommands,
     filteredFiles,
     selectedIndex,
     updateSettings,
     closePalette,
+    openFolder,
     openTab
   ])
 
@@ -537,6 +632,10 @@ export const CommandPalette: React.FC = () => {
             <Palette size={17} className="text-cortex-accent shrink-0" />
           ) : isAccentMode ? (
             <Sparkles size={17} className="text-cortex-accent shrink-0" />
+          ) : isFontMode ? (
+            <Type size={17} className="text-cortex-accent shrink-0" />
+          ) : isRecentWorkspacesMode ? (
+            <FolderGit2 size={17} className="text-cortex-accent shrink-0" />
           ) : isCommandMode ? (
             <Terminal size={17} className="text-cortex-accent shrink-0 animate-pulse" />
           ) : (
@@ -553,6 +652,10 @@ export const CommandPalette: React.FC = () => {
                 ? 'Select Color Theme...'
                 : isAccentMode
                 ? 'Select Accent Color...'
+                : isFontMode
+                ? 'Select Editor Font Vibe / Typography...'
+                : isRecentWorkspacesMode
+                ? 'Open Recent Project / Workspace (Ctrl+R)...'
                 : isCommandMode
                 ? 'Type a command to run...'
                 : 'Type the name of a file to open (type > for commands)...'
@@ -579,10 +682,118 @@ export const CommandPalette: React.FC = () => {
                 ? 'No matching themes found'
                 : isAccentMode
                 ? 'No matching accents found'
+                : isFontMode
+                ? 'No matching font themes found'
+                : isRecentWorkspacesMode
+                ? 'No recent projects recorded yet'
                 : isCommandMode
                 ? 'No matching commands found'
                 : 'No matching files found in workspace'}
             </div>
+          ) : isFontMode ? (
+            filteredFonts.map((font, idx) => {
+              const isActive = idx === selectedIndex
+              const isCurrent = (settings.fontTheme || 'fira-code') === font.id
+              return (
+                <div
+                  key={font.id}
+                  data-active={isActive}
+                  onClick={() => {
+                    setSelectedIndex(idx)
+                    executeSelected()
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`flex flex-col gap-1 px-3 py-2.5 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
+                    isActive
+                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
+                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{font.name}</span>
+                      <span className="text-[11px] text-cortex-muted font-normal">
+                        {font.vibe}
+                      </span>
+                      {font.badge && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-cortex-panel text-cortex-accent border border-cortex-border font-mono font-medium">
+                          {font.badge}
+                        </span>
+                      )}
+                    </div>
+                    {isCurrent && <Check size={14} className="text-cortex-accent shrink-0" />}
+                  </div>
+
+                  <div className="text-[11px] text-cortex-muted">{font.description}</div>
+
+                  <div
+                    style={{ fontFamily: font.fontFamily }}
+                    className="mt-1 px-2.5 py-1.5 rounded bg-cortex-bg border border-cortex-border/70 text-[11px] text-emerald-400 font-mono overflow-hidden truncate"
+                  >
+                    {font.sampleCode}
+                  </div>
+                </div>
+              )
+            })
+          ) : isRecentWorkspacesMode ? (
+            filteredRecentWorkspaces.map((rec, idx) => {
+              const isActive = idx === selectedIndex
+              const isCurrent = rootPath?.toLowerCase() === rec.path.toLowerCase()
+              return (
+                <div
+                  key={rec.path}
+                  data-active={isActive}
+                  onClick={() => {
+                    setSelectedIndex(idx)
+                    executeSelected()
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
+                    isActive
+                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
+                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FolderGit2
+                      size={15}
+                      className={isActive ? 'text-cortex-accent' : 'text-cortex-muted'}
+                    />
+                    <div className="min-w-0">
+                      <div className="font-semibold flex items-center gap-1.5 truncate">
+                        <span>{rec.name}</span>
+                        {isCurrent && (
+                          <span className="px-1.5 py-0.2 text-[9px] rounded bg-cortex-accent/20 text-cortex-accent font-mono border border-cortex-accent/30">
+                            active
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-cortex-muted font-mono truncate max-w-md">
+                        {rec.path}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-[10px] text-cortex-muted flex items-center gap-1">
+                      <Clock size={10} />
+                      {new Date(rec.lastOpened).toLocaleDateString()}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeRecentWorkspace(rec.path)
+                      }}
+                      title="Remove from recent list"
+                      className="p-1 text-cortex-muted hover:text-red-400 hover:bg-cortex-bg rounded transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })
           ) : isThemeMode ? (
             filteredThemes.map((theme, idx) => {
               const isActive = idx === selectedIndex
@@ -755,17 +966,25 @@ export const CommandPalette: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {!isCommandMode && !isThemeMode && !isAccentMode && (
-              <span className="text-cortex-muted">
-                Type <kbd className="px-1 py-0.2 rounded bg-cortex-surface text-cortex-accent border border-cortex-border font-mono">&gt;</kbd> for commands
-              </span>
-            )}
+            {!isCommandMode &&
+              !isThemeMode &&
+              !isAccentMode &&
+              !isFontMode &&
+              !isRecentWorkspacesMode && (
+                <span className="text-cortex-muted">
+                  Type <kbd className="px-1 py-0.2 rounded bg-cortex-surface text-cortex-accent border border-cortex-border font-mono">&gt;</kbd> for commands
+                </span>
+              )}
             <span className="text-[10px]">
               {totalItemsCount}{' '}
               {isThemeMode
                 ? 'themes'
                 : isAccentMode
                 ? 'accents'
+                : isFontMode
+                ? 'font vibes'
+                : isRecentWorkspacesMode
+                ? 'recent projects'
                 : isCommandMode
                 ? 'commands'
                 : 'files'}

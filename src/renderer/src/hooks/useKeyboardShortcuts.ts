@@ -12,6 +12,8 @@ export function useKeyboardShortcuts(): void {
     toggleSidebar,
     toggleSidebarView,
     addTerminalSession,
+    activeTerminalId,
+    splitTerminalSession,
     toggleSplitEditor,
     toggleMarkdownPreview,
     openTab,
@@ -46,6 +48,18 @@ export function useKeyboardShortcuts(): void {
       else if (e.key.toLowerCase() === 'p' && e.shiftKey) {
         e.preventDefault()
         openPalette('commands')
+      }
+      // Recent Projects: Ctrl+R / Cmd+R
+      else if (e.key.toLowerCase() === 'r' && !e.shiftKey) {
+        e.preventDefault()
+        openPalette('recent-workspaces')
+      }
+      // Split Terminal: Ctrl+Shift+5 / Cmd+Shift+5
+      else if ((e.key === '5' || e.key === '%') && e.shiftKey) {
+        e.preventDefault()
+        if (activeTerminalId) {
+          splitTerminalSession(activeTerminalId)
+        }
       }
       // Save: Ctrl+S / Cmd+S
       else if (e.key.toLowerCase() === 's' && !e.shiftKey) {

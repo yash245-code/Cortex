@@ -28,6 +28,7 @@ const IPC_CHANNELS = {
   TERMINAL_KILL: "cortex:terminal:kill",
   TERMINAL_DATA: "cortex:terminal:data",
   TERMINAL_EXIT: "cortex:terminal:exit",
+  TERMINAL_GET_AVAILABLE_SHELLS: "cortex:terminal:getAvailableShells",
   // Search & Replace
   SEARCH_WORKSPACE: "cortex:search:workspace",
   SEARCH_REPLACE_FILE: "cortex:search:replaceFile",
@@ -40,6 +41,8 @@ const IPC_CHANNELS = {
   // Git
   GIT_STATUS: "cortex:git:status",
   GIT_BRANCH: "cortex:git:branch",
+  GIT_GET_FILE_AT_HEAD: "cortex:git:getFileAtHead",
+  GIT_GET_DIFF: "cortex:git:getDiff",
   GIT_STAGE: "cortex:git:stage",
   GIT_UNSTAGE: "cortex:git:unstage",
   GIT_STAGE_ALL: "cortex:git:stageAll",
@@ -118,6 +121,7 @@ const api = {
       electron.ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_EXIT, subscription);
     };
   },
+  terminalGetAvailableShells: () => electron.ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_GET_AVAILABLE_SHELLS),
   // Search & Replace
   searchWorkspace: (workspacePath, query, options) => electron.ipcRenderer.invoke(IPC_CHANNELS.SEARCH_WORKSPACE, workspacePath, query, options),
   replaceInFile: (filePath, query, replaceText, options) => electron.ipcRenderer.invoke(
@@ -150,6 +154,8 @@ const api = {
   // Git Source Control
   gitGetStatus: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_STATUS, workspacePath),
   gitGetBranch: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_BRANCH, workspacePath),
+  gitGetFileAtHead: (workspacePath, relativePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_FILE_AT_HEAD, workspacePath, relativePath),
+  gitGetDiff: (workspacePath, relativePath, staged) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_DIFF, workspacePath, relativePath, staged),
   gitStage: (workspacePath, relativePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE, workspacePath, relativePath),
   gitUnstage: (workspacePath, relativePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE, workspacePath, relativePath),
   gitStageAll: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_ALL, workspacePath),
