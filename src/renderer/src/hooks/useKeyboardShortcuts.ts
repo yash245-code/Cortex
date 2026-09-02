@@ -117,6 +117,16 @@ export function useKeyboardShortcuts(): void {
         e.preventDefault()
         toggleSidebarView('explorer')
       }
+      // Extensions: Ctrl+Shift+X
+      else if (e.key.toLowerCase() === 'x' && e.shiftKey) {
+        e.preventDefault()
+        window.cortexAPI?.openExtensionsWindow?.()
+      }
+      // AI Assistant: Ctrl+Shift+I
+      else if (e.key.toLowerCase() === 'i' && e.shiftKey) {
+        e.preventDefault()
+        toggleSidebarView('ai')
+      }
       // Open Folder: Ctrl+Shift+O
       else if (e.key.toLowerCase() === 'o' && e.shiftKey) {
         e.preventDefault()

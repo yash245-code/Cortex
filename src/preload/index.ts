@@ -155,7 +155,43 @@ const api: CortexAPI = {
   gitDiscard: (workspacePath: string, relativePath: string, isUntracked?: boolean) =>
     ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD, workspacePath, relativePath, isUntracked),
   gitCommit: (workspacePath: string, message: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message)
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message),
+
+  // Extensions
+  extensionsGetInstalled: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_INSTALLED),
+  extensionsSearchMarketplace: (query, category) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_SEARCH_MARKETPLACE, query, category),
+  extensionsInstallFromMarketplace: (extension) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_MARKETPLACE, extension),
+  extensionsInstallFromVsix: (filePath) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_VSIX, filePath),
+  extensionsUninstall: (extensionId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_UNINSTALL, extensionId),
+  extensionsToggleEnable: (extensionId, enabled) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_TOGGLE_ENABLE, extensionId, enabled),
+  extensionsGetSnippets: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_SNIPPETS),
+  extensionsGetThemes: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_THEMES),
+  extensionsOpenVsixDialog: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_OPEN_VSIX_DIALOG),
+  openExtensionsWindow: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_OPEN_WINDOW),
+  extensionsGetReadme: (extensionId, namespace, name) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_README, extensionId, namespace, name),
+  extensionsGetSnippetsForExt: (extensionId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_EXT_SNIPPETS, extensionId),
+
+  // AI Intelligence
+  aiGenerateCompletion: (req) =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_GENERATE_COMPLETION, req),
+  aiGenerateEdit: (req) =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_GENERATE_EDIT, req),
+  aiChat: (req) =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_CHAT, req),
+  aiTestConnection: (provider, apiKey) =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, provider, apiKey)
 }
 
 try {

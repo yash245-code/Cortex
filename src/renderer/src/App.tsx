@@ -12,6 +12,7 @@ import { useEditorStore } from './store/useEditorStore'
 import { useWorkspaceStore } from './store/useWorkspaceStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { sessionService } from './services/sessionService'
+import { extensionLoaderService } from './services/extensionLoaderService'
 
 export const App: React.FC = () => {
   const {
@@ -38,6 +39,11 @@ export const App: React.FC = () => {
 
   // Initialize global shortcuts
   useKeyboardShortcuts()
+
+  // Initialize installed extensions (snippets & themes)
+  useEffect(() => {
+    extensionLoaderService.initialize()
+  }, [])
 
   // Rehydrate previous workspace session on launch
   useEffect(() => {

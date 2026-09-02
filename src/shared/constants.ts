@@ -53,7 +53,27 @@ export const IPC_CHANNELS = {
   GIT_STAGE_ALL: 'cortex:git:stageAll',
   GIT_UNSTAGE_ALL: 'cortex:git:unstageAll',
   GIT_DISCARD: 'cortex:git:discard',
-  GIT_COMMIT: 'cortex:git:commit'
+  GIT_COMMIT: 'cortex:git:commit',
+
+  // Extensions
+  EXTENSIONS_GET_INSTALLED: 'cortex:extensions:getInstalled',
+  EXTENSIONS_SEARCH_MARKETPLACE: 'cortex:extensions:searchMarketplace',
+  EXTENSIONS_INSTALL_FROM_MARKETPLACE: 'cortex:extensions:installFromMarketplace',
+  EXTENSIONS_INSTALL_FROM_VSIX: 'cortex:extensions:installFromVsix',
+  EXTENSIONS_UNINSTALL: 'cortex:extensions:uninstall',
+  EXTENSIONS_TOGGLE_ENABLE: 'cortex:extensions:toggleEnable',
+  EXTENSIONS_GET_SNIPPETS: 'cortex:extensions:getSnippets',
+  EXTENSIONS_GET_THEMES: 'cortex:extensions:getThemes',
+  EXTENSIONS_OPEN_VSIX_DIALOG: 'cortex:extensions:openVsixDialog',
+  EXTENSIONS_OPEN_WINDOW: 'cortex:extensions:openWindow',
+  EXTENSIONS_GET_README: 'cortex:extensions:getReadme',
+  EXTENSIONS_GET_EXT_SNIPPETS: 'cortex:extensions:getExtSnippets',
+
+  // AI Intelligence
+  AI_GENERATE_COMPLETION: 'cortex:ai:generateCompletion',
+  AI_GENERATE_EDIT: 'cortex:ai:generateEdit',
+  AI_CHAT: 'cortex:ai:chat',
+  AI_TEST_CONNECTION: 'cortex:ai:testConnection'
 } as const
 
 export const EXTENSION_TO_LANGUAGE: Record<string, string> = {

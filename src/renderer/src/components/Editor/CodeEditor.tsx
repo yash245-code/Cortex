@@ -11,6 +11,8 @@ import { computeLineDiff } from '../../utils/gitDiffUtils'
 import { registerLanguageSnippets } from '../../services/snippetService'
 import { registerMonacoThemes, applyThemeAndAccent } from '../../theme/themeRegistry'
 import { getFontTheme } from '../../theme/fontRegistry'
+import { InlineAIPromptBar } from './InlineAIPromptBar'
+import { aiCompletionService } from '../../services/aiCompletionService'
 
 // Ensure Monaco Editor is loaded from the local npm package, not external CDN
 loader.config({ monaco })
@@ -38,6 +40,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
 
   const { rootPath } = useWorkspaceStore()
   const { isGitRepo, stagedFiles, unstagedFiles, untrackedFiles } = useGitStore()
+
+  const [isInlineAIOpen, setIsInlineAIOpen] = React.useState(false)
+  const [inlineAISelection, setInlineAISelection] = React.useState('')
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const gutterDecorationsRef = useRef<string[]>([])
@@ -138,6 +143,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
 
     // Register all curated themes with active accent color text harmonization
     registerMonacoThemes(monacoInstance, settings.accentColor)
+    aiCompletionService.register(monacoInstance)
   }
 
   const handleEditorDidMount: OnMount = (editorInstance, monacoInstance) => {
@@ -165,6 +171,20 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
         openPalette('commands')
       }
     )
+
+    // Bind Ctrl+K / Cmd+K (Inline AI Prompt) inside Monaco
+    editorInstance.addCommand(monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyK, () => {
+      const model = editorInstance.getModel()
+      const selection = editorInstance.getSelection()
+      let text = ''
+      if (model && selection && !selection.isEmpty()) {
+        text = model.getValueInRange(selection)
+      } else if (model && selection) {
+        text = model.getLineContent(selection.startLineNumber)
+      }
+      setInlineAISelection(text)
+      setIsInlineAIOpen(true)
+    })
 
     // Auto-focus and place cursor at the end of text content
     const model = editorInstance.getModel()
@@ -251,6 +271,29 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     }
   }
 
+  const handleAcceptInlineAI = (newCode: string): void => {
+    const editor = editorRef.current
+    const selection = editor?.getSelection()
+    if (editor && selection) {
+      editor.executeEdits('inline-ai', [
+        {
+          range: selection.isEmpty()
+            ? new monaco.Range(
+                selection.startLineNumber,
+                1,
+                selection.startLineNumber,
+                editor.getModel()?.getLineMaxColumn(selection.startLineNumber) || 1
+              )
+            : selection,
+          text: newCode,
+          forceMoveMarkers: true
+        }
+      ])
+      editor.focus()
+    }
+    setIsInlineAIOpen(false)
+  }
+
   if (!activeTab) {
     return (
       <div className="flex-1 w-full h-full flex items-center justify-center bg-cortex-bg text-cortex-muted text-xs select-none">
@@ -310,6 +353,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
           renderLineHighlight: 'all',
           automaticLayout: true,
           bracketPairColorization: { enabled: true },
+          inlineSuggest: { enabled: true },
           quickSuggestions: { other: 'on', comments: 'on', strings: 'on' },
           suggestOnTriggerCharacters: true,
           acceptSuggestionOnEnter: 'on',
@@ -327,6 +371,19 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
             indentation: true
           }
         }}
+      />
+
+      {/* Floating Ctrl+K Inline AI Prompt Bar */}
+      <InlineAIPromptBar
+        isOpen={isInlineAIOpen}
+        selectedCode={inlineAISelection}
+        language={activeTab.language}
+        context={activeTab.content}
+        onClose={() => {
+          setIsInlineAIOpen(false)
+          editorRef.current?.focus()
+        }}
+        onAccept={handleAcceptInlineAI}
       />
     </div>
   )

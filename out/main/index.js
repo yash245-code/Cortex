@@ -7,6 +7,7 @@ const child_process = require("child_process");
 const chokidar = require("chokidar");
 const os = require("os");
 const fsSync = require("fs");
+const AdmZip = require("adm-zip");
 function _interopNamespaceDefault(e) {
   const n = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
   if (e) {
@@ -75,7 +76,25 @@ const IPC_CHANNELS = {
   GIT_STAGE_ALL: "cortex:git:stageAll",
   GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
   GIT_DISCARD: "cortex:git:discard",
-  GIT_COMMIT: "cortex:git:commit"
+  GIT_COMMIT: "cortex:git:commit",
+  // Extensions
+  EXTENSIONS_GET_INSTALLED: "cortex:extensions:getInstalled",
+  EXTENSIONS_SEARCH_MARKETPLACE: "cortex:extensions:searchMarketplace",
+  EXTENSIONS_INSTALL_FROM_MARKETPLACE: "cortex:extensions:installFromMarketplace",
+  EXTENSIONS_INSTALL_FROM_VSIX: "cortex:extensions:installFromVsix",
+  EXTENSIONS_UNINSTALL: "cortex:extensions:uninstall",
+  EXTENSIONS_TOGGLE_ENABLE: "cortex:extensions:toggleEnable",
+  EXTENSIONS_GET_SNIPPETS: "cortex:extensions:getSnippets",
+  EXTENSIONS_GET_THEMES: "cortex:extensions:getThemes",
+  EXTENSIONS_OPEN_VSIX_DIALOG: "cortex:extensions:openVsixDialog",
+  EXTENSIONS_OPEN_WINDOW: "cortex:extensions:openWindow",
+  EXTENSIONS_GET_README: "cortex:extensions:getReadme",
+  EXTENSIONS_GET_EXT_SNIPPETS: "cortex:extensions:getExtSnippets",
+  // AI Intelligence
+  AI_GENERATE_COMPLETION: "cortex:ai:generateCompletion",
+  AI_GENERATE_EDIT: "cortex:ai:generateEdit",
+  AI_CHAT: "cortex:ai:chat",
+  AI_TEST_CONNECTION: "cortex:ai:testConnection"
 };
 const IGNORED_DIRECTORIES$1 = /* @__PURE__ */ new Set([
   ".git",
@@ -1045,9 +1064,885 @@ class GitService {
   }
 }
 const gitService = new GitService();
+function parseJsonc(content) {
+  try {
+    return JSON.parse(content);
+  } catch {
+    const stripped = content.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/,\s*([}\]])/g, "$1");
+    return JSON.parse(stripped);
+  }
+}
+class ExtensionService {
+  extensionsDir;
+  dbPath;
+  installedExtensions = /* @__PURE__ */ new Map();
+  isInitialized = false;
+  constructor() {
+    this.extensionsDir = path__namespace.join(electron.app.getPath("userData"), "extensions");
+    this.dbPath = path__namespace.join(this.extensionsDir, "extensions.json");
+  }
+  async ensureInitialized() {
+    if (this.isInitialized) return;
+    try {
+      await fs__namespace.mkdir(this.extensionsDir, { recursive: true });
+      try {
+        const raw = await fs__namespace.readFile(this.dbPath, "utf-8");
+        const list = JSON.parse(raw);
+        this.installedExtensions.clear();
+        for (const ext of list) {
+          this.installedExtensions.set(ext.id, ext);
+        }
+      } catch {
+        this.installedExtensions.clear();
+        await this.saveDb();
+      }
+    } catch (err) {
+      console.error("[ExtensionService] Failed to initialize directory:", err);
+    }
+    this.isInitialized = true;
+  }
+  async saveDb() {
+    const list = Array.from(this.installedExtensions.values());
+    await fs__namespace.writeFile(this.dbPath, JSON.stringify(list, null, 2), "utf-8");
+  }
+  /**
+   * Returns all currently installed extensions.
+   */
+  async getInstalledExtensions() {
+    await this.ensureInitialized();
+    return Array.from(this.installedExtensions.values());
+  }
+  /**
+   * Search extensions from Open VSX Registry.
+   */
+  async searchMarketplace(query, category) {
+    await this.ensureInitialized();
+    try {
+      const params = new URLSearchParams();
+      if (query.trim()) {
+        params.append("query", query.trim());
+      }
+      if (category && category.trim()) {
+        params.append("category", category.trim());
+      }
+      params.append("size", "30");
+      const url = `https://open-vsx.org/api/-/search?${params.toString()}`;
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Cortex-Editor/1.0.0"
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Open VSX returned HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      const extensions = data.extensions || [];
+      return extensions.map((ext) => {
+        const id = `${ext.namespace}.${ext.name}`;
+        const isInstalled = this.installedExtensions.has(id);
+        return {
+          id,
+          name: ext.name,
+          namespace: ext.namespace,
+          displayName: ext.displayName || ext.name,
+          version: ext.version || "1.0.0",
+          description: ext.description || "",
+          icon: ext.files?.icon,
+          downloadUrl: ext.files?.download || "",
+          downloadCount: ext.downloadCount || 0,
+          averageRating: ext.averageRating || 0,
+          reviewCount: ext.reviewCount || 0,
+          timestamp: ext.timestamp,
+          isInstalled,
+          categories: ext.categories || []
+        };
+      });
+    } catch (err) {
+      console.error("[ExtensionService] Search failed:", err);
+      return [];
+    }
+  }
+  /**
+   * Installs an extension downloaded from the Open VSX registry.
+   */
+  async installFromMarketplace(extension) {
+    await this.ensureInitialized();
+    let downloadUrl = extension.downloadUrl;
+    let response = null;
+    if (downloadUrl) {
+      try {
+        const res = await fetch(downloadUrl, {
+          headers: { "User-Agent": "Cortex-Editor/1.0.0" },
+          redirect: "follow"
+        });
+        if (res.ok) {
+          response = res;
+        }
+      } catch (err) {
+        console.warn(`[ExtensionService] Initial download attempt failed for ${downloadUrl}:`, err);
+      }
+    }
+    const namespace = extension.namespace || (extension.id.includes(".") ? extension.id.split(".")[0] : "");
+    const name = extension.name || (extension.id.includes(".") ? extension.id.split(".")[1] : extension.id);
+    if ((!response || !response.ok) && namespace && name) {
+      try {
+        const metaUrl = `https://open-vsx.org/api/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+        const metaRes = await fetch(metaUrl, {
+          headers: { Accept: "application/json", "User-Agent": "Cortex-Editor/1.0.0" },
+          redirect: "follow"
+        });
+        if (metaRes.ok) {
+          const metaData = await metaRes.json();
+          if (metaData.files?.download) {
+            downloadUrl = metaData.files.download;
+            const retryRes = await fetch(downloadUrl, {
+              headers: { "User-Agent": "Cortex-Editor/1.0.0" },
+              redirect: "follow"
+            });
+            if (retryRes.ok) {
+              response = retryRes;
+            }
+          }
+        }
+      } catch (metaErr) {
+        console.warn("[ExtensionService] Metadata lookup fallback failed:", metaErr);
+      }
+    }
+    if (!response || !response.ok) {
+      const code = response ? response.status : 404;
+      throw new Error(
+        `Failed to download extension "${extension.displayName || extension.name}": HTTP ${code}. Package could not be located on Open VSX.`
+      );
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return await this.extractAndRegisterVsix(buffer, extension.id, extension.icon);
+  }
+  /**
+   * Installs an extension from a local .vsix file path or opens file dialog if omitted.
+   */
+  async installFromVsix(filePath) {
+    await this.ensureInitialized();
+    let targetPath = filePath;
+    if (!targetPath) {
+      const result = await electron.dialog.showOpenDialog({
+        title: "Select VS Code Extension (.vsix)",
+        filters: [{ name: "VSIX Package", extensions: ["vsix"] }],
+        properties: ["openFile"]
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return null;
+      }
+      targetPath = result.filePaths[0];
+    }
+    const buffer = await fs__namespace.readFile(targetPath);
+    return await this.extractAndRegisterVsix(buffer);
+  }
+  /**
+   * Internal helper to extract .vsix (ZIP), parse package.json, count snippets/themes,
+   * and persist metadata.
+   */
+  async extractAndRegisterVsix(buffer, preferredId, marketplaceIcon) {
+    const zip = new AdmZip(buffer);
+    const zipEntries = zip.getEntries();
+    const pkgEntry = zipEntries.find(
+      (e) => e.entryName === "extension/package.json" || e.entryName === "package.json"
+    );
+    if (!pkgEntry) {
+      throw new Error("Invalid VSIX: package.json not found in extension package.");
+    }
+    const pkgJson = parseJsonc(pkgEntry.getData().toString("utf-8"));
+    const publisher = pkgJson.publisher || "local";
+    const name = pkgJson.name;
+    const id = preferredId || `${publisher}.${name}`;
+    const installPath = path__namespace.join(this.extensionsDir, id);
+    try {
+      await fs__namespace.rm(installPath, { recursive: true, force: true });
+    } catch {
+    }
+    await fs__namespace.mkdir(installPath, { recursive: true });
+    for (const entry of zipEntries) {
+      if (entry.isDirectory) continue;
+      let relativePath = entry.entryName;
+      if (relativePath.startsWith("extension/")) {
+        relativePath = relativePath.substring("extension/".length);
+      }
+      const destPath = path__namespace.join(installPath, relativePath);
+      const destDir = path__namespace.dirname(destPath);
+      await fs__namespace.mkdir(destDir, { recursive: true });
+      await fs__namespace.writeFile(destPath, entry.getData());
+    }
+    let iconUrl = marketplaceIcon;
+    if (pkgJson.icon) {
+      const localIconPath = path__namespace.join(installPath, pkgJson.icon);
+      try {
+        const iconData = await fs__namespace.readFile(localIconPath);
+        const ext = path__namespace.extname(pkgJson.icon).toLowerCase().replace(".", "");
+        const mime = ext === "svg" ? "image/svg+xml" : `image/${ext || "png"}`;
+        iconUrl = `data:${mime};base64,${iconData.toString("base64")}`;
+      } catch {
+      }
+    }
+    let snippetsCount = 0;
+    const snippetsContrib = pkgJson.contributes?.snippets || [];
+    for (const s of snippetsContrib) {
+      const snippetPath = path__namespace.join(installPath, s.path);
+      try {
+        const content = await fs__namespace.readFile(snippetPath, "utf-8");
+        const parsed = parseJsonc(content);
+        snippetsCount += Object.keys(parsed).length;
+      } catch {
+        snippetsCount += 1;
+      }
+    }
+    const themesContrib = pkgJson.contributes?.themes || [];
+    const themesCount = themesContrib.length;
+    const installed = {
+      id,
+      name: pkgJson.name,
+      displayName: pkgJson.displayName || pkgJson.name,
+      publisher,
+      version: pkgJson.version || "1.0.0",
+      description: pkgJson.description || "",
+      icon: iconUrl,
+      enabled: true,
+      installDate: Date.now(),
+      snippetsCount,
+      themesCount,
+      contributes: {
+        snippets: pkgJson.contributes?.snippets,
+        themes: pkgJson.contributes?.themes
+      }
+    };
+    this.installedExtensions.set(id, installed);
+    await this.saveDb();
+    return installed;
+  }
+  /**
+   * Uninstalls an extension by removing its directory and database record.
+   */
+  async uninstallExtension(extensionId) {
+    await this.ensureInitialized();
+    const installPath = path__namespace.join(this.extensionsDir, extensionId);
+    try {
+      await fs__namespace.rm(installPath, { recursive: true, force: true });
+    } catch (err) {
+      console.warn(`[ExtensionService] Failed to clean directory ${installPath}:`, err);
+    }
+    const removed = this.installedExtensions.delete(extensionId);
+    if (removed) {
+      await this.saveDb();
+    }
+    return true;
+  }
+  /**
+   * Toggles extension enabled / disabled state.
+   */
+  async toggleExtension(extensionId, enabled) {
+    await this.ensureInitialized();
+    const ext = this.installedExtensions.get(extensionId);
+    if (!ext) return false;
+    ext.enabled = enabled;
+    this.installedExtensions.set(extensionId, ext);
+    await this.saveDb();
+    return true;
+  }
+  /**
+   * Aggregates all snippets provided by active/enabled installed extensions.
+   */
+  async getExtensionSnippets() {
+    await this.ensureInitialized();
+    const allSnippets = [];
+    for (const ext of this.installedExtensions.values()) {
+      if (!ext.enabled || !ext.contributes?.snippets) continue;
+      const installPath = path__namespace.join(this.extensionsDir, ext.id);
+      for (const snippetDef of ext.contributes.snippets) {
+        const fullSnippetPath = path__namespace.join(installPath, snippetDef.path);
+        try {
+          const raw = await fs__namespace.readFile(fullSnippetPath, "utf-8");
+          const snippetObj = parseJsonc(raw);
+          for (const [name, val] of Object.entries(snippetObj)) {
+            if (!val || !val.prefix && !val.body) continue;
+            allSnippets.push({
+              name,
+              language: snippetDef.language || val.scope || "",
+              prefix: val.prefix,
+              body: val.body,
+              description: val.description,
+              scope: val.scope,
+              sourceExtensionId: ext.id,
+              sourceExtensionName: ext.displayName || ext.name
+            });
+          }
+        } catch (err) {
+          console.warn(`[ExtensionService] Failed to read snippets at ${fullSnippetPath}:`, err);
+        }
+      }
+    }
+    return allSnippets;
+  }
+  /**
+   * Aggregates all themes provided by active/enabled installed extensions.
+   */
+  async getExtensionThemes() {
+    await this.ensureInitialized();
+    const allThemes = [];
+    for (const ext of this.installedExtensions.values()) {
+      if (!ext.enabled || !ext.contributes?.themes) continue;
+      const installPath = path__namespace.join(this.extensionsDir, ext.id);
+      for (const themeDef of ext.contributes.themes) {
+        const fullThemePath = path__namespace.join(installPath, themeDef.path);
+        try {
+          const raw = await fs__namespace.readFile(fullThemePath, "utf-8");
+          const themeData = parseJsonc(raw);
+          allThemes.push({
+            id: `${ext.id}.${themeDef.label.toLowerCase().replace(/\s+/g, "-")}`,
+            label: themeDef.label,
+            uiTheme: themeDef.uiTheme || "vs-dark",
+            path: fullThemePath,
+            sourceExtensionId: ext.id,
+            themeData
+          });
+        } catch (err) {
+          console.warn(`[ExtensionService] Failed to read theme at ${fullThemePath}:`, err);
+        }
+      }
+    }
+    return allThemes;
+  }
+  /**
+   * Shows a dialog to pick a .vsix file.
+   */
+  async openVsixDialog() {
+    const result = await electron.dialog.showOpenDialog({
+      title: "Select VS Code Extension (.vsix)",
+      filters: [{ name: "VSIX Package", extensions: ["vsix"] }],
+      properties: ["openFile"]
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    return result.filePaths[0];
+  }
+  /**
+   * Reads README documentation for an extension (either from disk or Open VSX API).
+   */
+  async getReadme(extensionId, namespace, name) {
+    await this.ensureInitialized();
+    const installPath = path__namespace.join(this.extensionsDir, extensionId);
+    const readmeCandidates = [
+      "README.md",
+      "readme.md",
+      "Readme.md",
+      "README.MD",
+      "README"
+    ];
+    for (const file of readmeCandidates) {
+      const fullPath = path__namespace.join(installPath, file);
+      try {
+        const text = await fs__namespace.readFile(fullPath, "utf-8");
+        if (text && text.trim()) {
+          return text;
+        }
+      } catch {
+      }
+    }
+    const ns = namespace || (extensionId.includes(".") ? extensionId.split(".")[0] : "");
+    const nm = name || (extensionId.includes(".") ? extensionId.split(".")[1] : extensionId);
+    if (ns && nm) {
+      try {
+        const url = `https://open-vsx.org/api/${encodeURIComponent(ns)}/${encodeURIComponent(nm)}/latest/file/readme.md`;
+        const res = await fetch(url, {
+          headers: { "User-Agent": "Cortex-Editor/1.0.0" },
+          redirect: "follow"
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.trim()) {
+            return text;
+          }
+        }
+      } catch (err) {
+        console.warn(`[ExtensionService] Failed to fetch remote README for ${ns}/${nm}:`, err);
+      }
+    }
+    return `# ${nm || extensionId}
+
+*No README documentation provided for this extension.*`;
+  }
+  /**
+   * Returns snippets belonging to a specific installed extension.
+   */
+  async getExtensionSnippetsForExt(extensionId) {
+    await this.ensureInitialized();
+    const ext = this.installedExtensions.get(extensionId);
+    if (!ext || !ext.contributes?.snippets) {
+      return [];
+    }
+    const snippets = [];
+    const installPath = path__namespace.join(this.extensionsDir, ext.id);
+    for (const snippetDef of ext.contributes.snippets) {
+      const fullSnippetPath = path__namespace.join(installPath, snippetDef.path);
+      try {
+        const raw = await fs__namespace.readFile(fullSnippetPath, "utf-8");
+        const snippetObj = parseJsonc(raw);
+        for (const [sName, val] of Object.entries(snippetObj)) {
+          if (!val || !val.prefix && !val.body) continue;
+          snippets.push({
+            name: sName,
+            language: snippetDef.language || val.scope || "",
+            prefix: val.prefix,
+            body: val.body,
+            description: val.description,
+            scope: val.scope,
+            sourceExtensionId: ext.id,
+            sourceExtensionName: ext.displayName || ext.name
+          });
+        }
+      } catch (err) {
+        console.warn(`[ExtensionService] Failed to read snippets at ${fullSnippetPath}:`, err);
+      }
+    }
+    return snippets;
+  }
+}
+const extensionService = new ExtensionService();
+class AIService {
+  /**
+   * Helper to determine provider and API key from request settings or environment
+   */
+  getProviderConfig(settings) {
+    let provider = settings?.aiModelProvider || "google-gemini";
+    const apiKey = (settings?.aiApiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["'`]|["'`]$/g, "").trim();
+    if (apiKey.startsWith("sk-ant-") && provider !== "anthropic") {
+      console.log("[AIService] Key starts with sk-ant-, auto-switching provider to Anthropic");
+      provider = "anthropic";
+    } else if ((apiKey.startsWith("sk-") || apiKey.startsWith("org-")) && !apiKey.startsWith("sk-ant-") && provider !== "openai") {
+      console.log("[AIService] Key starts with sk-, auto-switching provider to OpenAI");
+      provider = "openai";
+    } else if ((apiKey.startsWith("AIzaSy") || apiKey.startsWith("AQ.")) && provider !== "google-gemini") {
+      console.log("[AIService] Key starts with AIzaSy/AQ., auto-switching provider to Google Gemini");
+      provider = "google-gemini";
+    }
+    const temperature = settings?.aiTemperature ?? 0.2;
+    const maxTokens = settings?.aiMaxTokens ?? 2048;
+    return { provider, apiKey, temperature, maxTokens };
+  }
+  /**
+   * Helper to strip markdown code blocks if present
+   */
+  cleanCodeBlock(text) {
+    let clean = text.trim();
+    if (clean.startsWith("```")) {
+      const firstNewline = clean.indexOf("\n");
+      if (firstNewline !== -1) {
+        clean = clean.substring(firstNewline + 1);
+      }
+      if (clean.endsWith("```")) {
+        clean = clean.substring(0, clean.length - 3).trimEnd();
+      }
+    }
+    return clean;
+  }
+  /**
+   * Generates inline Ghost Text code completion (Copilot style)
+   */
+  async generateCompletion(req) {
+    const { provider, apiKey, temperature } = this.getProviderConfig(req.settings);
+    if (!apiKey) {
+      return {
+        text: "",
+        error: "No AI API Key configured. Go to Settings (Ctrl+,) > AI to configure."
+      };
+    }
+    const prefix = req.prefix || "";
+    const suffix = req.suffix || "";
+    const lang = req.language || "typescript";
+    const prompt = `You are a high-speed AI code completion assistant inside Cortex Editor.
+Complete the code immediately following the cursor.
+Return ONLY the raw completion text that directly completes the line or statement.
+Do NOT include markdown code blocks, backticks, explanations, or commentary.
+
+Language: ${lang}
+Code before cursor:
+${prefix.slice(-1200)}
+
+Code after cursor:
+${suffix.slice(0, 300)}`;
+    try {
+      const rawText = await this.callProvider(
+        provider,
+        apiKey,
+        [
+          {
+            role: "system",
+            content: "You are a code completion engine. Return only the raw text to be inserted at the cursor."
+          },
+          { role: "user", content: prompt }
+        ],
+        { temperature: Math.min(temperature, 0.2), maxTokens: 512 }
+      );
+      const cleaned = this.cleanCodeBlock(rawText);
+      return { text: cleaned };
+    } catch (err) {
+      console.error("[AIService] Completion failed:", err);
+      return { text: "", error: err.message || "Completion request failed" };
+    }
+  }
+  /**
+   * Generates inline edit / refactoring (Ctrl+K style)
+   */
+  async generateEdit(req) {
+    const { provider, apiKey, temperature, maxTokens } = this.getProviderConfig(
+      req.settings
+    );
+    if (!apiKey) {
+      return {
+        text: "",
+        error: "No AI API Key configured. Go to Settings (Ctrl+,) > AI to configure."
+      };
+    }
+    const prompt = `You are an expert pair-programming software engineer inside Cortex Editor.
+The user wants to edit or transform the following code snippet according to their instruction.
+
+Language: ${req.language || "typescript"}
+Instruction: ${req.prompt}
+
+Target Code to transform:
+${req.code}
+
+${req.context ? `Surrounding Context:
+${req.context.slice(0, 1e3)}
+` : ""}
+
+Output Requirement:
+Return ONLY the updated replacement code.
+Do NOT wrap the output in markdown code fences (\`\`\`) unless specifically instructed.
+Do NOT include preamble, comments about what you did, or conversational text.`;
+    try {
+      const rawText = await this.callProvider(
+        provider,
+        apiKey,
+        [
+          {
+            role: "system",
+            content: "You are an expert code editor. Output only the modified code cleanly."
+          },
+          { role: "user", content: prompt }
+        ],
+        { temperature, maxTokens }
+      );
+      const cleaned = this.cleanCodeBlock(rawText);
+      return { text: cleaned };
+    } catch (err) {
+      console.error("[AIService] Edit failed:", err);
+      return { text: "", error: err.message || "Edit request failed" };
+    }
+  }
+  /**
+   * Conversational Assistant (Sidebar Chat with file context)
+   */
+  async chat(req) {
+    const { provider, apiKey, temperature, maxTokens } = this.getProviderConfig(
+      req.settings
+    );
+    if (!apiKey) {
+      return {
+        text: "",
+        error: "No AI API Key configured. Go to Settings (Ctrl+,) > AI to configure."
+      };
+    }
+    const systemPrompt = `You are Cortex AI, a highly capable software engineering copilot integrated directly inside Cortex Code Editor.
+You write clean, modular, modern, bug-free code.
+When generating code snippets, always format them with standard markdown code blocks and identify the language (e.g. \`\`\`tsx).
+Keep responses helpful, technical, concise, and focused on solving the user's coding questions.`;
+    const formattedMessages = [
+      { role: "system", content: systemPrompt }
+    ];
+    if (req.contextFile) {
+      formattedMessages.push({
+        role: "user",
+        content: `[Current Active File: ${req.contextFile.name} (${req.contextFile.language || "plain text"})]
+\`\`\`${req.contextFile.language || ""}
+${req.contextFile.content.slice(0, 8e3)}
+\`\`\``
+      });
+      formattedMessages.push({
+        role: "assistant",
+        content: `I see the active file "${req.contextFile.name}". How can I help you with this code?`
+      });
+    }
+    for (const msg of req.messages) {
+      formattedMessages.push({ role: msg.role, content: msg.content });
+    }
+    try {
+      const text = await this.callProvider(provider, apiKey, formattedMessages, {
+        temperature,
+        maxTokens
+      });
+      return { text };
+    } catch (err) {
+      console.error("[AIService] Chat failed:", err);
+      return { text: "", error: err.message || "Chat request failed" };
+    }
+  }
+  /**
+   * Internal router to call LLM provider APIs
+   */
+  async callProvider(provider, apiKey, messages, options) {
+    const cleanKey = apiKey.trim().replace(/^["'`]|["'`]$/g, "").trim();
+    switch (provider) {
+      case "google-gemini":
+        return await this.callGemini(cleanKey, messages, options);
+      case "openai":
+        return await this.callOpenAI(cleanKey, messages, options);
+      case "anthropic":
+        return await this.callAnthropic(cleanKey, messages, options);
+      default:
+        return await this.callGemini(cleanKey, messages, options);
+    }
+  }
+  /**
+   * Google Gemini API call with dynamic model discovery and multi-version fallback
+   */
+  async callGemini(apiKey, messages, options) {
+    const cleanKey = apiKey.trim().replace(/^["'`]|["'`]$/g, "").trim();
+    const systemMsg = messages.find((m) => m.role === "system")?.content;
+    const nonSystemMsgs = messages.filter((m) => m.role !== "system");
+    const contents = nonSystemMsgs.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
+    const body = {
+      contents,
+      generationConfig: {
+        temperature: options.temperature,
+        maxOutputTokens: options.maxTokens
+      }
+    };
+    if (systemMsg) {
+      body.systemInstruction = {
+        parts: [{ text: systemMsg }]
+      };
+    }
+    const candidateModels = [
+      "gemini-3.1-flash-lite",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-3.6-flash",
+      "gemini-flash-latest",
+      "gemini-pro-latest"
+    ];
+    let lastError = null;
+    for (const apiVer of ["v1beta", "v1"]) {
+      for (const modelName of candidateModels) {
+        const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${modelName}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          const rawText = await res.text();
+          if (res.ok) {
+            let json;
+            try {
+              json = JSON.parse(rawText);
+            } catch {
+              throw new Error("Gemini returned an invalid JSON response.");
+            }
+            const candidate = json.candidates?.[0];
+            const parts = candidate?.content?.parts || [];
+            const part = parts.find(
+              (p) => typeof p.text === "string" && p.text.trim().length > 0
+            ) || parts[0];
+            const text = part?.text;
+            if (typeof text === "string" && text.length > 0) {
+              return text;
+            }
+            lastError = new Error("Gemini candidate was empty");
+            continue;
+          }
+          if (res.status === 404 || res.status === 429) {
+            lastError = new Error(`Gemini API Error (${res.status}): ${rawText}`);
+            continue;
+          }
+          throw new Error(`Gemini API Error (${res.status}): ${rawText}`);
+        } catch (err) {
+          if (!err.message?.includes("404") && !err.message?.includes("429")) {
+            throw err;
+          }
+          lastError = err;
+        }
+      }
+    }
+    throw lastError || new Error(
+      "Gemini models returned 404. Ensure your key was created at https://aistudio.google.com/app/apikey"
+    );
+  }
+  /**
+   * OpenAI API call
+   */
+  async callOpenAI(apiKey, messages, options) {
+    const cleanKey = apiKey.trim().replace(/^["'`]|["'`]$/g, "").trim();
+    const url = "https://api.openai.com/v1/chat/completions";
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cleanKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages,
+        temperature: options.temperature,
+        max_tokens: options.maxTokens
+      })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`OpenAI API Error (${res.status}): ${errText}`);
+    }
+    const json = await res.json();
+    const text = json.choices?.[0]?.message?.content;
+    if (typeof text !== "string") {
+      throw new Error("OpenAI returned an empty response.");
+    }
+    return text;
+  }
+  /**
+   * Anthropic Claude API call
+   */
+  async callAnthropic(apiKey, messages, options) {
+    const cleanKey = apiKey.trim().replace(/^["'`]|["'`]$/g, "").trim();
+    const url = "https://api.anthropic.com/v1/messages";
+    const systemMsg = messages.find((m) => m.role === "system")?.content;
+    const nonSystemMsgs = messages.filter((m) => m.role !== "system").map((m) => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content
+    }));
+    const body = {
+      model: "claude-3-5-haiku-20241022",
+      max_tokens: options.maxTokens,
+      temperature: options.temperature,
+      messages: nonSystemMsgs
+    };
+    if (systemMsg) {
+      body.system = systemMsg;
+    }
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": cleanKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Anthropic API Error (${res.status}): ${errText}`);
+    }
+    const json = await res.json();
+    const text = json.content?.[0]?.text;
+    if (typeof text !== "string") {
+      throw new Error("Anthropic returned an empty response.");
+    }
+    return text;
+  }
+  /**
+   * Tests API key connectivity and returns human-readable diagnostic status
+   */
+  async testConnection(rawProvider, rawKey) {
+    const key = (rawKey || "").trim().replace(/^["'`]|["'`]$/g, "").trim();
+    if (!key) {
+      return {
+        success: false,
+        message: "Please enter an API key to test."
+      };
+    }
+    let provider = rawProvider || "google-gemini";
+    let detectedProvider = provider;
+    if (key.startsWith("sk-ant-")) {
+      detectedProvider = "anthropic";
+    } else if (key.startsWith("sk-") || key.startsWith("org-")) {
+      detectedProvider = "openai";
+    } else if (key.startsWith("AIzaSy") || key.startsWith("AQ.")) {
+      detectedProvider = "google-gemini";
+    }
+    if (detectedProvider !== provider) {
+      provider = detectedProvider;
+    }
+    if (provider === "google-gemini") {
+      try {
+        let discoveredModels = [];
+        let rawError = null;
+        try {
+          const reply = await this.callGemini(
+            key,
+            [{ role: "user", content: 'Say "OK"' }],
+            { temperature: 0.1, maxTokens: 512 }
+          );
+          return {
+            success: true,
+            detectedProvider,
+            modelUsed: "gemini-3.1-flash-lite",
+            message: `Connected successfully to Google Gemini! Response: "${reply.trim()}"`
+          };
+        } catch (callErr) {
+          rawError = callErr.message || String(callErr);
+        }
+        let detail = rawError || "";
+        try {
+          const parsed = JSON.parse(rawError || "{}");
+          detail = parsed.error?.message || detail;
+        } catch {
+        }
+        if (detail.includes("API_KEY_INVALID") || detail.includes("not valid")) {
+          return {
+            success: false,
+            detectedProvider,
+            message: "Invalid API Key. Google reports this key does not exist. Please generate a valid free key at https://aistudio.google.com/app/apikey"
+          };
+        }
+        return {
+          success: false,
+          detectedProvider,
+          message: `Gemini rejected key: ${detail || "No generative models found. Make sure this key was created in Google AI Studio (https://aistudio.google.com/app/apikey), not standard Google Cloud Console without the Generative Language API."}`
+        };
+      } catch (err) {
+        return {
+          success: false,
+          detectedProvider,
+          message: `Connection error: ${err.message || "Failed to reach Google Gemini"}`
+        };
+      }
+    }
+    try {
+      const testMessages = [{ role: "user", content: 'Reply with "OK"' }];
+      const reply = await this.callProvider(provider, key, testMessages, {
+        temperature: 0.1,
+        maxTokens: 10
+      });
+      return {
+        success: true,
+        detectedProvider,
+        message: `Successfully connected to ${provider.toUpperCase()}! Response: "${reply.trim()}"`
+      };
+    } catch (err) {
+      return {
+        success: false,
+        detectedProvider,
+        message: err.message || "Connection failed"
+      };
+    }
+  }
+}
+const aiService = new AIService();
 const searchService = new SearchService();
 let storedSettings = {};
-function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
+function registerIpcHandlers(mainWindow2, openSettingsWindow2, openExtensionsWindow2) {
   fileService.setMainWindow(mainWindow2);
   terminalService.setMainWindow(mainWindow2);
   electron.ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
@@ -1209,9 +2104,93 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2) {
       return await gitService.commit(workspacePath, message);
     }
   );
+  electron.ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_INSTALLED, async () => {
+    return await extensionService.getInstalledExtensions();
+  });
+  electron.ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_SEARCH_MARKETPLACE,
+    async (_, query, category) => {
+      return await extensionService.searchMarketplace(query, category);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_MARKETPLACE,
+    async (_, extension) => {
+      return await extensionService.installFromMarketplace(extension);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_VSIX,
+    async (_, filePath) => {
+      return await extensionService.installFromVsix(filePath);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_UNINSTALL,
+    async (_, extensionId) => {
+      return await extensionService.uninstallExtension(extensionId);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_TOGGLE_ENABLE,
+    async (_, extensionId, enabled) => {
+      return await extensionService.toggleExtension(extensionId, enabled);
+    }
+  );
+  electron.ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_SNIPPETS, async () => {
+    return await extensionService.getExtensionSnippets();
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_THEMES, async () => {
+    return await extensionService.getExtensionThemes();
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.EXTENSIONS_OPEN_VSIX_DIALOG, async () => {
+    return await extensionService.openVsixDialog();
+  });
+  electron.ipcMain.handle(IPC_CHANNELS.EXTENSIONS_OPEN_WINDOW, () => {
+    if (openExtensionsWindow2) {
+      openExtensionsWindow2();
+    }
+  });
+  electron.ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_GET_README,
+    async (_, extensionId, namespace, name) => {
+      return await extensionService.getReadme(extensionId, namespace, name);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_GET_EXT_SNIPPETS,
+    async (_, extensionId) => {
+      return await extensionService.getExtensionSnippetsForExt(extensionId);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.AI_GENERATE_COMPLETION,
+    async (_, req) => {
+      return await aiService.generateCompletion(req);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.AI_GENERATE_EDIT,
+    async (_, req) => {
+      return await aiService.generateEdit(req);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.AI_CHAT,
+    async (_, req) => {
+      return await aiService.chat(req);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.AI_TEST_CONNECTION,
+    async (_, provider, apiKey) => {
+      return await aiService.testConnection(provider, apiKey);
+    }
+  );
 }
 let mainWindow = null;
 let settingsWindow = null;
+let extensionsWindow = null;
 function getAppIconPath() {
   const isDev = !electron.app.isPackaged;
   const filename = process.platform === "win32" ? "icon.ico" : "icon.png";
@@ -1271,6 +2250,57 @@ function openSettingsWindow() {
   }
   return settingsWindow;
 }
+function openExtensionsWindow() {
+  if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+    if (extensionsWindow.isMinimized()) {
+      extensionsWindow.restore();
+    }
+    extensionsWindow.show();
+    extensionsWindow.focus();
+    return extensionsWindow;
+  }
+  const iconPath = getAppIconPath();
+  extensionsWindow = new electron.BrowserWindow({
+    title: "Extensions - Cortex",
+    width: 980,
+    height: 680,
+    minWidth: 800,
+    minHeight: 520,
+    show: false,
+    autoHideMenuBar: true,
+    frame: false,
+    titleBarStyle: "hidden",
+    backgroundColor: "#0f1117",
+    icon: iconPath,
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : void 0,
+    webPreferences: {
+      preload: path.join(__dirname, "../preload/index.js"),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  extensionsWindow.on("ready-to-show", () => {
+    if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+      extensionsWindow.show();
+    }
+  });
+  extensionsWindow.on("closed", () => {
+    extensionsWindow = null;
+  });
+  extensionsWindow.webContents.setWindowOpenHandler((details) => {
+    electron.shell.openExternal(details.url);
+    return { action: "deny" };
+  });
+  if (process.env["ELECTRON_RENDERER_URL"]) {
+    extensionsWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/extensions`);
+  } else {
+    extensionsWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+      hash: "/extensions"
+    });
+  }
+  return extensionsWindow;
+}
 function createWindow() {
   mainWindow = new electron.BrowserWindow({
     title: "Cortex",
@@ -1291,7 +2321,7 @@ function createWindow() {
       nodeIntegration: false
     }
   });
-  registerIpcHandlers(mainWindow, openSettingsWindow);
+  registerIpcHandlers(mainWindow, openSettingsWindow, openExtensionsWindow);
   mainWindow.on("ready-to-show", () => {
     if (mainWindow) {
       mainWindow.show();
@@ -1301,10 +2331,16 @@ function createWindow() {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.close();
     }
+    if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+      extensionsWindow.close();
+    }
   });
   mainWindow.on("closed", () => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.close();
+    }
+    if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+      extensionsWindow.close();
     }
     mainWindow = null;
   });
@@ -1335,4 +2371,5 @@ electron.app.on("before-quit", () => {
   fileService.stopWatcher();
   terminalService.killAll();
 });
+exports.openExtensionsWindow = openExtensionsWindow;
 exports.openSettingsWindow = openSettingsWindow;

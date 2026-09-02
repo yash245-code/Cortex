@@ -6,6 +6,7 @@ import { terminalService } from './services/terminalService'
 
 let mainWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
+let extensionsWindow: BrowserWindow | null = null
 
 function getAppIconPath(): string {
   const isDev = !app.isPackaged
@@ -75,6 +76,65 @@ export function openSettingsWindow(): BrowserWindow {
   return settingsWindow
 }
 
+export function openExtensionsWindow(): BrowserWindow {
+  if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+    if (extensionsWindow.isMinimized()) {
+      extensionsWindow.restore()
+    }
+    extensionsWindow.show()
+    extensionsWindow.focus()
+    return extensionsWindow
+  }
+
+  const iconPath = getAppIconPath()
+
+  extensionsWindow = new BrowserWindow({
+    title: 'Extensions - Cortex',
+    width: 980,
+    height: 680,
+    minWidth: 800,
+    minHeight: 520,
+    show: false,
+    autoHideMenuBar: true,
+    frame: false,
+    titleBarStyle: 'hidden',
+    backgroundColor: '#0f1117',
+    icon: iconPath,
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  extensionsWindow.on('ready-to-show', () => {
+    if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+      extensionsWindow.show()
+    }
+  })
+
+  extensionsWindow.on('closed', () => {
+    extensionsWindow = null
+  })
+
+  extensionsWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+  if (process.env['ELECTRON_RENDERER_URL']) {
+    extensionsWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/extensions`)
+  } else {
+    extensionsWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/extensions'
+    })
+  }
+
+  return extensionsWindow
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     title: 'Cortex',
@@ -96,7 +156,7 @@ function createWindow(): void {
     }
   })
 
-  registerIpcHandlers(mainWindow, openSettingsWindow)
+  registerIpcHandlers(mainWindow, openSettingsWindow, openExtensionsWindow)
 
   mainWindow.on('ready-to-show', () => {
     if (mainWindow) {
@@ -104,16 +164,22 @@ function createWindow(): void {
     }
   })
 
-  // Automatically close settings window when main window closes
+  // Automatically close child windows when main window closes
   mainWindow.on('close', () => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.close()
+    }
+    if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+      extensionsWindow.close()
     }
   })
 
   mainWindow.on('closed', () => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.close()
+    }
+    if (extensionsWindow && !extensionsWindow.isDestroyed()) {
+      extensionsWindow.close()
     }
     mainWindow = null
   })

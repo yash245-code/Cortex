@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { App } from './App'
 import { SettingsWindow } from './components/SettingsWindow/SettingsWindow'
+import { ExtensionsWindow } from './components/ExtensionsWindow/ExtensionsWindow'
 import './index.css'
 
 const Root: React.FC = () => {
@@ -17,6 +18,10 @@ const Root: React.FC = () => {
 
   if (route.startsWith('#/settings') || route.startsWith('#settings')) {
     return <SettingsWindow />
+  }
+
+  if (route.startsWith('#/extensions') || route.startsWith('#extensions')) {
+    return <ExtensionsWindow />
   }
 
   return <App />

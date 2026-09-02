@@ -48,7 +48,25 @@ const IPC_CHANNELS = {
   GIT_STAGE_ALL: "cortex:git:stageAll",
   GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
   GIT_DISCARD: "cortex:git:discard",
-  GIT_COMMIT: "cortex:git:commit"
+  GIT_COMMIT: "cortex:git:commit",
+  // Extensions
+  EXTENSIONS_GET_INSTALLED: "cortex:extensions:getInstalled",
+  EXTENSIONS_SEARCH_MARKETPLACE: "cortex:extensions:searchMarketplace",
+  EXTENSIONS_INSTALL_FROM_MARKETPLACE: "cortex:extensions:installFromMarketplace",
+  EXTENSIONS_INSTALL_FROM_VSIX: "cortex:extensions:installFromVsix",
+  EXTENSIONS_UNINSTALL: "cortex:extensions:uninstall",
+  EXTENSIONS_TOGGLE_ENABLE: "cortex:extensions:toggleEnable",
+  EXTENSIONS_GET_SNIPPETS: "cortex:extensions:getSnippets",
+  EXTENSIONS_GET_THEMES: "cortex:extensions:getThemes",
+  EXTENSIONS_OPEN_VSIX_DIALOG: "cortex:extensions:openVsixDialog",
+  EXTENSIONS_OPEN_WINDOW: "cortex:extensions:openWindow",
+  EXTENSIONS_GET_README: "cortex:extensions:getReadme",
+  EXTENSIONS_GET_EXT_SNIPPETS: "cortex:extensions:getExtSnippets",
+  // AI Intelligence
+  AI_GENERATE_COMPLETION: "cortex:ai:generateCompletion",
+  AI_GENERATE_EDIT: "cortex:ai:generateEdit",
+  AI_CHAT: "cortex:ai:chat",
+  AI_TEST_CONNECTION: "cortex:ai:testConnection"
 };
 const api = {
   // Window controls
@@ -161,7 +179,25 @@ const api = {
   gitStageAll: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_ALL, workspacePath),
   gitUnstageAll: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_ALL, workspacePath),
   gitDiscard: (workspacePath, relativePath, isUntracked) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD, workspacePath, relativePath, isUntracked),
-  gitCommit: (workspacePath, message) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message)
+  gitCommit: (workspacePath, message) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message),
+  // Extensions
+  extensionsGetInstalled: () => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_INSTALLED),
+  extensionsSearchMarketplace: (query, category) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_SEARCH_MARKETPLACE, query, category),
+  extensionsInstallFromMarketplace: (extension) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_MARKETPLACE, extension),
+  extensionsInstallFromVsix: (filePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_VSIX, filePath),
+  extensionsUninstall: (extensionId) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_UNINSTALL, extensionId),
+  extensionsToggleEnable: (extensionId, enabled) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_TOGGLE_ENABLE, extensionId, enabled),
+  extensionsGetSnippets: () => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_SNIPPETS),
+  extensionsGetThemes: () => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_THEMES),
+  extensionsOpenVsixDialog: () => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_OPEN_VSIX_DIALOG),
+  openExtensionsWindow: () => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_OPEN_WINDOW),
+  extensionsGetReadme: (extensionId, namespace, name) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_README, extensionId, namespace, name),
+  extensionsGetSnippetsForExt: (extensionId) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_EXT_SNIPPETS, extensionId),
+  // AI Intelligence
+  aiGenerateCompletion: (req) => electron.ipcRenderer.invoke(IPC_CHANNELS.AI_GENERATE_COMPLETION, req),
+  aiGenerateEdit: (req) => electron.ipcRenderer.invoke(IPC_CHANNELS.AI_GENERATE_EDIT, req),
+  aiChat: (req) => electron.ipcRenderer.invoke(IPC_CHANNELS.AI_CHAT, req),
+  aiTestConnection: (provider, apiKey) => electron.ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, provider, apiKey)
 };
 try {
   electron.contextBridge.exposeInMainWorld("cortexAPI", api);

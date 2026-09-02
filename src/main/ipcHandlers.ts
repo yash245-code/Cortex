@@ -4,7 +4,9 @@ import { fileService } from './services/fileService'
 import { terminalService } from './services/terminalService'
 import { SearchService } from './services/searchService'
 import { gitService } from './services/gitService'
-import { SearchOptions } from '../shared/types'
+import { extensionService } from './services/extensionService'
+import { aiService } from './services/aiService'
+import { SearchOptions, MarketplaceExtension, AICompletionRequest, AIEditRequest, AIChatRequest } from '../shared/types'
 
 const searchService = new SearchService()
 
@@ -12,7 +14,8 @@ let storedSettings: Record<string, unknown> = {}
 
 export function registerIpcHandlers(
   mainWindow: BrowserWindow,
-  openSettingsWindow?: () => BrowserWindow
+  openSettingsWindow?: () => BrowserWindow,
+  openExtensionsWindow?: () => BrowserWindow
 ): void {
   fileService.setMainWindow(mainWindow)
   terminalService.setMainWindow(mainWindow)
@@ -230,6 +233,107 @@ export function registerIpcHandlers(
     IPC_CHANNELS.GIT_COMMIT,
     async (_, workspacePath: string, message: string) => {
       return await gitService.commit(workspacePath, message)
+    }
+  )
+
+  // Extensions Handlers
+  ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_INSTALLED, async () => {
+    return await extensionService.getInstalledExtensions()
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_SEARCH_MARKETPLACE,
+    async (_, query: string, category?: string) => {
+      return await extensionService.searchMarketplace(query, category)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_MARKETPLACE,
+    async (_, extension: MarketplaceExtension) => {
+      return await extensionService.installFromMarketplace(extension)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_INSTALL_FROM_VSIX,
+    async (_, filePath?: string) => {
+      return await extensionService.installFromVsix(filePath)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_UNINSTALL,
+    async (_, extensionId: string) => {
+      return await extensionService.uninstallExtension(extensionId)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_TOGGLE_ENABLE,
+    async (_, extensionId: string, enabled: boolean) => {
+      return await extensionService.toggleExtension(extensionId, enabled)
+    }
+  )
+
+  ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_SNIPPETS, async () => {
+    return await extensionService.getExtensionSnippets()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_THEMES, async () => {
+    return await extensionService.getExtensionThemes()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.EXTENSIONS_OPEN_VSIX_DIALOG, async () => {
+    return await extensionService.openVsixDialog()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.EXTENSIONS_OPEN_WINDOW, () => {
+    if (openExtensionsWindow) {
+      openExtensionsWindow()
+    }
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_GET_README,
+    async (_, extensionId: string, namespace?: string, name?: string) => {
+      return await extensionService.getReadme(extensionId, namespace, name)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.EXTENSIONS_GET_EXT_SNIPPETS,
+    async (_, extensionId: string) => {
+      return await extensionService.getExtensionSnippetsForExt(extensionId)
+    }
+  )
+
+  // AI Intelligence Handlers
+  ipcMain.handle(
+    IPC_CHANNELS.AI_GENERATE_COMPLETION,
+    async (_, req: AICompletionRequest) => {
+      return await aiService.generateCompletion(req)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.AI_GENERATE_EDIT,
+    async (_, req: AIEditRequest) => {
+      return await aiService.generateEdit(req)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.AI_CHAT,
+    async (_, req: AIChatRequest) => {
+      return await aiService.chat(req)
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.AI_TEST_CONNECTION,
+    async (_, provider?: string, apiKey?: string) => {
+      return await aiService.testConnection(provider, apiKey)
     }
   )
 }

@@ -271,3 +271,26 @@
   letter-spacing: 0.2px;
 }
 
+/* AI Chat Markdown styles */
+.markdown-body {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.markdown-body p {
+  margin: 0.35em 0;
+  line-height: 1.5;
+}
+
+.markdown-body pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  border-radius: 6px;
+}
+
+.markdown-body code {
+  word-break: break-word;
+}
+

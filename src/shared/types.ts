@@ -230,4 +230,131 @@ export interface CortexAPI {
   gitUnstageAll: (workspacePath: string) => Promise<boolean>
   gitDiscard: (workspacePath: string, relativePath: string, isUntracked?: boolean) => Promise<boolean>
   gitCommit: (workspacePath: string, message: string) => Promise<boolean>
+
+  // Extensions
+  extensionsGetInstalled: () => Promise<InstalledExtension[]>
+  extensionsSearchMarketplace: (
+    query: string,
+    category?: string
+  ) => Promise<MarketplaceExtension[]>
+  extensionsInstallFromMarketplace: (
+    extension: MarketplaceExtension
+  ) => Promise<InstalledExtension>
+  extensionsInstallFromVsix: (filePath?: string) => Promise<InstalledExtension | null>
+  extensionsUninstall: (extensionId: string) => Promise<boolean>
+  extensionsToggleEnable: (extensionId: string, enabled: boolean) => Promise<boolean>
+  extensionsGetSnippets: () => Promise<ExtensionSnippetItem[]>
+  extensionsGetThemes: () => Promise<ExtensionThemeItem[]>
+  extensionsOpenVsixDialog: () => Promise<string | null>
+  openExtensionsWindow: () => Promise<void>
+  extensionsGetReadme: (
+    extensionId: string,
+    namespace?: string,
+    name?: string
+  ) => Promise<string>
+  extensionsGetSnippetsForExt: (
+    extensionId: string
+  ) => Promise<ExtensionSnippetItem[]>
+  aiGenerateCompletion: (req: AICompletionRequest) => Promise<AIResponse>
+  aiGenerateEdit: (req: AIEditRequest) => Promise<AIResponse>
+  aiChat: (req: AIChatRequest) => Promise<AIResponse>
+  aiTestConnection: (provider?: string, apiKey?: string) => Promise<AITestResult>
 }
+
+export interface AITestResult {
+  success: boolean
+  message: string
+  detectedProvider?: string
+  modelUsed?: string
+}
+
+export interface AIChatMessage {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+}
+
+export interface AICompletionRequest {
+  prefix: string
+  suffix?: string
+  language?: string
+  settings?: EditorSettings
+}
+
+export interface AIEditRequest {
+  code: string
+  prompt: string
+  language?: string
+  context?: string
+  settings?: EditorSettings
+}
+
+export interface AIChatRequest {
+  messages: AIChatMessage[]
+  contextFile?: {
+    name: string
+    language?: string
+    content: string
+  }
+  settings?: EditorSettings
+}
+
+export interface AIResponse {
+  text: string
+  error?: string
+}
+
+export interface ExtensionSnippetItem {
+  language: string
+  name: string
+  prefix: string | string[]
+  body: string | string[]
+  description?: string
+  scope?: string
+  sourceExtensionId: string
+  sourceExtensionName: string
+}
+
+export interface ExtensionThemeItem {
+  id: string
+  label: string
+  uiTheme: 'vs' | 'vs-dark' | 'hc-black' | 'hc-light'
+  path: string
+  sourceExtensionId: string
+  themeData?: any
+}
+
+export interface InstalledExtension {
+  id: string
+  name: string
+  displayName: string
+  publisher: string
+  version: string
+  description: string
+  icon?: string
+  enabled: boolean
+  installDate: number
+  snippetsCount: number
+  themesCount: number
+  contributes: {
+    snippets?: Array<{ language?: string; path: string }>
+    themes?: Array<{ label: string; uiTheme: string; path: string }>
+  }
+}
+
+export interface MarketplaceExtension {
+  id: string
+  name: string
+  namespace: string
+  displayName: string
+  version: string
+  description: string
+  icon?: string
+  downloadUrl: string
+  downloadCount?: number
+  averageRating?: number
+  reviewCount?: number
+  timestamp?: string
+  isInstalled?: boolean
+  categories?: string[]
+}
+

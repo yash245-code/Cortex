@@ -210,6 +210,29 @@ export const CommandPalette: React.FC = () => {
         action: () => toggleSidebarView('git')
       },
       {
+        id: 'view.extensions',
+        title: 'View: Show Extensions',
+        category: 'View',
+        shortcut: 'Ctrl+Shift+X',
+        action: () => window.cortexAPI?.openExtensionsWindow?.()
+      },
+      {
+        id: 'view.ai',
+        title: 'View: Show AI Assistant',
+        category: 'View',
+        shortcut: 'Ctrl+Shift+I',
+        action: () => toggleSidebarView('ai')
+      },
+      {
+        id: 'extensions.installVsix',
+        title: 'Extensions: Install from VSIX...',
+        category: 'Extensions',
+        action: async () => {
+          toggleSidebarView('extensions')
+          await window.cortexAPI?.extensionsInstallFromVsix()
+        }
+      },
+      {
         id: 'git.refresh',
         title: 'Git: Refresh Status',
         category: 'Git',

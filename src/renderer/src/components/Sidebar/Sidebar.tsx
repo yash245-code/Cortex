@@ -5,7 +5,9 @@ import {
   Settings,
   Terminal,
   FolderOpen,
-  GitBranch
+  GitBranch,
+  Blocks,
+  Sparkles
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { useWorkspaceStore } from '../../store/useWorkspaceStore'
@@ -13,6 +15,8 @@ import { useGitStore } from '../../store/useGitStore'
 import { FileTree } from './FileTree'
 import { SearchPanel } from './SearchPanel'
 import { SourceControlPanel } from './SourceControlPanel'
+import { ExtensionsPanel } from './ExtensionsPanel'
+import { AIChatPanel } from './AIChatPanel'
 
 export const Sidebar: React.FC = () => {
   const {
@@ -64,6 +68,7 @@ export const Sidebar: React.FC = () => {
   const isExplorerActive = isSidebarOpen && activeSidebarView === 'explorer'
   const isSearchActive = isSidebarOpen && activeSidebarView === 'search'
   const isGitActive = isSidebarOpen && activeSidebarView === 'git'
+  const isAiActive = isSidebarOpen && activeSidebarView === 'ai'
 
   const indicatorClass = isRight
     ? 'absolute right-0 top-1 bottom-1 w-[3px] bg-cortex-accent rounded-l shadow-[0_0_8px_var(--cortex-accent)]'
@@ -135,6 +140,33 @@ export const Sidebar: React.FC = () => {
             </button>
           </div>
 
+          {/* AI Assistant Button */}
+          <div className="relative w-full flex justify-center">
+            {isAiActive && <div className={indicatorClass} />}
+            <button
+              onClick={() => toggleSidebarView('ai')}
+              title="AI Assistant (Ctrl+Shift+I)"
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                isAiActive
+                  ? 'text-cortex-accent bg-cortex-accent/15 border border-cortex-accent/35 shadow-sm'
+                  : 'text-cortex-muted hover:text-white hover:bg-cortex-surface'
+              }`}
+            >
+              <Sparkles size={18} />
+            </button>
+          </div>
+
+          {/* Extensions Button */}
+          <div className="relative w-full flex justify-center">
+            <button
+              onClick={() => window.cortexAPI?.openExtensionsWindow?.()}
+              title="Extensions Manager (Ctrl+Shift+X)"
+              className="w-8 h-8 rounded-lg flex items-center justify-center relative transition-colors text-cortex-muted hover:text-white hover:bg-cortex-surface active:text-cortex-accent"
+            >
+              <Blocks size={18} />
+            </button>
+          </div>
+
           {/* Open Folder Button */}
           <div className="relative w-full flex justify-center">
             <button
@@ -186,6 +218,8 @@ export const Sidebar: React.FC = () => {
             {activeSidebarView === 'explorer' && <FileTree />}
             {activeSidebarView === 'search' && <SearchPanel />}
             {activeSidebarView === 'git' && <SourceControlPanel />}
+            {activeSidebarView === 'extensions' && <ExtensionsPanel />}
+            {activeSidebarView === 'ai' && <AIChatPanel />}
           </div>
 
           {/* Horizontal Resizer Line */}

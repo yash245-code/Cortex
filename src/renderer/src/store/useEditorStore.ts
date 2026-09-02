@@ -17,7 +17,7 @@ interface EditorState {
   activeTerminalId: string
   isSidebarOpen: boolean
   sidebarWidth: number
-  activeSidebarView: 'explorer' | 'search' | 'git' | 'settings' | null
+  activeSidebarView: 'explorer' | 'search' | 'git' | 'settings' | 'extensions' | 'ai' | null
   isPaletteOpen: boolean
   paletteMode: 'files' | 'commands' | 'themes' | 'accents' | 'recent-workspaces' | 'fonts'
   isAboutModalOpen: boolean
@@ -71,8 +71,8 @@ interface EditorState {
   toggleMarkdownPreview: () => void
   setMarkdownPreviewOpen: (open: boolean) => void
   toggleSidebar: () => void
-  toggleSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings') => void
-  setActiveSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings' | null) => void
+  toggleSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings' | 'extensions' | 'ai') => void
+  setActiveSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings' | 'extensions' | 'ai' | null) => void
   setSidebarWidth: (width: number) => void
   openPalette: (
     mode?: 'files' | 'commands' | 'themes' | 'accents' | 'recent-workspaces' | 'fonts'
@@ -739,7 +739,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         activeSidebarView: willBeOpen ? state.activeSidebarView || 'explorer' : null
       }
     }),
-  toggleSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings') =>
+  toggleSidebarView: (view: 'explorer' | 'search' | 'git' | 'settings' | 'extensions' | 'ai') =>
     set((state) => {
       if (state.isSidebarOpen && state.activeSidebarView === view) {
         return { isSidebarOpen: false, activeSidebarView: null }

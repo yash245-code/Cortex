@@ -19,7 +19,9 @@ import {
   PanelLeft,
   PanelRight,
   Layout,
-  Type
+  Type,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { EditorSettings, ShellType } from '../../../../shared/types'
@@ -34,6 +36,8 @@ export const SettingsWindow: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showApiKey, setShowApiKey] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
+  const [isTestingAiKey, setIsTestingAiKey] = useState(false)
+  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   // Listen to cross-window sync and set window title
   useEffect(() => {
@@ -56,6 +60,24 @@ export const SettingsWindow: React.FC = () => {
     updateSettings(partial)
     setJustSaved(true)
     setTimeout(() => setJustSaved(false), 1200)
+    setAiTestResult(null)
+  }
+
+  const handleTestAiKey = async (): Promise<void> => {
+    if (!settings.aiApiKey?.trim()) return
+    setIsTestingAiKey(true)
+    setAiTestResult(null)
+    try {
+      const res = await window.cortexAPI?.aiTestConnection?.(
+        settings.aiModelProvider,
+        settings.aiApiKey
+      )
+      setAiTestResult(res || { success: false, message: 'No response from AI service.' })
+    } catch (err: any) {
+      setAiTestResult({ success: false, message: err.message || 'Test failed' })
+    } finally {
+      setIsTestingAiKey(false)
+    }
   }
 
   const resetDefaults = (): void => {
@@ -1091,26 +1113,164 @@ export const SettingsWindow: React.FC = () => {
                   </div>
 
                   {/* API Key */}
-                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2">
+                  <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="font-medium text-cortex-text flex items-center gap-1.5">
                         <Lock size={13} className="text-cortex-muted" />
                         <span>API Key</span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="text-[11px] text-cortex-accent hover:underline"
+                        >
+                          {showApiKey ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        placeholder="Paste your API key here (saved locally on your machine)"
+                        value={settings.aiApiKey || ''}
+                        onChange={(e) => handleSettingChange({ aiApiKey: e.target.value })}
+                        className="flex-1 bg-cortex-surface text-xs font-mono text-cortex-text px-3 py-1.5 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none"
+                      />
                       <button
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="text-[11px] text-cortex-accent hover:underline"
+                        onClick={handleTestAiKey}
+                        disabled={isTestingAiKey || !settings.aiApiKey?.trim()}
+                        className={`py-1.5 px-3 rounded text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 ${
+                          isTestingAiKey || !settings.aiApiKey?.trim()
+                            ? 'bg-cortex-surface text-cortex-muted cursor-not-allowed border border-cortex-border'
+                            : 'bg-cortex-accent text-black font-bold hover:brightness-110 active:scale-95'
+                        }`}
                       >
-                        {showApiKey ? 'Hide' : 'Show'}
+                        {isTestingAiKey ? (
+                          <>
+                            <RefreshCw size={12} className="animate-spin" />
+                            <span>Testing...</span>
+                          </>
+                        ) : (
+                          <span>Test Key</span>
+                        )}
                       </button>
                     </div>
-                    <input
-                      type={showApiKey ? 'text' : 'password'}
-                      placeholder="Paste your API key here (saved locally)"
-                      value={settings.aiApiKey || ''}
-                      onChange={(e) => handleSettingChange({ aiApiKey: e.target.value })}
-                      className="w-full bg-cortex-surface text-xs font-mono text-cortex-text px-3 py-1.5 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none"
-                    />
+
+                    {/* Key Format Auto-Detection & Provider Mismatch Alert */}
+                    {(() => {
+                      const k = (settings.aiApiKey || '').trim()
+                      if (!k) return null
+                      const isSk = (k.startsWith('sk-') || k.startsWith('org-')) && !k.startsWith('sk-ant-')
+                      const isAnt = k.startsWith('sk-ant-')
+                      const isGemini = k.startsWith('AIzaSy') || k.startsWith('AQ.')
+                      const currentProv = settings.aiModelProvider || 'google-gemini'
+
+                      if (isSk && currentProv !== 'openai') {
+                        return (
+                          <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                            <span>⚠️ This looks like an <strong>OpenAI</strong> key (starts with <code className="text-white">sk-</code>), but provider is set to <strong>{currentProv}</strong>.</span>
+                            <button
+                              onClick={() => handleSettingChange({ aiModelProvider: 'openai' })}
+                              className="px-2 py-1 rounded bg-amber-500 text-black font-bold text-[10px] hover:brightness-110 shrink-0"
+                            >
+                              Switch to OpenAI
+                            </button>
+                          </div>
+                        )
+                      }
+
+                      if (isAnt && currentProv !== 'anthropic') {
+                        return (
+                          <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs flex items-center justify-between gap-2">
+                            <span>⚠️ This looks like an <strong>Anthropic</strong> key (starts with <code className="text-white">sk-ant-</code>), but provider is set to <strong>{currentProv}</strong>.</span>
+                            <button
+                              onClick={() => handleSettingChange({ aiModelProvider: 'anthropic' })}
+                              className="px-2 py-1 rounded bg-purple-500 text-white font-bold text-[10px] hover:brightness-110 shrink-0"
+                            >
+                              Switch to Claude
+                            </button>
+                          </div>
+                        )
+                      }
+
+                      if (isGemini && currentProv !== 'google-gemini') {
+                        return (
+                          <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs flex items-center justify-between gap-2">
+                            <span>ℹ️ This looks like a <strong>Google Gemini</strong> key (starts with <code className="text-white">AIzaSy</code>).</span>
+                            <button
+                              onClick={() => handleSettingChange({ aiModelProvider: 'google-gemini' })}
+                              className="px-2 py-1 rounded bg-blue-500 text-white font-bold text-[10px] hover:brightness-110 shrink-0"
+                            >
+                              Switch to Gemini
+                            </button>
+                          </div>
+                        )
+                      }
+
+                      return null
+                    })()}
+
+                    {/* Test Key Feedback Result */}
+                    {aiTestResult && (
+                      <div
+                        className={`p-2.5 rounded-lg text-xs flex items-start gap-2 border ${
+                          aiTestResult.success
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                            : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                        }`}
+                      >
+                        {aiTestResult.success ? (
+                          <Check size={14} className="shrink-0 mt-0.5 text-emerald-400" />
+                        ) : (
+                          <AlertCircle size={14} className="shrink-0 mt-0.5 text-rose-400" />
+                        )}
+                        <span className="leading-relaxed">{aiTestResult.message}</span>
+                      </div>
+                    )}
+
+                    {/* Helpful Provider Key Links */}
+                    <div className="text-[11px] text-cortex-muted pt-1">
+                      {(settings.aiModelProvider || 'google-gemini') === 'google-gemini' && (
+                        <span>
+                          Get a free Gemini API key at{' '}
+                          <a
+                            href="https://aistudio.google.com/app/apikey"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cortex-accent underline hover:brightness-110"
+                          >
+                            aistudio.google.com/app/apikey
+                          </a>
+                        </span>
+                      )}
+                      {settings.aiModelProvider === 'openai' && (
+                        <span>
+                          Get an OpenAI API key at{' '}
+                          <a
+                            href="https://platform.openai.com/api-keys"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cortex-accent underline hover:brightness-110"
+                          >
+                            platform.openai.com/api-keys
+                          </a>
+                        </span>
+                      )}
+                      {settings.aiModelProvider === 'anthropic' && (
+                        <span>
+                          Get an Anthropic API key at{' '}
+                          <a
+                            href="https://console.anthropic.com/"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cortex-accent underline hover:brightness-110"
+                          >
+                            console.anthropic.com
+                          </a>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Temperature */}
