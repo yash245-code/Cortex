@@ -91,6 +91,7 @@ interface EditorState {
   toggleWordWrap: () => void
   toggleAutoSave: () => void
   toggleSidebarPosition: () => void
+  toggleChurnHeatmap: () => void
 }
 
 const initialTerminalSession: TerminalSession = {
@@ -125,7 +126,8 @@ const getDefaultSettings = (): EditorSettings => {
     aiModelProvider: 'google-gemini',
     aiApiKey: '',
     aiTemperature: 0.7,
-    aiMaxTokens: 4096
+    aiMaxTokens: 4096,
+    enableChurnHeatmap: true
   }
 
   if (typeof window !== 'undefined') {
@@ -838,6 +840,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const current = get().settings.sidebarPosition || 'left'
     get().updateSettings({
       sidebarPosition: current === 'right' ? 'left' : 'right'
+    })
+  },
+
+  toggleChurnHeatmap: () => {
+    const current = get().settings.enableChurnHeatmap !== false
+    get().updateSettings({
+      enableChurnHeatmap: !current
     })
   }
 }))

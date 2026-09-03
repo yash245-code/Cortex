@@ -4,7 +4,8 @@ import {
   Terminal,
   FileCode,
   CheckCircle2,
-  Columns
+  Columns,
+  Flame
 } from 'lucide-react'
 import { useEditorStore } from '../store/useEditorStore'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
@@ -19,7 +20,8 @@ export const StatusBar: React.FC = () => {
     isTerminalOpen,
     toggleTerminal,
     toggleSidebar,
-    toggleSidebarView
+    toggleSidebarView,
+    toggleChurnHeatmap
   } = useEditorStore()
 
   const { rootPath } = useWorkspaceStore()
@@ -63,6 +65,23 @@ export const StatusBar: React.FC = () => {
             <GitBranch size={12} />
             <span>no repo</span>
           </div>
+        )}
+
+        {isGitRepo && (
+          <button
+            onClick={toggleChurnHeatmap}
+            title={`Gutter Churn Heatmap: ${settings.enableChurnHeatmap !== false ? 'Enabled' : 'Disabled'} (Click to toggle)`}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-all cursor-pointer select-none ${
+              settings.enableChurnHeatmap !== false
+                ? 'text-amber-400 hover:text-amber-300 bg-amber-400/10 border border-amber-400/20 shadow-xs'
+                : 'text-cortex-muted hover:text-white bg-transparent border border-transparent'
+            }`}
+          >
+            <Flame size={12} className={settings.enableChurnHeatmap !== false ? 'text-rose-500 fill-rose-500/20' : ''} />
+            <span className="font-mono text-[10px]">
+              {settings.enableChurnHeatmap !== false ? 'Heatmap' : 'Heatmap Off'}
+            </span>
+          </button>
         )}
 
         <div className="flex items-center gap-1 text-cortex-accent">

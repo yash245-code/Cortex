@@ -236,6 +236,13 @@ export function registerIpcHandlers(
     }
   )
 
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_GET_FILE_CHURN,
+    async (_, workspacePath: string, relativePath: string) => {
+      return await gitService.getFileChurn(workspacePath, relativePath)
+    }
+  )
+
   // Extensions Handlers
   ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_INSTALLED, async () => {
     return await extensionService.getInstalledExtensions()

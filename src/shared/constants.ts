@@ -54,6 +54,7 @@ export const IPC_CHANNELS = {
   GIT_UNSTAGE_ALL: 'cortex:git:unstageAll',
   GIT_DISCARD: 'cortex:git:discard',
   GIT_COMMIT: 'cortex:git:commit',
+  GIT_GET_FILE_CHURN: 'cortex:git:getFileChurn',
 
   // Extensions
   EXTENSIONS_GET_INSTALLED: 'cortex:extensions:getInstalled',

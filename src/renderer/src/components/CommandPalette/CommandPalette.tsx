@@ -117,7 +117,8 @@ export const CommandPalette: React.FC = () => {
     toggleSidebarPosition,
     openSettingsWindow,
     settings,
-    updateSettings
+    updateSettings,
+    toggleChurnHeatmap
   } = useEditorStore()
 
   const {
@@ -243,6 +244,12 @@ export const CommandPalette: React.FC = () => {
         title: 'Git: Stage All Changes',
         category: 'Git',
         action: () => stageAll()
+      },
+      {
+        id: 'git.toggleChurnHeatmap',
+        title: 'Git: Toggle Gutter Churn Heatmap',
+        category: 'Git',
+        action: () => toggleChurnHeatmap()
       },
       {
         id: 'view.toggleTerminal',
@@ -418,7 +425,8 @@ export const CommandPalette: React.FC = () => {
     decreaseFontSize,
     toggleMinimap,
     toggleWordWrap,
-    updateSettings
+    updateSettings,
+    toggleChurnHeatmap
   ])
 
   // Determine current active search mode

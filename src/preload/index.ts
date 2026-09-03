@@ -156,6 +156,8 @@ const api: CortexAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD, workspacePath, relativePath, isUntracked),
   gitCommit: (workspacePath: string, message: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message),
+  gitGetFileChurn: (workspacePath: string, relativePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_FILE_CHURN, workspacePath, relativePath),
 
   // Extensions
   extensionsGetInstalled: () =>

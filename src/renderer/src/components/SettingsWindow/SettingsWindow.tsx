@@ -21,7 +21,8 @@ import {
   Layout,
   Type,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Flame
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { EditorSettings, ShellType } from '../../../../shared/types'
@@ -103,7 +104,8 @@ export const SettingsWindow: React.FC = () => {
       aiModelProvider: 'google-gemini',
       aiApiKey: '',
       aiTemperature: 0.7,
-      aiMaxTokens: 4096
+      aiMaxTokens: 4096,
+      enableChurnHeatmap: true
     }
     updateSettings(defaults)
     setJustSaved(true)
@@ -573,6 +575,35 @@ export const SettingsWindow: React.FC = () => {
                       >
                         {settings.wordWrap === 'on' ? 'Wrap: On' : 'Wrap: Off'}
                       </button>
+                    </div>
+
+                    {/* Git Gutter Churn Heatmap */}
+                    <div className="p-3.5 rounded-lg bg-cortex-panel border border-cortex-border flex flex-col justify-between gap-3 col-span-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5 font-medium text-cortex-text">
+                            <Flame size={14} className="text-amber-400" />
+                            <span>Git Gutter Churn Heatmap</span>
+                          </div>
+                          <div className="text-[11px] text-cortex-muted mt-1">
+                            Projects commit recency, historical line churn, and blame insights directly into the editor gutter and minimap overview ruler.
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            handleSettingChange({
+                              enableChurnHeatmap: settings.enableChurnHeatmap === false ? true : false
+                            })
+                          }
+                          className={`px-4 py-1.5 rounded text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                            settings.enableChurnHeatmap !== false
+                              ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40 shadow-sm'
+                              : 'bg-cortex-surface text-cortex-muted hover:text-white border border-cortex-border'
+                          }`}
+                        >
+                          {settings.enableChurnHeatmap !== false ? 'Heatmap: Enabled' : 'Heatmap: Disabled'}
+                        </button>
+                      </div>
                     </div>
                   </div>
 

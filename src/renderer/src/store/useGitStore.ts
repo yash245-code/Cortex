@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { GitFileStatus, GitFileStatusType } from '@shared/types'
+import { GitFileStatus, GitFileStatusType, GitFileChurnResult } from '@shared/types'
 import { useWorkspaceStore } from './useWorkspaceStore'
 
 interface GitState {
@@ -12,6 +12,7 @@ interface GitState {
   isLoading: boolean
   isCommitting: boolean
   commitMessage: string
+  fileChurnMap: Record<string, GitFileChurnResult>
 
   // Actions
   refreshGitStatus: () => Promise<void>
@@ -23,6 +24,8 @@ interface GitState {
   commitChanges: () => Promise<boolean>
   setCommitMessage: (message: string) => void
   getFileStatus: (filePath: string) => GitFileStatusType | undefined
+  getFileChurn: (relativePath: string) => Promise<GitFileChurnResult | null>
+  clearChurnCache: () => void
 }
 
 export const useGitStore = create<GitState>((set, get) => ({
@@ -35,6 +38,7 @@ export const useGitStore = create<GitState>((set, get) => ({
   isLoading: false,
   isCommitting: false,
   commitMessage: '',
+  fileChurnMap: {},
 
   refreshGitStatus: async () => {
     const rootPath = useWorkspaceStore.getState().rootPath
@@ -160,7 +164,7 @@ export const useGitStore = create<GitState>((set, get) => ({
     try {
       const success = await window.cortexAPI.gitCommit(rootPath, commitMessage.trim())
       if (success) {
-        set({ commitMessage: '' })
+        set({ commitMessage: '', fileChurnMap: {} })
         await get().refreshGitStatus()
         await useWorkspaceStore.getState().refreshTree()
       }
@@ -190,5 +194,34 @@ export const useGitStore = create<GitState>((set, get) => ({
     }
 
     return undefined
-  }
+  },
+
+  getFileChurn: async (relativePath: string) => {
+    const rootPath = useWorkspaceStore.getState().rootPath
+    if (!rootPath || !relativePath || !window.cortexAPI?.gitGetFileChurn) return null
+
+    const normRel = relativePath.replace(/\\/g, '/')
+    const { fileChurnMap } = get()
+    if (fileChurnMap[normRel]) {
+      return fileChurnMap[normRel]
+    }
+
+    try {
+      const res = await window.cortexAPI.gitGetFileChurn(rootPath, normRel)
+      if (res) {
+        set((state) => ({
+          fileChurnMap: {
+            ...state.fileChurnMap,
+            [normRel]: res
+          }
+        }))
+      }
+      return res
+    } catch (err) {
+      console.error('Failed to get file churn in store:', err)
+      return null
+    }
+  },
+
+  clearChurnCache: () => set({ fileChurnMap: {} })
 }))

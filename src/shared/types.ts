@@ -66,6 +66,7 @@ export interface EditorSettings {
   aiApiKey?: string
   aiTemperature?: number
   aiMaxTokens?: number
+  enableChurnHeatmap?: boolean
 }
 
 export type ShellType = 'powershell' | 'cmd' | 'bash' | 'wsl' | 'default'
@@ -156,6 +157,29 @@ export interface GitStatusResult {
   untracked: GitFileStatus[]
 }
 
+export interface GitLineChurn {
+  lineNumber: number
+  commitHash: string
+  shortHash: string
+  author: string
+  authorEmail: string
+  authorTime: number
+  dateStr: string
+  relativeTime: string
+  summary: string
+  heatLevel: 1 | 2 | 3 | 4 | 5
+  heatScore: number
+}
+
+export interface GitFileChurnResult {
+  filePath: string
+  totalCommits: number
+  uniqueAuthors: string[]
+  lines: GitLineChurn[]
+  lastModified: number
+  oldestModified: number
+}
+
 export interface CortexAPI {
   // Window controls
   minimizeWindow: () => Promise<void>
@@ -230,6 +254,7 @@ export interface CortexAPI {
   gitUnstageAll: (workspacePath: string) => Promise<boolean>
   gitDiscard: (workspacePath: string, relativePath: string, isUntracked?: boolean) => Promise<boolean>
   gitCommit: (workspacePath: string, message: string) => Promise<boolean>
+  gitGetFileChurn: (workspacePath: string, relativePath: string) => Promise<GitFileChurnResult | null>
 
   // Extensions
   extensionsGetInstalled: () => Promise<InstalledExtension[]>

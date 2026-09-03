@@ -215,6 +215,59 @@
   border-left: 6px solid #f43f5e;
 }
 
+/* Monaco Git Gutter Churn Heatmap */
+.cortex-churn-glyph {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.cortex-churn-glyph::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  bottom: 2px;
+  width: 3.5px;
+  border-radius: 2px;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cortex-churn-glyph:hover::before {
+  transform: scaleX(1.4);
+}
+
+/* Level 5: Boiling Hot / Working Tree or < 24h */
+.cortex-churn-level-5::before {
+  background: #f43f5e;
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.7);
+}
+
+/* Level 4: Hot / Recent (< 7 days) */
+.cortex-churn-level-4::before {
+  background: #f97316;
+  box-shadow: 0 0 4px rgba(249, 115, 22, 0.5);
+}
+
+/* Level 3: Warm (< 30 days) */
+.cortex-churn-level-3::before {
+  background: #eab308;
+}
+
+/* Level 2: Cool (< 90 days) */
+.cortex-churn-level-2::before {
+  background: #06b6d4;
+  opacity: 0.85;
+}
+
+/* Level 1: Cold / Legacy (>= 90 days) */
+.cortex-churn-level-1::before {
+  background: #475569;
+  opacity: 0.5;
+}
+
 /* ==========================================================================
    Monaco Editor Scoped Font Vibes (Applies ONLY to editor code canvas)
    ========================================================================== */

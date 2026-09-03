@@ -49,6 +49,7 @@ const IPC_CHANNELS = {
   GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
   GIT_DISCARD: "cortex:git:discard",
   GIT_COMMIT: "cortex:git:commit",
+  GIT_GET_FILE_CHURN: "cortex:git:getFileChurn",
   // Extensions
   EXTENSIONS_GET_INSTALLED: "cortex:extensions:getInstalled",
   EXTENSIONS_SEARCH_MARKETPLACE: "cortex:extensions:searchMarketplace",
@@ -180,6 +181,7 @@ const api = {
   gitUnstageAll: (workspacePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_ALL, workspacePath),
   gitDiscard: (workspacePath, relativePath, isUntracked) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD, workspacePath, relativePath, isUntracked),
   gitCommit: (workspacePath, message) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, workspacePath, message),
+  gitGetFileChurn: (workspacePath, relativePath) => electron.ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_FILE_CHURN, workspacePath, relativePath),
   // Extensions
   extensionsGetInstalled: () => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_GET_INSTALLED),
   extensionsSearchMarketplace: (query, category) => electron.ipcRenderer.invoke(IPC_CHANNELS.EXTENSIONS_SEARCH_MARKETPLACE, query, category),

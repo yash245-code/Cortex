@@ -39,13 +39,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
   } = useEditorStore()
 
   const { rootPath } = useWorkspaceStore()
-  const { isGitRepo, stagedFiles, unstagedFiles, untrackedFiles } = useGitStore()
+  const { isGitRepo, stagedFiles, unstagedFiles, untrackedFiles, getFileChurn } = useGitStore()
 
   const [isInlineAIOpen, setIsInlineAIOpen] = React.useState(false)
   const [inlineAISelection, setInlineAISelection] = React.useState('')
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const gutterDecorationsRef = useRef<string[]>([])
+  const churnDecorationsRef = useRef<string[]>([])
   const headContentRef = useRef<string | null>(null)
   const diffDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -127,10 +128,143 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     }
   }, [activeTab?.path, activeTab?.content, activeTab?.isDiff, rootPath, isGitRepo, applyGutterDecorations])
 
+  // Fetch Git churn metrics and project onto Monaco glyph margin & minimap overview ruler
+  const fetchChurnAndDecorate = useCallback(async () => {
+    if (
+      !editorRef.current ||
+      !activeTab ||
+      activeTab.isDiff ||
+      !rootPath ||
+      !isGitRepo ||
+      settings.enableChurnHeatmap === false
+    ) {
+      if (editorRef.current && churnDecorationsRef.current.length > 0) {
+        churnDecorationsRef.current = editorRef.current.deltaDecorations(
+          churnDecorationsRef.current,
+          []
+        )
+      }
+      return
+    }
+
+    try {
+      const relativePath = activeTab.path.startsWith(rootPath)
+        ? activeTab.path.slice(rootPath.length).replace(/^[/\\]+/, '')
+        : activeTab.path
+
+      const churn = await getFileChurn(relativePath)
+      if (!churn || !editorRef.current || !churn.lines || churn.lines.length === 0) {
+        if (editorRef.current && churnDecorationsRef.current.length > 0) {
+          churnDecorationsRef.current = editorRef.current.deltaDecorations(
+            churnDecorationsRef.current,
+            []
+          )
+        }
+        return
+      }
+
+      const getHeatRulerColor = (level: number): string => {
+        switch (level) {
+          case 5:
+            return 'rgba(244, 63, 94, 0.85)' // Rose / Hot
+          case 4:
+            return 'rgba(249, 115, 22, 0.75)' // Orange / Warm
+          case 3:
+            return 'rgba(234, 179, 8, 0.65)' // Amber
+          case 2:
+            return 'rgba(6, 182, 212, 0.55)' // Cyan / Cool
+          case 1:
+          default:
+            return 'rgba(71, 85, 105, 0.35)' // Slate / Cold
+        }
+      }
+
+      const getHeatEmoji = (level: number): string => {
+        switch (level) {
+          case 5:
+            return '🔥'
+          case 4:
+            return '🟠'
+          case 3:
+            return '🟡'
+          case 2:
+            return '🔵'
+          case 1:
+          default:
+            return '❄️'
+        }
+      }
+
+      const getHeatDescription = (level: number): string => {
+        switch (level) {
+          case 5:
+            return 'Level 5 (Boiling Hot / High Churn)'
+          case 4:
+            return 'Level 4 (Warm / Recent)'
+          case 3:
+            return 'Level 3 (Moderate)'
+          case 2:
+            return 'Level 2 (Cool)'
+          case 1:
+          default:
+            return 'Level 1 (Cold / Stable)'
+        }
+      }
+
+      const newDecorations: editor.IModelDeltaDecoration[] = churn.lines.map((line) => {
+        const escapedSummary = line.summary ? line.summary.replace(/`/g, "'") : 'No commit message'
+        const hoverMarkdown = [
+          `### ${getHeatEmoji(line.heatLevel)} Git Churn & History (Line ${line.lineNumber})`,
+          `**Commit:** \`${line.shortHash}\` — *${escapedSummary}*`,
+          `**Author:** ${line.author}${line.authorEmail ? ` <${line.authorEmail}>` : ''}`,
+          `**When:** ${line.relativeTime}${line.dateStr ? ` (${line.dateStr})` : ''}`,
+          `**Heat Status:** ${getHeatDescription(line.heatLevel)}`
+        ].join('\n\n')
+
+        return {
+          range: new monaco.Range(line.lineNumber, 1, line.lineNumber, 1),
+          options: {
+            glyphMarginClassName: `cortex-churn-glyph cortex-churn-level-${line.heatLevel}`,
+            glyphMarginHoverMessage: { value: hoverMarkdown },
+            overviewRuler: {
+              color: getHeatRulerColor(line.heatLevel),
+              position: monaco.editor.OverviewRulerLane.Left
+            }
+          }
+        }
+      })
+
+      churnDecorationsRef.current = editorRef.current.deltaDecorations(
+        churnDecorationsRef.current,
+        newDecorations
+      )
+    } catch (err) {
+      console.error('Failed to decorate churn heatmap:', err)
+    }
+  }, [
+    activeTab?.path,
+    activeTab?.isDiff,
+    rootPath,
+    isGitRepo,
+    settings.enableChurnHeatmap,
+    getFileChurn
+  ])
+
   // Refetch git HEAD snapshot whenever active tab or git status changes
   useEffect(() => {
     fetchHeadAndDecorate()
   }, [activeTab?.id, stagedFiles.length, unstagedFiles.length, untrackedFiles.length, fetchHeadAndDecorate])
+
+  // Refetch churn heatmap whenever active tab, heatmap setting, or git changes
+  useEffect(() => {
+    fetchChurnAndDecorate()
+  }, [
+    activeTab?.id,
+    settings.enableChurnHeatmap,
+    stagedFiles.length,
+    unstagedFiles.length,
+    fetchChurnAndDecorate
+  ])
 
   // Dynamically update Monaco text colors when theme or accent color changes
   useEffect(() => {
@@ -202,6 +336,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     // Run initial gutter decoration calculation
     if (activeTab && headContentRef.current !== null) {
       applyGutterDecorations(activeTab.content, headContentRef.current)
+    }
+
+    // Run initial churn decoration calculation
+    if (activeTab && settings.enableChurnHeatmap !== false) {
+      fetchChurnAndDecorate()
     }
   }
 
@@ -329,7 +468,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
   return (
     <div className={`flex-1 w-full h-full relative overflow-hidden bg-cortex-bg ${fontThemeDef.className}`}>
       <Editor
-        key={`${activeTab.id}-${settings.theme}-${settings.fontTheme}`}
+        key={`${activeTab.id}-${settings.theme}-${settings.fontTheme}-${settings.enableChurnHeatmap}`}
         theme={settings.theme || 'cortex-cyber'}
         language={activeTab.language}
         value={activeTab.content}
@@ -337,6 +476,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
         beforeMount={handleEditorWillMount}
         onMount={handleEditorDidMount}
         options={{
+          glyphMargin: settings.enableChurnHeatmap !== false,
           fontSize: settings.fontSize,
           fontFamily: activeFontFamily,
           fontWeight: '400',

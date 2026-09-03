@@ -77,6 +77,7 @@ const IPC_CHANNELS = {
   GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
   GIT_DISCARD: "cortex:git:discard",
   GIT_COMMIT: "cortex:git:commit",
+  GIT_GET_FILE_CHURN: "cortex:git:getFileChurn",
   // Extensions
   EXTENSIONS_GET_INSTALLED: "cortex:extensions:getInstalled",
   EXTENSIONS_SEARCH_MARKETPLACE: "cortex:extensions:searchMarketplace",
@@ -1060,6 +1061,178 @@ class GitService {
     } catch (err) {
       console.error("Failed to commit:", err);
       return false;
+    }
+  }
+  async getFileChurn(workspacePath, relativePath) {
+    if (!workspacePath || !relativePath) return null;
+    try {
+      const isRepo = await this.isGitRepo(workspacePath);
+      if (!isRepo) return null;
+      const gitRelPath = relativePath.replace(/\\/g, "/");
+      let stdout;
+      try {
+        stdout = await runGit(["blame", "--line-porcelain", "--", gitRelPath], workspacePath);
+      } catch {
+        return null;
+      }
+      if (!stdout || stdout.trim().length === 0) return null;
+      const commitCache = /* @__PURE__ */ new Map();
+      const rawLines = [];
+      const lines = stdout.split(/\r?\n/);
+      let currentHash = "";
+      let currentFinalLine = 0;
+      let currentAuthor = "Unknown";
+      let currentMail = "";
+      let currentAuthorTime = 0;
+      let currentSummary = "";
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const headerMatch = line.match(/^([0-9a-fA-F]{40})\s+\d+\s+(\d+)/);
+        if (headerMatch) {
+          currentHash = headerMatch[1];
+          currentFinalLine = parseInt(headerMatch[2], 10);
+          if (commitCache.has(currentHash)) {
+            const cached = commitCache.get(currentHash);
+            currentAuthor = cached.author;
+            currentMail = cached.authorMail;
+            currentAuthorTime = cached.authorTime;
+            currentSummary = cached.summary;
+          } else {
+            currentAuthor = "Unknown";
+            currentMail = "";
+            currentAuthorTime = 0;
+            currentSummary = "";
+          }
+          continue;
+        }
+        if (line.startsWith("author ")) {
+          currentAuthor = line.substring(7).trim();
+        } else if (line.startsWith("author-mail ")) {
+          currentMail = line.substring(12).trim().replace(/^<|>$/g, "");
+        } else if (line.startsWith("author-time ")) {
+          currentAuthorTime = parseInt(line.substring(12).trim(), 10) || 0;
+        } else if (line.startsWith("summary ")) {
+          currentSummary = line.substring(8).trim();
+        } else if (line.startsWith("	")) {
+          if (currentHash && currentFinalLine > 0) {
+            commitCache.set(currentHash, {
+              author: currentAuthor,
+              authorMail: currentMail,
+              authorTime: currentAuthorTime,
+              summary: currentSummary
+            });
+            rawLines.push({
+              lineNumber: currentFinalLine,
+              commitHash: currentHash,
+              shortHash: currentHash.slice(0, 7),
+              author: currentAuthor,
+              authorEmail: currentMail,
+              authorTime: currentAuthorTime,
+              summary: currentSummary
+            });
+          }
+        }
+      }
+      if (rawLines.length === 0) return null;
+      const now = Math.floor(Date.now() / 1e3);
+      const validTimes = rawLines.map((l) => l.authorTime).filter((t) => t > 0 && !isNaN(t));
+      const lastModified = validTimes.length > 0 ? Math.max(...validTimes) : now;
+      const oldestModified = validTimes.length > 0 ? Math.min(...validTimes) : now;
+      const uniqueAuthors = Array.from(
+        new Set(
+          rawLines.map((l) => l.author).filter((a) => a && a !== "Not Committed Yet" && a !== "Unknown")
+        )
+      );
+      const uniqueCommits = new Set(
+        rawLines.map((l) => l.commitHash).filter((h) => !h.startsWith("0000000"))
+      );
+      const ONE_DAY = 86400;
+      const ONE_WEEK = 7 * ONE_DAY;
+      const ONE_MONTH = 30 * ONE_DAY;
+      const THREE_MONTHS = 90 * ONE_DAY;
+      const processedLines = rawLines.map((l) => {
+        const isUncommitted = l.commitHash.startsWith("0000000") || l.author === "Not Committed Yet";
+        let heatLevel = 1;
+        let heatScore = 0.2;
+        let relativeTime = "";
+        if (isUncommitted) {
+          heatLevel = 5;
+          heatScore = 1;
+          relativeTime = "Uncommitted (Working Tree)";
+        } else if (l.authorTime > 0) {
+          const ageSeconds = Math.max(0, now - l.authorTime);
+          if (ageSeconds <= 2 * ONE_DAY) {
+            heatLevel = 5;
+            heatScore = 1;
+          } else if (ageSeconds <= ONE_WEEK) {
+            heatLevel = 4;
+            heatScore = 0.8;
+          } else if (ageSeconds <= ONE_MONTH) {
+            heatLevel = 3;
+            heatScore = 0.6;
+          } else if (ageSeconds <= THREE_MONTHS) {
+            heatLevel = 2;
+            heatScore = 0.4;
+          } else {
+            heatLevel = 1;
+            heatScore = 0.2;
+          }
+          if (lastModified > oldestModified) {
+            const fileRecency = (l.authorTime - oldestModified) / (lastModified - oldestModified);
+            if (fileRecency >= 0.85 && heatLevel < 4) {
+              heatLevel = Math.min(5, heatLevel + 1);
+            }
+          }
+          if (ageSeconds < 60) {
+            relativeTime = "Just now";
+          } else if (ageSeconds < 3600) {
+            const mins = Math.floor(ageSeconds / 60);
+            relativeTime = `${mins}m ago`;
+          } else if (ageSeconds < ONE_DAY) {
+            const hrs = Math.floor(ageSeconds / 3600);
+            relativeTime = `${hrs}h ago`;
+          } else if (ageSeconds < ONE_WEEK) {
+            const days = Math.floor(ageSeconds / ONE_DAY);
+            relativeTime = `${days}d ago`;
+          } else if (ageSeconds < ONE_MONTH) {
+            const weeks = Math.floor(ageSeconds / ONE_WEEK);
+            relativeTime = `${weeks}w ago`;
+          } else if (ageSeconds < 365 * ONE_DAY) {
+            const months = Math.floor(ageSeconds / ONE_MONTH);
+            relativeTime = `${months}mo ago`;
+          } else {
+            const years = Math.floor(ageSeconds / (365 * ONE_DAY));
+            relativeTime = `${years}y ago`;
+          }
+        } else {
+          relativeTime = "Unknown";
+        }
+        const dateStr = l.authorTime > 0 ? new Date(l.authorTime * 1e3).toLocaleDateString() : "";
+        return {
+          lineNumber: l.lineNumber,
+          commitHash: l.commitHash,
+          shortHash: l.shortHash,
+          author: l.author,
+          authorEmail: l.authorEmail,
+          authorTime: l.authorTime,
+          dateStr,
+          relativeTime,
+          summary: l.summary,
+          heatLevel,
+          heatScore
+        };
+      });
+      return {
+        filePath: gitRelPath,
+        totalCommits: uniqueCommits.size,
+        uniqueAuthors,
+        lines: processedLines,
+        lastModified,
+        oldestModified
+      };
+    } catch (err) {
+      console.error(`Failed to get file churn for ${relativePath}:`, err);
+      return null;
     }
   }
 }
@@ -2102,6 +2275,12 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2, openExtensionsWin
     IPC_CHANNELS.GIT_COMMIT,
     async (_, workspacePath, message) => {
       return await gitService.commit(workspacePath, message);
+    }
+  );
+  electron.ipcMain.handle(
+    IPC_CHANNELS.GIT_GET_FILE_CHURN,
+    async (_, workspacePath, relativePath) => {
+      return await gitService.getFileChurn(workspacePath, relativePath);
     }
   );
   electron.ipcMain.handle(IPC_CHANNELS.EXTENSIONS_GET_INSTALLED, async () => {
