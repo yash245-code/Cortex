@@ -40,8 +40,8 @@ export const AboutModal: React.FC = () => {
 
         {/* Brand Icon & Name */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-14 h-14 rounded-xl bg-bodhi-accent/15 border border-bodhi-accent/30 flex items-center justify-center shadow-lg shadow-bodhi-accent/10 p-2">
-            <BodhiLogo size={42} />
+          <div className="w-14 h-14 rounded-xl overflow-hidden shadow-lg border border-white/10 flex items-center justify-center shrink-0">
+            <BodhiLogo size={56} className="rounded-xl" />
           </div>
           <div>
             <div className="flex items-center gap-2">

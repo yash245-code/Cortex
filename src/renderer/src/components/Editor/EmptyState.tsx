@@ -35,7 +35,10 @@ export const EmptyState: React.FC = () => {
       <div className="flex flex-col items-center max-w-md w-full text-center">
         {/* Logo */}
         <div className="relative mb-6 flex items-center justify-center">
-          <BodhiLogo size={96} className="drop-shadow-xl hover:scale-105 transition-transform duration-300" />
+          <BodhiLogo
+            size={108}
+            className="rounded-2xl shadow-2xl hover:scale-105 transition-transform duration-300 ring-1 ring-white/10"
+          />
         </div>
 
         <h1 className="text-xl font-bold bg-gradient-to-r from-white via-[#bdf59e] to-bodhi-accent bg-clip-text text-transparent mb-2 tracking-tight">

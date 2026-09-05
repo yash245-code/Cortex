@@ -56,9 +56,9 @@ export const TitleBar: React.FC = () => {
         <button
           onClick={() => openPalette('accents')}
           title="BODHI - Click to customize Accent Color & Theme"
-          className="flex items-center pr-1 pl-0.5 cursor-pointer hover:scale-110 active:scale-95 transition-all group focus:outline-none"
+          className="flex items-center pr-1 pl-0.5 cursor-pointer hover:scale-105 active:scale-95 transition-all group focus:outline-none"
         >
-          <BodhiLogo size={52} />
+          <BodhiLogo size={28} className="rounded-md shadow-sm" />
         </button>
 
         <div className="h-4 w-[1px] bg-BODHI-border" />

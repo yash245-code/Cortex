@@ -33,8 +33,8 @@ export const TermsModal: React.FC = () => {
         {/* Header */}
         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-bodhi-surface/40 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-bodhi-accent/15 border border-bodhi-accent/30 flex items-center justify-center p-1.5 shadow-sm">
-              <BodhiLogo size={24} />
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-white/10 flex items-center justify-center shrink-0">
+              <BodhiLogo size={40} className="rounded-xl" />
             </div>
             <div>
               <div className="flex items-center gap-2">

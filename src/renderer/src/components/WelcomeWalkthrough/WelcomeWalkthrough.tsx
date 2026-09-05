@@ -201,8 +201,8 @@ export const WelcomeWalkthrough: React.FC = () => {
         {/* Header Bar */}
         <div className="px-6 pt-5 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-bodhi-accent/15 border border-bodhi-accent/30 flex items-center justify-center p-1 shadow-sm">
-              <BodhiLogo size={20} className="animate-float-slow" />
+            <div className="w-8 h-8 rounded-xl overflow-hidden shadow-sm border border-white/10 flex items-center justify-center shrink-0">
+              <BodhiLogo size={32} className="rounded-lg animate-float-slow" />
             </div>
             <div>
               <span className="text-sm font-bold text-white tracking-wide">BODHI</span>
