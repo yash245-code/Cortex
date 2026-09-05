@@ -1,6 +1,10 @@
 # Bodhi Code Editor
 
+<<<<<<< HEAD
 **BODHI** is a lightweight, high-performance, and extensible desktop code editor built on Electron, React 18, TypeScript, Monaco Editor, and xterm.js terminal emulation.
+=======
+**Bodhi** is a lightweight, high-performance, and extensible desktop code editor built on Electron, React 18, TypeScript, Monaco Editor, and xterm.js terminal emulation.
+>>>>>>> 86d1f67a3d4df553655f01b13d7959c0c696720a
 
 ---
 
@@ -24,7 +28,11 @@
   - Quick clear and restart shell session controls.
 - **Strict Process Isolation & Security**:
   - `nodeIntegration: false` and `contextIsolation: true`.
+<<<<<<< HEAD
   - Secure type-safe IPC bridge exposed on `window.BodhiAPI`.
+=======
+  - Secure type-safe IPC bridge exposed on `window.bodhiAPI`.
+>>>>>>> 86d1f67a3d4df553655f01b13d7959c0c696720a
   - Zero raw disk or shell access exposed to the renderer.
 
 ---
@@ -79,8 +87,13 @@ npm run build:win
 │   │   ├── ipcHandlers.ts           # Type-safe IPC registrations
 │   │   └── index.ts                 # BrowserWindow & app lifecycle
 │   ├── preload/
+<<<<<<< HEAD
 │   │   ├── index.ts                 # contextBridge API exposure (BodhiAPI)
 │   │   └── index.d.ts               # Global Window.BodhiAPI typings
+=======
+│   │   ├── index.ts                 # contextBridge API exposure (bodhiAPI)
+│   │   └── index.d.ts               # Global Window.bodhiAPI typings
+>>>>>>> 86d1f67a3d4df553655f01b13d7959c0c696720a
 │   ├── renderer/
 │   │   ├── src/
 │   │   │   ├── components/
