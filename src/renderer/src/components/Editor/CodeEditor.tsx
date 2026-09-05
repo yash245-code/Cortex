@@ -72,14 +72,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
 
       const lineChanges = computeLineDiff(headContent, currentContent)
       const newDecorations: editor.IModelDeltaDecoration[] = lineChanges.map((change) => {
-        let className = 'cortex-git-gutter-modified'
+        let className = 'BODHI-git-gutter-modified'
         let hoverMessage = 'Git: Modified line'
 
         if (change.type === 'added') {
-          className = 'cortex-git-gutter-added'
+          className = 'BODHI-git-gutter-added'
           hoverMessage = 'Git: Added line'
         } else if (change.type === 'deleted') {
-          className = 'cortex-git-gutter-deleted'
+          className = 'BODHI-git-gutter-deleted'
           hoverMessage = 'Git: Deleted line above'
         }
 
@@ -108,7 +108,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
 
   // Fetch Git HEAD content for active file
   const fetchHeadAndDecorate = useCallback(async () => {
-    if (!activeTab || activeTab.isDiff || !rootPath || !isGitRepo || !window.cortexAPI) {
+    if (!activeTab || activeTab.isDiff || !rootPath || !isGitRepo || !window.bodhiAPI) {
       headContentRef.current = null
       applyGutterDecorations('', null)
       return
@@ -119,7 +119,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
         ? activeTab.path.slice(rootPath.length).replace(/^[/\\]+/, '')
         : activeTab.path
 
-      const head = await window.cortexAPI.gitGetFileAtHead(rootPath, relativePath)
+      const head = await window.bodhiAPI.gitGetFileAtHead(rootPath, relativePath)
       headContentRef.current = head
       applyGutterDecorations(activeTab.content, head)
     } catch {
@@ -224,7 +224,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
         return {
           range: new monaco.Range(line.lineNumber, 1, line.lineNumber, 1),
           options: {
-            glyphMarginClassName: `cortex-churn-glyph cortex-churn-level-${line.heatLevel}`,
+            glyphMarginClassName: `BODHI-churn-glyph BODHI-churn-level-${line.heatLevel}`,
             glyphMarginHoverMessage: { value: hoverMarkdown },
             overviewRuler: {
               color: getHeatRulerColor(line.heatLevel),
@@ -268,7 +268,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
 
   // Dynamically update Monaco text colors when theme or accent color changes
   useEffect(() => {
-    applyThemeAndAccent(settings.theme || 'cortex-cyber', settings.accentColor)
+    applyThemeAndAccent(settings.theme || 'bodhi-cyber', settings.accentColor)
   }, [settings.theme, settings.accentColor])
 
   const handleEditorWillMount: BeforeMount = (monacoInstance) => {
@@ -386,11 +386,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     const handleReplace = (): void => {
       editorRef.current?.getAction('editor.action.startFindReplaceAction')?.run()
     }
-    window.addEventListener('cortex:editor:find', handleFind)
-    window.addEventListener('cortex:editor:replace', handleReplace)
+    window.addEventListener('BODHI:editor:find', handleFind)
+    window.addEventListener('BODHI:editor:replace', handleReplace)
     return () => {
-      window.removeEventListener('cortex:editor:find', handleFind)
-      window.removeEventListener('cortex:editor:replace', handleReplace)
+      window.removeEventListener('BODHI:editor:find', handleFind)
+      window.removeEventListener('BODHI:editor:replace', handleReplace)
     }
   }, [])
 
@@ -435,7 +435,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
 
   if (!activeTab) {
     return (
-      <div className="flex-1 w-full h-full flex items-center justify-center bg-cortex-bg text-cortex-muted text-xs select-none">
+      <div className="flex-1 w-full h-full flex items-center justify-center bg-bodhi-bg text-bodhi-muted text-xs select-none">
         <span>No file open in this pane</span>
       </div>
     )
@@ -466,10 +466,10 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     settings.lineHeight || Math.round(settings.fontSize * fontThemeDef.lineHeightMultiplier)
 
   return (
-    <div className={`flex-1 w-full h-full relative overflow-hidden bg-cortex-bg ${fontThemeDef.className}`}>
+    <div className={`flex-1 w-full h-full relative overflow-hidden bg-bodhi-bg ${fontThemeDef.className}`}>
       <Editor
         key={`${activeTab.id}-${settings.theme}-${settings.fontTheme}-${settings.enableChurnHeatmap}`}
-        theme={settings.theme || 'cortex-cyber'}
+        theme={settings.theme || 'bodhi-cyber'}
         language={activeTab.language}
         value={activeTab.content}
         onChange={handleContentChange}
@@ -528,3 +528,4 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ pane = 1 }) => {
     </div>
   )
 }
+

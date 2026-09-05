@@ -109,7 +109,7 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
   loadInstalled: async () => {
     set({ isLoadingInstalled: true, errorMessage: null })
     try {
-      const list = await window.cortexAPI.extensionsGetInstalled()
+      const list = await window.bodhiAPI.extensionsGetInstalled()
       set({ installedExtensions: list || [], isLoadingInstalled: false })
       await extensionLoaderService.reloadSnippets()
       await extensionLoaderService.reloadThemes()
@@ -122,7 +122,7 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
   searchMarketplace: async (query: string, category?: string) => {
     set({ isSearching: true, errorMessage: null })
     try {
-      const results = await window.cortexAPI.extensionsSearchMarketplace(query, category)
+      const results = await window.bodhiAPI.extensionsSearchMarketplace(query, category)
       const installedSet = new Set(get().installedExtensions.map((e) => e.id))
 
       const mapped = (results || []).map((ext) => ({
@@ -143,7 +143,7 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
 
     set({ installingIds: [...installingIds, extension.id], errorMessage: null })
     try {
-      await window.cortexAPI.extensionsInstallFromMarketplace(extension)
+      await window.bodhiAPI.extensionsInstallFromMarketplace(extension)
       await get().loadInstalled()
 
       // Update isInstalled flag in marketplace results
@@ -168,7 +168,7 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
   installFromVsix: async (filePath?: string) => {
     set({ errorMessage: null })
     try {
-      const installed = await window.cortexAPI.extensionsInstallFromVsix(filePath)
+      const installed = await window.bodhiAPI.extensionsInstallFromVsix(filePath)
       if (installed) {
         await get().loadInstalled()
         return true
@@ -183,7 +183,7 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
 
   uninstallExtension: async (extensionId: string) => {
     try {
-      await window.cortexAPI.extensionsUninstall(extensionId)
+      await window.bodhiAPI.extensionsUninstall(extensionId)
       await get().loadInstalled()
 
       // Update isInstalled in marketplace results
@@ -202,7 +202,7 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
 
   toggleExtension: async (extensionId: string, enabled: boolean) => {
     try {
-      await window.cortexAPI.extensionsToggleEnable(extensionId, enabled)
+      await window.bodhiAPI.extensionsToggleEnable(extensionId, enabled)
       await get().loadInstalled()
       return true
     } catch (err: any) {
@@ -215,3 +215,4 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
   setFilterTab: (tab: ExtensionFilterTab) => set({ filterTab: tab }),
   clearError: () => set({ errorMessage: null })
 }))
+

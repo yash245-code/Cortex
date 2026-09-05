@@ -59,9 +59,9 @@ export const TerminalSearchWidget: React.FC<TerminalSearchWidgetProps> = ({
   }
 
   return (
-    <div className="absolute top-2 right-4 z-40 flex items-center gap-1.5 px-2 py-1.5 bg-cortex-panel/95 border border-cortex-border rounded-lg shadow-2xl backdrop-blur-md animate-fade-in text-xs">
-      <div className="flex items-center gap-1 bg-cortex-bg px-2 py-1 rounded border border-cortex-border focus-within:border-cortex-accent/70 transition-colors">
-        <Search size={12} className="text-cortex-muted shrink-0" />
+    <div className="absolute top-2 right-4 z-40 flex items-center gap-1.5 px-2 py-1.5 bg-bodhi-panel/95 border border-BODHI-border rounded-lg shadow-2xl backdrop-blur-md animate-fade-in text-xs">
+      <div className="flex items-center gap-1 bg-bodhi-bg px-2 py-1 rounded border border-BODHI-border focus-within:border-bodhi-accent/70 transition-colors">
+        <Search size={12} className="text-bodhi-muted shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -69,26 +69,26 @@ export const TerminalSearchWidget: React.FC<TerminalSearchWidgetProps> = ({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Find in terminal..."
-          className="bg-transparent text-xs text-cortex-text placeholder-cortex-muted outline-none w-36 sm:w-48 font-mono"
+          className="bg-transparent text-xs text-BODHI-text placeholder-bodhi-muted outline-none w-36 sm:w-48 font-mono"
         />
 
         {query && (
-          <span className="text-[10px] text-cortex-muted px-1 border-l border-cortex-border/50 shrink-0 font-mono">
+          <span className="text-[10px] text-bodhi-muted px-1 border-l border-BODHI-border/50 shrink-0 font-mono">
             {totalMatches > 0 ? `${activeMatch} of ${totalMatches}` : 'No matches'}
           </span>
         )}
       </div>
 
       {/* Option Toggles */}
-      <div className="flex items-center gap-0.5 border-l border-cortex-border pl-1">
+      <div className="flex items-center gap-0.5 border-l border-BODHI-border pl-1">
         <button
           type="button"
           onClick={() => setMatchCase((prev) => !prev)}
           title="Match Case (Alt+C)"
           className={`p-1 rounded transition-colors ${
             matchCase
-              ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40'
-              : 'text-cortex-muted hover:text-white hover:bg-cortex-surface'
+              ? 'bg-bodhi-accent/20 text-bodhi-accent border border-bodhi-accent/40'
+              : 'text-bodhi-muted hover:text-white hover:bg-bodhi-surface'
           }`}
         >
           <CaseSensitive size={13} />
@@ -100,8 +100,8 @@ export const TerminalSearchWidget: React.FC<TerminalSearchWidgetProps> = ({
           title="Match Whole Word (Alt+W)"
           className={`p-1 rounded transition-colors ${
             wholeWord
-              ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40'
-              : 'text-cortex-muted hover:text-white hover:bg-cortex-surface'
+              ? 'bg-bodhi-accent/20 text-bodhi-accent border border-bodhi-accent/40'
+              : 'text-bodhi-muted hover:text-white hover:bg-bodhi-surface'
           }`}
         >
           <WholeWord size={13} />
@@ -113,8 +113,8 @@ export const TerminalSearchWidget: React.FC<TerminalSearchWidgetProps> = ({
           title="Use Regular Expression (Alt+R)"
           className={`p-1 rounded transition-colors ${
             isRegex
-              ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40'
-              : 'text-cortex-muted hover:text-white hover:bg-cortex-surface'
+              ? 'bg-bodhi-accent/20 text-bodhi-accent border border-bodhi-accent/40'
+              : 'text-bodhi-muted hover:text-white hover:bg-bodhi-surface'
           }`}
         >
           <Regex size={13} />
@@ -122,13 +122,13 @@ export const TerminalSearchWidget: React.FC<TerminalSearchWidgetProps> = ({
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center gap-0.5 border-l border-cortex-border pl-1">
+      <div className="flex items-center gap-0.5 border-l border-BODHI-border pl-1">
         <button
           type="button"
           onClick={() => onFindPrev(query, { matchCase, wholeWord, isRegex })}
           title="Previous Match (Shift+Enter)"
           disabled={!query}
-          className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-surface disabled:opacity-30 rounded transition-colors"
+          className="p-1 text-bodhi-muted hover:text-white hover:bg-bodhi-surface disabled:opacity-30 rounded transition-colors"
         >
           <ChevronUp size={13} />
         </button>
@@ -137,7 +137,7 @@ export const TerminalSearchWidget: React.FC<TerminalSearchWidgetProps> = ({
           onClick={() => onFindNext(query, { matchCase, wholeWord, isRegex })}
           title="Next Match (Enter)"
           disabled={!query}
-          className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-surface disabled:opacity-30 rounded transition-colors"
+          className="p-1 text-bodhi-muted hover:text-white hover:bg-bodhi-surface disabled:opacity-30 rounded transition-colors"
         >
           <ChevronDown size={13} />
         </button>
@@ -145,7 +145,7 @@ export const TerminalSearchWidget: React.FC<TerminalSearchWidgetProps> = ({
           type="button"
           onClick={onClose}
           title="Close Search (Escape)"
-          className="p-1 text-cortex-muted hover:text-red-400 hover:bg-cortex-surface rounded transition-colors ml-0.5"
+          className="p-1 text-bodhi-muted hover:text-red-400 hover:bg-bodhi-surface rounded transition-colors ml-0.5"
         >
           <X size={13} />
         </button>

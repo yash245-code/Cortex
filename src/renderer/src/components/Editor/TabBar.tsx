@@ -22,15 +22,15 @@ function getTabIcon(tab: Tab): React.ReactNode {
 
   const ext = tab.name.split('.').pop()?.toLowerCase() || ''
   if (['ts', 'tsx', 'js', 'jsx', 'py', 'rs', 'go', 'cpp', 'c', 'cs'].includes(ext)) {
-    return <FileCode size={13} className="text-cortex-accent shrink-0" />
+    return <FileCode size={13} className="text-bodhi-accent shrink-0" />
   }
   if (['json', 'yaml', 'yml', 'toml'].includes(ext)) {
     return <FileJson size={13} className="text-yellow-400 shrink-0" />
   }
   if (['md', 'markdown'].includes(ext)) {
-    return <BookOpen size={13} className="text-cortex-accent shrink-0" />
+    return <BookOpen size={13} className="text-bodhi-accent shrink-0" />
   }
-  return <FileText size={13} className="text-cortex-muted shrink-0" />
+  return <FileText size={13} className="text-bodhi-muted shrink-0" />
 }
 
 interface TabBarProps {
@@ -91,7 +91,7 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
 
   return (
     <>
-      <div className="h-9 bg-cortex-panel border-b border-cortex-border flex items-center justify-between px-1 select-none shrink-0 overflow-hidden">
+      <div className="h-9 bg-bodhi-panel border-b border-BODHI-border flex items-center justify-between px-1 select-none shrink-0 overflow-hidden">
         {/* Tab List */}
         <div className="flex items-center gap-1 h-full overflow-x-auto no-scrollbar flex-1">
           {currentTabs.map((tab: Tab) => {
@@ -105,8 +105,8 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
                 title={tab.diffTitle || tab.path}
                 className={`group relative flex items-center gap-2 h-8 px-3 rounded-t-md text-xs cursor-pointer transition-all border-t-2 shrink-0 ${
                   isActive
-                    ? 'bg-cortex-bg text-white border-cortex-accent font-medium tab-active-glow'
-                    : 'bg-transparent text-cortex-muted border-transparent hover:bg-cortex-surface/40 hover:text-gray-200'
+                    ? 'bg-bodhi-bg text-white border-bodhi-accent font-medium tab-active-glow'
+                    : 'bg-transparent text-bodhi-muted border-transparent hover:bg-bodhi-surface/40 hover:text-gray-200'
                 }`}
               >
                 {getTabIcon(tab)}
@@ -120,7 +120,7 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
                         e.stopPropagation()
                         closeTab(tab.id, pane)
                       }}
-                      className="group-hover:hidden flex items-center justify-center text-cortex-accent"
+                      className="group-hover:hidden flex items-center justify-center text-bodhi-accent"
                     >
                       <Circle size={8} fill="currentColor" />
                     </button>
@@ -131,7 +131,7 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
                       e.stopPropagation()
                       closeTab(tab.id, pane)
                     }}
-                    className={`rounded hover:bg-cortex-surface/80 hover:text-white p-0.5 text-cortex-muted ${
+                    className={`rounded hover:bg-bodhi-surface/80 hover:text-white p-0.5 text-bodhi-muted ${
                       tab.isDirty ? 'hidden group-hover:flex' : 'opacity-0 group-hover:opacity-100'
                     }`}
                   >
@@ -144,7 +144,7 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
         </div>
 
         {/* Right TabBar Quick Actions */}
-        <div className="flex items-center gap-1 pl-2 text-cortex-muted shrink-0">
+        <div className="flex items-center gap-1 pl-2 text-bodhi-muted shrink-0">
           {/* Git Diff with HEAD Button */}
           {isGitRepo && activeTab && (
             <button
@@ -157,7 +157,7 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
               className={`p-1.5 rounded transition-colors flex items-center gap-1 text-[11px] ${
                 activeTab.isDiff
                   ? 'text-amber-400 bg-amber-400/15 border border-amber-400/30 font-medium'
-                  : 'hover:text-white hover:bg-cortex-surface'
+                  : 'hover:text-white hover:bg-bodhi-surface'
               }`}
             >
               <GitCompare size={13} />
@@ -174,8 +174,8 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
               title={`Toggle Markdown Preview (Ctrl+Shift+V) - ${isMarkdownPreviewOpen ? 'On' : 'Off'}`}
               className={`p-1.5 rounded transition-colors flex items-center gap-1 text-[11px] ${
                 isMarkdownPreviewOpen
-                  ? 'text-cortex-accent bg-cortex-accent/20 border border-cortex-accent/40 font-medium'
-                  : 'hover:text-white hover:bg-cortex-surface'
+                  ? 'text-bodhi-accent bg-bodhi-accent/20 border border-bodhi-accent/40 font-medium'
+                  : 'hover:text-white hover:bg-bodhi-surface'
               }`}
             >
               <Eye size={13} />
@@ -189,8 +189,8 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
             title={`Split Editor Right (Ctrl+\\) - ${isSplitEditorOpen ? 'Active' : 'Disabled'}`}
             className={`p-1.5 rounded transition-colors ${
               isSplitEditorOpen
-                ? 'text-cortex-accent bg-cortex-accent/15'
-                : 'hover:text-white hover:bg-cortex-surface'
+                ? 'text-bodhi-accent bg-bodhi-accent/15'
+                : 'hover:text-white hover:bg-bodhi-surface'
             }`}
           >
             <Columns size={13} />
@@ -210,7 +210,7 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
         >
           <div
             style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
-            className="absolute bg-cortex-surface border border-cortex-border rounded-md shadow-xl py-1 w-48 text-xs text-cortex-text z-50"
+            className="absolute bg-bodhi-surface border border-BODHI-border rounded-md shadow-xl py-1 w-48 text-xs text-BODHI-text z-50"
             onClick={(e) => e.stopPropagation()}
           >
             {isGitRepo && (
@@ -220,12 +220,12 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
                     toggleDiffMode(contextMenu.tabId, pane)
                     closeMenu()
                   }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-cortex-accent hover:text-black font-medium transition-colors flex items-center gap-2"
+                  className="w-full text-left px-3 py-1.5 hover:bg-bodhi-accent hover:text-black font-medium transition-colors flex items-center gap-2"
                 >
                   <GitCompare size={12} className="text-amber-400" />
                   <span>Toggle Diff View</span>
                 </button>
-                <div className="h-[1px] bg-cortex-border my-1" />
+                <div className="h-[1px] bg-BODHI-border my-1" />
               </>
             )}
             <button
@@ -233,7 +233,7 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
                 closeTab(contextMenu.tabId, pane)
                 closeMenu()
               }}
-              className="w-full text-left px-3 py-1.5 hover:bg-cortex-accent hover:text-black font-medium transition-colors"
+              className="w-full text-left px-3 py-1.5 hover:bg-bodhi-accent hover:text-black font-medium transition-colors"
             >
               Close Tab
             </button>
@@ -242,22 +242,22 @@ export const TabBar: React.FC<TabBarProps> = ({ pane = 1 }) => {
                 closeOtherTabs(contextMenu.tabId, pane)
                 closeMenu()
               }}
-              className="w-full text-left px-3 py-1.5 hover:bg-cortex-accent hover:text-black font-medium transition-colors"
+              className="w-full text-left px-3 py-1.5 hover:bg-bodhi-accent hover:text-black font-medium transition-colors"
             >
               Close Others
             </button>
-            <div className="h-[1px] bg-cortex-border my-1" />
+            <div className="h-[1px] bg-BODHI-border my-1" />
             <button
               onClick={() => {
                 moveTabToPane(contextMenu.tabId, pane === 1 ? 2 : 1)
                 closeMenu()
               }}
-              className="w-full text-left px-3 py-1.5 hover:bg-cortex-accent hover:text-black font-medium transition-colors flex items-center justify-between"
+              className="w-full text-left px-3 py-1.5 hover:bg-bodhi-accent hover:text-black font-medium transition-colors flex items-center justify-between"
             >
               <span>Move to {pane === 1 ? 'Right Pane' : 'Left Pane'}</span>
-              <ArrowRightLeft size={11} className="text-cortex-muted" />
+              <ArrowRightLeft size={11} className="text-bodhi-muted" />
             </button>
-            <div className="h-[1px] bg-cortex-border my-1" />
+            <div className="h-[1px] bg-BODHI-border my-1" />
             <button
               onClick={() => {
                 closeAllTabs(pane)

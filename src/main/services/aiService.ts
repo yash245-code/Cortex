@@ -92,7 +92,7 @@ export class AIService {
     const lang = req.language || 'typescript'
 
     // Concise completion prompt optimized for low latency
-    const prompt = `You are a high-speed AI code completion assistant inside Cortex Editor.
+    const prompt = `You are a high-speed AI code completion assistant inside BODHI EDITOR.
 Complete the code immediately following the cursor.
 Return ONLY the raw completion text that directly completes the line or statement.
 Do NOT include markdown code blocks, backticks, explanations, or commentary.
@@ -142,7 +142,7 @@ ${suffix.slice(0, 300)}`
       }
     }
 
-    const prompt = `You are an expert pair-programming software engineer inside Cortex Editor.
+    const prompt = `You are an expert pair-programming software engineer inside BODHI EDITOR.
 The user wants to edit or transform the following code snippet according to their instruction.
 
 Language: ${req.language || 'typescript'}
@@ -196,7 +196,7 @@ Do NOT include preamble, comments about what you did, or conversational text.`
       }
     }
 
-    const systemPrompt = `You are Cortex AI, a highly capable software engineering copilot integrated directly inside Cortex Code Editor.
+    const systemPrompt = `You are Bodhi AI, a highly capable software engineering copilot integrated directly inside Bodhi Code Editor.
 You write clean, modular, modern, bug-free code.
 When generating code snippets, always format them with standard markdown code blocks and identify the language (e.g. \`\`\`tsx).
 Keep responses helpful, technical, concise, and focused on solving the user's coding questions.`

@@ -76,9 +76,20 @@ export class ExtensionLoaderService {
   }
 
   /**
+   * Hot-reloads all active extension contributions (snippets & themes) into Monaco Editor
+   * immediately without requiring an application restart.
+   */
+  public async hotReload(): Promise<{ snippetCount: number; themeCount: number }> {
+    isInitialized = true
+    const snippetCount = await this.reloadSnippets()
+    const themeCount = await this.reloadThemes()
+    return { snippetCount, themeCount }
+  }
+
+  /**
    * Fetches active snippets from main process and registers completion providers in Monaco.
    */
-  public async reloadSnippets(): Promise<void> {
+  public async reloadSnippets(): Promise<number> {
     // Clean up existing providers
     for (const disposable of activeDisposables) {
       try {
@@ -91,8 +102,8 @@ export class ExtensionLoaderService {
 
     try {
       const snippets: ExtensionSnippetItem[] =
-        await window.cortexAPI.extensionsGetSnippets()
-      if (!snippets || snippets.length === 0) return
+        await window.bodhiAPI.extensionsGetSnippets()
+      if (!snippets || snippets.length === 0) return 0
 
       // Group snippets by target Monaco language
       const snippetsByLang = new Map<string, ExtensionSnippetItem[]>()
@@ -161,18 +172,20 @@ export class ExtensionLoaderService {
 
         activeDisposables.push(disposable)
       }
+      return snippets.length
     } catch (err) {
       console.error('[ExtensionLoaderService] Failed to load snippets:', err)
+      return 0
     }
   }
 
   /**
    * Fetches active themes from main process and defines them in Monaco.
    */
-  public async reloadThemes(): Promise<void> {
+  public async reloadThemes(): Promise<number> {
     try {
-      const themes: ExtensionThemeItem[] = await window.cortexAPI.extensionsGetThemes()
-      if (!themes || themes.length === 0) return
+      const themes: ExtensionThemeItem[] = await window.bodhiAPI.extensionsGetThemes()
+      if (!themes || themes.length === 0) return 0
 
       for (const t of themes) {
         if (!t.themeData) continue
@@ -222,10 +235,13 @@ export class ExtensionLoaderService {
           colors
         })
       }
+      return themes.length
     } catch (err) {
       console.error('[ExtensionLoaderService] Failed to load themes:', err)
+      return 0
     }
   }
 }
 
 export const extensionLoaderService = new ExtensionLoaderService()
+

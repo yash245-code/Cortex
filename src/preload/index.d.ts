@@ -1,8 +1,8 @@
-import { CortexAPI } from '../shared/types'
+import { BodhiAPI } from '../shared/types'
 
 declare global {
   interface Window {
-    cortexAPI: CortexAPI
+    bodhiAPI: BodhiAPI
   }
 }
 

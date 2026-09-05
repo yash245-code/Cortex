@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+﻿import React, { useState, useEffect, useRef } from 'react'
 import {
   Package,
   Search,
@@ -51,7 +51,7 @@ export const ExtensionsWindow: React.FC = () => {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    document.title = 'Extensions - Cortex'
+    document.title = 'Extensions - Bodhi'
     loadInstalled()
   }, [loadInstalled])
 
@@ -81,15 +81,15 @@ export const ExtensionsWindow: React.FC = () => {
   }, [inputVal, setSearchQuery, searchMarketplace])
 
   const handleMinimize = (): void => {
-    window.cortexAPI?.minimizeWindow?.()
+    window.bodhiAPI?.minimizeWindow?.()
   }
 
   const handleMaximize = (): void => {
-    window.cortexAPI?.maximizeWindow?.()
+    window.bodhiAPI?.maximizeWindow?.()
   }
 
   const handleClose = (): void => {
-    window.cortexAPI?.closeWindow?.()
+    window.bodhiAPI?.closeWindow?.()
   }
 
   const handleRefresh = (): void => {
@@ -144,7 +144,7 @@ export const ExtensionsWindow: React.FC = () => {
               {ext.displayName || ext.name}
             </h4>
             <p className="text-[11px] text-cortex-muted truncate mt-0.5">
-              {namespace} • v{ext.version}
+              {namespace} G�� v{ext.version}
             </p>
             <p className="text-[11px] text-slate-300/80 line-clamp-2 mt-1.5 leading-relaxed">
               {ext.description}
@@ -233,11 +233,11 @@ export const ExtensionsWindow: React.FC = () => {
         className="h-10 bg-cortex-sidebar border-b border-cortex-border flex items-center justify-between px-3 shrink-0 select-none z-30"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-5 h-5 rounded-md bg-cortex-accent/20 border border-cortex-accent/50 flex items-center justify-center text-cortex-accent shadow-[0_0_8px_var(--cortex-accent)]">
+          <div className="w-5 h-5 rounded-md bg-cortex-accent/20 border border-cortex-accent/50 flex items-center justify-center text-cortex-accent shadow-[0_0_8px_var(--bodhi-accent)]">
             <Package size={12} />
           </div>
           <span className="text-xs font-bold tracking-wide text-white">
-            Cortex Extensions Manager
+            Bodhi Extensions Manager
           </span>
           <span className="text-[10px] text-cortex-muted bg-cortex-surface px-1.5 py-0.5 rounded font-mono">
             Open VSX
@@ -526,3 +526,6 @@ export const ExtensionsWindow: React.FC = () => {
     </div>
   )
 }
+
+
+

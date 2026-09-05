@@ -1,4 +1,4 @@
-import * as monaco from 'monaco-editor'
+﻿import * as monaco from 'monaco-editor'
 
 export interface AccentColorOption {
   id: string
@@ -110,9 +110,9 @@ export const ACCENT_COLORS: AccentColorOption[] = [
 ]
 
 export const THEMES: Record<string, ThemeDefinition> = {
-  'cortex-cyber': {
-    id: 'cortex-cyber',
-    name: 'Cortex Cyber Dark',
+  'bodhi-cyber': {
+    id: 'bodhi-cyber',
+    name: 'Bodhi Cyber Dark',
     description: 'Sleek modern dark (#111111) with shiny green accents, warm peach strings, sky-blue tags, and soothing syntax.',
     type: 'dark',
     previewColors: {
@@ -1085,7 +1085,7 @@ export const THEMES: Record<string, ThemeDefinition> = {
  * Returns at least 5-6 curated accent color options tailored for the given theme
  */
 export function getAccentsForTheme(themeId?: string): AccentColorOption[] {
-  const theme = (themeId && THEMES[themeId]) ? THEMES[themeId] : THEMES['cortex-cyber']
+  const theme = (themeId && THEMES[themeId]) ? THEMES[themeId] : THEMES['bodhi-cyber']
   return theme.accentOptions && theme.accentOptions.length >= 5 ? theme.accentOptions : ACCENT_COLORS
 }
 
@@ -1100,7 +1100,7 @@ export function registerMonacoThemes(
 
   for (const [themeId, theme] of Object.entries(THEMES)) {
     try {
-      if (themeId === 'cortex-cyber') {
+      if (themeId === 'bodhi-cyber') {
         // Dynamically tailor keywords, operators, cursor and line highlight to active accent color
         const dynamicCyberTheme: monaco.editor.IStandaloneThemeData = {
           base: 'vs-dark',
@@ -1144,7 +1144,7 @@ export function registerMonacoThemes(
             'editorGutter.background': '#111111'
           }
         }
-        monacoInstance.editor.defineTheme('cortex-cyber', dynamicCyberTheme)
+        monacoInstance.editor.defineTheme('bodhi-cyber', dynamicCyberTheme)
       } else {
         monacoInstance.editor.defineTheme(themeId, theme.monacoTheme)
       }
@@ -1158,26 +1158,26 @@ export function registerMonacoThemes(
  * Applies CSS variables and sets Monaco editor theme dynamically
  */
 export function applyThemeAndAccent(themeId: string, customAccent?: string): void {
-  const theme = THEMES[themeId] || THEMES['cortex-cyber']
+  const theme = THEMES[themeId] || THEMES['bodhi-cyber']
   const root = document.documentElement
 
   const activeAccent = customAccent || theme.cssVariables.accent
 
   // Set CSS variables on root
-  root.style.setProperty('--cortex-bg', theme.cssVariables.bg)
-  root.style.setProperty('--cortex-sidebar', theme.cssVariables.sidebar)
-  root.style.setProperty('--cortex-panel', theme.cssVariables.panel)
-  root.style.setProperty('--cortex-surface', theme.cssVariables.surface)
-  root.style.setProperty('--cortex-border', theme.cssVariables.border)
-  root.style.setProperty('--cortex-active', theme.cssVariables.active)
-  root.style.setProperty('--cortex-text', theme.cssVariables.text)
-  root.style.setProperty('--cortex-muted', theme.cssVariables.muted)
-  root.style.setProperty('--cortex-selection', theme.cssVariables.selection)
-  root.style.setProperty('--cortex-accent', activeAccent)
+  root.style.setProperty('--bodhi-bg', theme.cssVariables.bg)
+  root.style.setProperty('--bodhi-sidebar', theme.cssVariables.sidebar)
+  root.style.setProperty('--bodhi-panel', theme.cssVariables.panel)
+  root.style.setProperty('--bodhi-surface', theme.cssVariables.surface)
+  root.style.setProperty('--bodhi-border', theme.cssVariables.border)
+  root.style.setProperty('--bodhi-active', theme.cssVariables.active)
+  root.style.setProperty('--bodhi-text', theme.cssVariables.text)
+  root.style.setProperty('--bodhi-muted', theme.cssVariables.muted)
+  root.style.setProperty('--bodhi-selection', theme.cssVariables.selection)
+  root.style.setProperty('--bodhi-accent', activeAccent)
 
   // Derive accent hover and subtle glow
-  root.style.setProperty('--cortex-accent-hover', activeAccent)
-  root.style.setProperty('--cortex-accent-glow', `${activeAccent}40`)
+  root.style.setProperty('--bodhi-accent-hover', activeAccent)
+  root.style.setProperty('--bodhi-accent-glow', `${activeAccent}40`)
 
   if (theme.type === 'light') {
     root.classList.remove('dark')

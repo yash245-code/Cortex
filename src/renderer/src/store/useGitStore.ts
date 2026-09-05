@@ -42,7 +42,7 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   refreshGitStatus: async () => {
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !window.cortexAPI?.gitGetStatus) {
+    if (!rootPath || !window.bodhiAPI?.gitGetStatus) {
       set({
         branch: null,
         isGitRepo: false,
@@ -57,7 +57,7 @@ export const useGitStore = create<GitState>((set, get) => ({
     set({ isLoading: true })
 
     try {
-      const res = await window.cortexAPI.gitGetStatus(rootPath)
+      const res = await window.bodhiAPI.gitGetStatus(rootPath)
 
       // Build fileStatusMap with multiple lookup keys for absolute & relative paths
       const statusMap: Record<string, GitFileStatusType> = {}
@@ -95,9 +95,9 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   stageFile: async (relativePath: string) => {
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !window.cortexAPI?.gitStage) return
+    if (!rootPath || !window.bodhiAPI?.gitStage) return
     try {
-      await window.cortexAPI.gitStage(rootPath, relativePath)
+      await window.bodhiAPI.gitStage(rootPath, relativePath)
       await get().refreshGitStatus()
     } catch (err) {
       console.error('Failed to stage file:', err)
@@ -106,9 +106,9 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   unstageFile: async (relativePath: string) => {
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !window.cortexAPI?.gitUnstage) return
+    if (!rootPath || !window.bodhiAPI?.gitUnstage) return
     try {
-      await window.cortexAPI.gitUnstage(rootPath, relativePath)
+      await window.bodhiAPI.gitUnstage(rootPath, relativePath)
       await get().refreshGitStatus()
     } catch (err) {
       console.error('Failed to unstage file:', err)
@@ -117,9 +117,9 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   stageAll: async () => {
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !window.cortexAPI?.gitStageAll) return
+    if (!rootPath || !window.bodhiAPI?.gitStageAll) return
     try {
-      await window.cortexAPI.gitStageAll(rootPath)
+      await window.bodhiAPI.gitStageAll(rootPath)
       await get().refreshGitStatus()
     } catch (err) {
       console.error('Failed to stage all files:', err)
@@ -128,9 +128,9 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   unstageAll: async () => {
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !window.cortexAPI?.gitUnstageAll) return
+    if (!rootPath || !window.bodhiAPI?.gitUnstageAll) return
     try {
-      await window.cortexAPI.gitUnstageAll(rootPath)
+      await window.bodhiAPI.gitUnstageAll(rootPath)
       await get().refreshGitStatus()
     } catch (err) {
       console.error('Failed to unstage all files:', err)
@@ -139,9 +139,9 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   discardChanges: async (relativePath: string, isUntracked = false) => {
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !window.cortexAPI?.gitDiscard) return
+    if (!rootPath || !window.bodhiAPI?.gitDiscard) return
     try {
-      await window.cortexAPI.gitDiscard(rootPath, relativePath, isUntracked)
+      await window.bodhiAPI.gitDiscard(rootPath, relativePath, isUntracked)
       await get().refreshGitStatus()
       await useWorkspaceStore.getState().refreshTree()
     } catch (err) {
@@ -152,7 +152,7 @@ export const useGitStore = create<GitState>((set, get) => ({
   commitChanges: async () => {
     const { commitMessage, stagedFiles } = get()
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !commitMessage.trim() || !window.cortexAPI?.gitCommit) return false
+    if (!rootPath || !commitMessage.trim() || !window.bodhiAPI?.gitCommit) return false
 
     // Auto-stage all changes if no files are specifically staged
     if (stagedFiles.length === 0) {
@@ -162,7 +162,7 @@ export const useGitStore = create<GitState>((set, get) => ({
     set({ isCommitting: true })
 
     try {
-      const success = await window.cortexAPI.gitCommit(rootPath, commitMessage.trim())
+      const success = await window.bodhiAPI.gitCommit(rootPath, commitMessage.trim())
       if (success) {
         set({ commitMessage: '', fileChurnMap: {} })
         await get().refreshGitStatus()
@@ -198,7 +198,7 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   getFileChurn: async (relativePath: string) => {
     const rootPath = useWorkspaceStore.getState().rootPath
-    if (!rootPath || !relativePath || !window.cortexAPI?.gitGetFileChurn) return null
+    if (!rootPath || !relativePath || !window.bodhiAPI?.gitGetFileChurn) return null
 
     const normRel = relativePath.replace(/\\/g, '/')
     const { fileChurnMap } = get()
@@ -207,7 +207,7 @@ export const useGitStore = create<GitState>((set, get) => ({
     }
 
     try {
-      const res = await window.cortexAPI.gitGetFileChurn(rootPath, normRel)
+      const res = await window.bodhiAPI.gitGetFileChurn(rootPath, normRel)
       if (res) {
         set((state) => ({
           fileChurnMap: {
@@ -225,3 +225,4 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   clearChurnCache: () => set({ fileChurnMap: {} })
 }))
+

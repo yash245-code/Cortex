@@ -35,7 +35,7 @@ function getFileIcon(filename: string): React.ReactNode {
   switch (ext) {
     case 'ts':
     case 'tsx':
-      return <FileCode size={15} className="text-cortex-accent shrink-0" />
+      return <FileCode size={15} className="text-bodhi-accent shrink-0" />
     case 'js':
     case 'jsx':
     case 'mjs':
@@ -61,7 +61,7 @@ function getFileIcon(filename: string): React.ReactNode {
     case 'sql':
       return <FileSpreadsheet size={15} className="text-emerald-500 shrink-0" />
     default:
-      return <File size={15} className="text-cortex-muted shrink-0" />
+      return <File size={15} className="text-bodhi-muted shrink-0" />
   }
 }
 
@@ -82,7 +82,7 @@ function HighlightedText({
   for (let i = 0; i < text.length; i++) {
     if (indicesSet.has(i)) {
       elements.push(
-        <span key={i} className="text-cortex-accent font-bold underline decoration-cortex-accent/40">
+        <span key={i} className="text-bodhi-accent font-bold underline decoration-bodhi-accent/40">
           {text[i]}
         </span>
       )
@@ -118,7 +118,9 @@ export const CommandPalette: React.FC = () => {
     openSettingsWindow,
     settings,
     updateSettings,
-    toggleChurnHeatmap
+    toggleChurnHeatmap,
+    setWalkthroughOpen,
+    setTermsModalOpen
   } = useEditorStore()
 
   const {
@@ -184,6 +186,19 @@ export const CommandPalette: React.FC = () => {
   const allCommands = useMemo<EditorCommand[]>(() => {
     const list: EditorCommand[] = [
       {
+        id: 'help.walkthrough',
+        title: 'Help: Open Interactive Walkthrough & Tour',
+        category: 'Help',
+        shortcut: 'F1',
+        action: () => setWalkthroughOpen(true)
+      },
+      {
+        id: 'help.terms',
+        title: 'Help: Terms and Conditions & Open Source License (BUIMB Research)',
+        category: 'Help',
+        action: () => setTermsModalOpen(true)
+      },
+      {
         id: 'preferences.colorTheme',
         title: 'Preferences: Color Theme',
         category: 'Preferences',
@@ -215,7 +230,7 @@ export const CommandPalette: React.FC = () => {
         title: 'View: Show Extensions',
         category: 'View',
         shortcut: 'Ctrl+Shift+X',
-        action: () => window.cortexAPI?.openExtensionsWindow?.()
+        action: () => window.bodhiAPI?.openExtensionsWindow?.()
       },
       {
         id: 'view.ai',
@@ -230,7 +245,7 @@ export const CommandPalette: React.FC = () => {
         category: 'Extensions',
         action: async () => {
           toggleSidebarView('extensions')
-          await window.cortexAPI?.extensionsInstallFromVsix()
+          await window.bodhiAPI?.extensionsInstallFromVsix()
         }
       },
       {
@@ -653,24 +668,24 @@ export const CommandPalette: React.FC = () => {
       onClick={closePalette}
     >
       <div
-        className="w-full max-w-xl bg-cortex-panel border border-cortex-border rounded-xl shadow-2xl overflow-hidden flex flex-col tab-active-glow animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-xl bg-bodhi-panel border border-BODHI-border rounded-xl shadow-2xl overflow-hidden flex flex-col tab-active-glow animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Input Bar */}
-        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-cortex-surface/70 border-b border-cortex-border">
+        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-bodhi-surface/70 border-b border-BODHI-border">
           {isThemeMode ? (
-            <Palette size={17} className="text-cortex-accent shrink-0" />
+            <Palette size={17} className="text-bodhi-accent shrink-0" />
           ) : isAccentMode ? (
-            <Sparkles size={17} className="text-cortex-accent shrink-0" />
+            <Sparkles size={17} className="text-bodhi-accent shrink-0" />
           ) : isFontMode ? (
-            <Type size={17} className="text-cortex-accent shrink-0" />
+            <Type size={17} className="text-bodhi-accent shrink-0" />
           ) : isRecentWorkspacesMode ? (
-            <FolderGit2 size={17} className="text-cortex-accent shrink-0" />
+            <FolderGit2 size={17} className="text-bodhi-accent shrink-0" />
           ) : isCommandMode ? (
-            <Terminal size={17} className="text-cortex-accent shrink-0 animate-pulse" />
+            <Terminal size={17} className="text-bodhi-accent shrink-0 animate-pulse" />
           ) : (
-            <Search size={17} className="text-cortex-accent shrink-0" />
+            <Search size={17} className="text-bodhi-accent shrink-0" />
           )}
 
           <input
@@ -691,12 +706,12 @@ export const CommandPalette: React.FC = () => {
                 ? 'Type a command to run...'
                 : 'Type the name of a file to open (type > for commands)...'
             }
-            className="flex-1 bg-transparent text-sm text-cortex-text placeholder:text-cortex-muted outline-none font-sans"
+            className="flex-1 bg-transparent text-sm text-BODHI-text placeholder:text-bodhi-muted outline-none font-sans"
           />
 
           <button
             onClick={closePalette}
-            className="p-1 text-cortex-muted hover:text-white rounded transition-colors"
+            className="p-1 text-bodhi-muted hover:text-white rounded transition-colors"
           >
             <X size={14} />
           </button>
@@ -708,7 +723,7 @@ export const CommandPalette: React.FC = () => {
           className="max-h-80 overflow-y-auto p-1.5 flex flex-col gap-0.5 no-scrollbar"
         >
           {totalItemsCount === 0 ? (
-            <div className="py-8 text-center text-xs text-cortex-muted italic">
+            <div className="py-8 text-center text-xs text-bodhi-muted italic">
               {isThemeMode
                 ? 'No matching themes found'
                 : isAccentMode
@@ -736,30 +751,30 @@ export const CommandPalette: React.FC = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex flex-col gap-1 px-3 py-2.5 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
                     isActive
-                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
-                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                      ? 'bg-bodhi-surface text-white border-bodhi-accent font-medium shadow-sm'
+                      : 'text-BODHI-text border-transparent hover:bg-bodhi-surface/50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm">{font.name}</span>
-                      <span className="text-[11px] text-cortex-muted font-normal">
+                      <span className="text-[11px] text-bodhi-muted font-normal">
                         {font.vibe}
                       </span>
                       {font.badge && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-cortex-panel text-cortex-accent border border-cortex-border font-mono font-medium">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-bodhi-panel text-bodhi-accent border border-BODHI-border font-mono font-medium">
                           {font.badge}
                         </span>
                       )}
                     </div>
-                    {isCurrent && <Check size={14} className="text-cortex-accent shrink-0" />}
+                    {isCurrent && <Check size={14} className="text-bodhi-accent shrink-0" />}
                   </div>
 
-                  <div className="text-[11px] text-cortex-muted">{font.description}</div>
+                  <div className="text-[11px] text-bodhi-muted">{font.description}</div>
 
                   <div
                     style={{ fontFamily: font.fontFamily }}
-                    className="mt-1 px-2.5 py-1.5 rounded bg-cortex-bg border border-cortex-border/70 text-[11px] text-emerald-400 font-mono overflow-hidden truncate"
+                    className="mt-1 px-2.5 py-1.5 rounded bg-bodhi-bg border border-BODHI-border/70 text-[11px] text-emerald-400 font-mono overflow-hidden truncate"
                   >
                     {font.sampleCode}
                   </div>
@@ -781,32 +796,32 @@ export const CommandPalette: React.FC = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
                     isActive
-                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
-                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                      ? 'bg-bodhi-surface text-white border-bodhi-accent font-medium shadow-sm'
+                      : 'text-BODHI-text border-transparent hover:bg-bodhi-surface/50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <FolderGit2
                       size={15}
-                      className={isActive ? 'text-cortex-accent' : 'text-cortex-muted'}
+                      className={isActive ? 'text-bodhi-accent' : 'text-bodhi-muted'}
                     />
                     <div className="min-w-0">
                       <div className="font-semibold flex items-center gap-1.5 truncate">
                         <span>{rec.name}</span>
                         {isCurrent && (
-                          <span className="px-1.5 py-0.2 text-[9px] rounded bg-cortex-accent/20 text-cortex-accent font-mono border border-cortex-accent/30">
+                          <span className="px-1.5 py-0.2 text-[9px] rounded bg-bodhi-accent/20 text-bodhi-accent font-mono border border-bodhi-accent/30">
                             active
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-cortex-muted font-mono truncate max-w-md">
+                      <div className="text-[11px] text-bodhi-muted font-mono truncate max-w-md">
                         {rec.path}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className="text-[10px] text-cortex-muted flex items-center gap-1">
+                    <span className="text-[10px] text-bodhi-muted flex items-center gap-1">
                       <Clock size={10} />
                       {new Date(rec.lastOpened).toLocaleDateString()}
                     </span>
@@ -817,7 +832,7 @@ export const CommandPalette: React.FC = () => {
                         removeRecentWorkspace(rec.path)
                       }}
                       title="Remove from recent list"
-                      className="p-1 text-cortex-muted hover:text-red-400 hover:bg-cortex-bg rounded transition-colors"
+                      className="p-1 text-bodhi-muted hover:text-red-400 hover:bg-bodhi-bg rounded transition-colors"
                     >
                       <X size={12} />
                     </button>
@@ -840,15 +855,15 @@ export const CommandPalette: React.FC = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
                     isActive
-                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
-                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                      ? 'bg-bodhi-surface text-white border-bodhi-accent font-medium shadow-sm'
+                      : 'text-BODHI-text border-transparent hover:bg-bodhi-surface/50'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 p-1 rounded bg-cortex-bg border border-cortex-border">
+                    <div className="flex items-center gap-1 p-1 rounded bg-bodhi-bg border border-BODHI-border">
                       <span
                         style={{ backgroundColor: theme.preview.bg }}
-                        className="w-3 h-3 rounded-full border border-cortex-border"
+                        className="w-3 h-3 rounded-full border border-BODHI-border"
                       />
                       <span
                         style={{ backgroundColor: theme.preview.accent }}
@@ -858,13 +873,13 @@ export const CommandPalette: React.FC = () => {
                     <div>
                       <div className="font-semibold flex items-center gap-1.5">
                         <span>{theme.name}</span>
-                        {isCurrent && <Check size={12} className="text-cortex-accent" />}
+                        {isCurrent && <Check size={12} className="text-bodhi-accent" />}
                       </div>
-                      <div className="text-[11px] text-cortex-muted">{theme.description}</div>
+                      <div className="text-[11px] text-bodhi-muted">{theme.description}</div>
                     </div>
                   </div>
 
-                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-cortex-panel text-cortex-muted border border-cortex-border">
+                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-bodhi-panel text-bodhi-muted border border-BODHI-border">
                     {theme.type}
                   </span>
                 </div>
@@ -885,8 +900,8 @@ export const CommandPalette: React.FC = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
                     isActive
-                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
-                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                      ? 'bg-bodhi-surface text-white border-bodhi-accent font-medium shadow-sm'
+                      : 'text-BODHI-text border-transparent hover:bg-bodhi-surface/50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -895,9 +910,9 @@ export const CommandPalette: React.FC = () => {
                       className="w-4 h-4 rounded-full border border-white/20 shadow-md"
                     />
                     <span className="font-semibold">{accent.name}</span>
-                    {isCurrent && <Check size={12} className="text-cortex-accent" />}
+                    {isCurrent && <Check size={12} className="text-bodhi-accent" />}
                   </div>
-                  <span className="font-mono text-[10px] text-cortex-muted">{accent.color}</span>
+                  <span className="font-mono text-[10px] text-bodhi-muted">{accent.color}</span>
                 </div>
               )
             })
@@ -915,12 +930,12 @@ export const CommandPalette: React.FC = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
                     isActive
-                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
-                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                      ? 'bg-bodhi-surface text-white border-bodhi-accent font-medium shadow-sm'
+                      : 'text-BODHI-text border-transparent hover:bg-bodhi-surface/50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cortex-border text-cortex-muted">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-BODHI-border text-bodhi-muted">
                       {itemObj.item.category}
                     </span>
                     <span className="truncate">
@@ -932,7 +947,7 @@ export const CommandPalette: React.FC = () => {
                   </div>
 
                   {itemObj.item.shortcut && (
-                    <kbd className="px-1.5 py-0.5 rounded bg-cortex-panel text-[10px] font-mono text-cortex-accent border border-cortex-border shrink-0 ml-2">
+                    <kbd className="px-1.5 py-0.5 rounded bg-bodhi-panel text-[10px] font-mono text-bodhi-accent border border-BODHI-border shrink-0 ml-2">
                       {itemObj.item.shortcut}
                     </kbd>
                   )}
@@ -953,8 +968,8 @@ export const CommandPalette: React.FC = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border-l-2 ${
                     isActive
-                      ? 'bg-cortex-surface text-white border-cortex-accent font-medium shadow-sm'
-                      : 'text-cortex-text border-transparent hover:bg-cortex-surface/50'
+                      ? 'bg-bodhi-surface text-white border-bodhi-accent font-medium shadow-sm'
+                      : 'text-BODHI-text border-transparent hover:bg-bodhi-surface/50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
@@ -974,7 +989,7 @@ export const CommandPalette: React.FC = () => {
                     </span>
                   </div>
 
-                  <span className="text-[11px] text-cortex-muted truncate max-w-[200px] ml-2 font-mono">
+                  <span className="text-[11px] text-bodhi-muted truncate max-w-[200px] ml-2 font-mono">
                     {fileObj.item.relativePath}
                   </span>
                 </div>
@@ -984,14 +999,14 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {/* Footer info */}
-        <div className="px-3.5 py-2 bg-cortex-bg border-t border-cortex-border flex items-center justify-between text-[11px] text-cortex-muted select-none">
+        <div className="px-3.5 py-2 bg-bodhi-bg border-t border-BODHI-border flex items-center justify-between text-[11px] text-bodhi-muted select-none">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <ArrowUpDown size={11} className="text-cortex-accent" />
+              <ArrowUpDown size={11} className="text-bodhi-accent" />
               Navigate
             </span>
             <span className="flex items-center gap-1">
-              <CornerDownLeft size={11} className="text-cortex-accent" />
+              <CornerDownLeft size={11} className="text-bodhi-accent" />
               Select
             </span>
           </div>
@@ -1002,8 +1017,8 @@ export const CommandPalette: React.FC = () => {
               !isAccentMode &&
               !isFontMode &&
               !isRecentWorkspacesMode && (
-                <span className="text-cortex-muted">
-                  Type <kbd className="px-1 py-0.2 rounded bg-cortex-surface text-cortex-accent border border-cortex-border font-mono">&gt;</kbd> for commands
+                <span className="text-bodhi-muted">
+                  Type <kbd className="px-1 py-0.2 rounded bg-bodhi-surface text-bodhi-accent border border-BODHI-border font-mono">&gt;</kbd> for commands
                 </span>
               )}
             <span className="text-[10px]">
@@ -1026,3 +1041,4 @@ export const CommandPalette: React.FC = () => {
     </div>
   )
 }
+

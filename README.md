@@ -1,6 +1,6 @@
-# Cortex Code Editor
+# Bodhi Code Editor
 
-**Cortex** is a lightweight, high-performance, and extensible desktop code editor built on Electron, React 18, TypeScript, Monaco Editor, and xterm.js terminal emulation.
+**BODHI** is a lightweight, high-performance, and extensible desktop code editor built on Electron, React 18, TypeScript, Monaco Editor, and xterm.js terminal emulation.
 
 ---
 
@@ -13,7 +13,7 @@
   - Inline file & folder creation, renaming, and deletion.
   - Real-time file system change detection via `chokidar` in the main process with live UI synchronization over IPC.
 - **Multi-Tab Monaco Editor Engine**:
-  - Powered by `@monaco-editor/react` with custom `cortex-dark` syntax highlighting and theme.
+  - Powered by `@monaco-editor/react` with custom `bodhi-dark` syntax highlighting and theme.
   - Multi-tab management with unsaved/dirty buffer indicators (`●`), middle-click tab closure, and context menu.
   - Syntax highlighting for 25+ programming languages.
   - Automatic layout adjustment, cursor line/column tracking, and status bar synchronization.
@@ -24,7 +24,7 @@
   - Quick clear and restart shell session controls.
 - **Strict Process Isolation & Security**:
   - `nodeIntegration: false` and `contextIsolation: true`.
-  - Secure type-safe IPC bridge exposed on `window.cortexAPI`.
+  - Secure type-safe IPC bridge exposed on `window.BodhiAPI`.
   - Zero raw disk or shell access exposed to the renderer.
 
 ---
@@ -79,8 +79,8 @@ npm run build:win
 │   │   ├── ipcHandlers.ts           # Type-safe IPC registrations
 │   │   └── index.ts                 # BrowserWindow & app lifecycle
 │   ├── preload/
-│   │   ├── index.ts                 # contextBridge API exposure (cortexAPI)
-│   │   └── index.d.ts               # Global Window.cortexAPI typings
+│   │   ├── index.ts                 # contextBridge API exposure (BodhiAPI)
+│   │   └── index.d.ts               # Global Window.BodhiAPI typings
 │   ├── renderer/
 │   │   ├── src/
 │   │   │   ├── components/

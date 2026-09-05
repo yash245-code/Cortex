@@ -2,11 +2,11 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const electron = require("electron");
 const path = require("path");
+const fsSync = require("fs");
 const fs = require("fs/promises");
 const child_process = require("child_process");
 const chokidar = require("chokidar");
 const os = require("os");
-const fsSync = require("fs");
 const AdmZip = require("adm-zip");
 function _interopNamespaceDefault(e) {
   const n = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
@@ -25,77 +25,77 @@ function _interopNamespaceDefault(e) {
   return Object.freeze(n);
 }
 const path__namespace = /* @__PURE__ */ _interopNamespaceDefault(path);
+const fsSync__namespace = /* @__PURE__ */ _interopNamespaceDefault(fsSync);
 const fs__namespace = /* @__PURE__ */ _interopNamespaceDefault(fs);
 const os__namespace = /* @__PURE__ */ _interopNamespaceDefault(os);
-const fsSync__namespace = /* @__PURE__ */ _interopNamespaceDefault(fsSync);
 const IPC_CHANNELS = {
   // Window
-  WINDOW_MINIMIZE: "cortex:window:minimize",
-  WINDOW_MAXIMIZE: "cortex:window:maximize",
-  WINDOW_CLOSE: "cortex:window:close",
-  WINDOW_IS_MAXIMIZED: "cortex:window:isMaximized",
+  WINDOW_MINIMIZE: "BODHI:window:minimize",
+  WINDOW_MAXIMIZE: "BODHI:window:maximize",
+  WINDOW_CLOSE: "BODHI:window:close",
+  WINDOW_IS_MAXIMIZED: "BODHI:window:isMaximized",
   // Dialogs
-  DIALOG_OPEN_FILE: "cortex:dialog:openFile",
-  DIALOG_OPEN_DIRECTORY: "cortex:dialog:openDirectory",
+  DIALOG_OPEN_FILE: "BODHI:dialog:openFile",
+  DIALOG_OPEN_DIRECTORY: "BODHI:dialog:openDirectory",
   // File system
-  FS_READ_DIRECTORY: "cortex:fs:readDirectory",
-  FS_READ_FILE: "cortex:fs:readFile",
-  FS_WRITE_FILE: "cortex:fs:writeFile",
-  FS_CREATE_FILE: "cortex:fs:createFile",
-  FS_CREATE_DIRECTORY: "cortex:fs:createDirectory",
-  FS_RENAME_PATH: "cortex:fs:renamePath",
-  FS_DELETE_PATH: "cortex:fs:deletePath",
+  FS_READ_DIRECTORY: "BODHI:fs:readDirectory",
+  FS_READ_FILE: "BODHI:fs:readFile",
+  FS_WRITE_FILE: "BODHI:fs:writeFile",
+  FS_CREATE_FILE: "BODHI:fs:createFile",
+  FS_CREATE_DIRECTORY: "BODHI:fs:createDirectory",
+  FS_RENAME_PATH: "BODHI:fs:renamePath",
+  FS_DELETE_PATH: "BODHI:fs:deletePath",
   // Watcher
-  WATCHER_START: "cortex:watcher:start",
-  WATCHER_STOP: "cortex:watcher:stop",
-  WATCHER_CHANGE: "cortex:watcher:change",
+  WATCHER_START: "BODHI:watcher:start",
+  WATCHER_STOP: "BODHI:watcher:stop",
+  WATCHER_CHANGE: "BODHI:watcher:change",
   // Terminal
-  TERMINAL_CREATE: "cortex:terminal:create",
-  TERMINAL_WRITE: "cortex:terminal:write",
-  TERMINAL_RESIZE: "cortex:terminal:resize",
-  TERMINAL_KILL: "cortex:terminal:kill",
-  TERMINAL_DATA: "cortex:terminal:data",
-  TERMINAL_EXIT: "cortex:terminal:exit",
-  TERMINAL_GET_AVAILABLE_SHELLS: "cortex:terminal:getAvailableShells",
+  TERMINAL_CREATE: "BODHI:terminal:create",
+  TERMINAL_WRITE: "BODHI:terminal:write",
+  TERMINAL_RESIZE: "BODHI:terminal:resize",
+  TERMINAL_KILL: "BODHI:terminal:kill",
+  TERMINAL_DATA: "BODHI:terminal:data",
+  TERMINAL_EXIT: "BODHI:terminal:exit",
+  TERMINAL_GET_AVAILABLE_SHELLS: "BODHI:terminal:getAvailableShells",
   // Search & Replace
-  SEARCH_WORKSPACE: "cortex:search:workspace",
-  SEARCH_REPLACE_FILE: "cortex:search:replaceFile",
-  SEARCH_REPLACE_ALL: "cortex:search:replaceAll",
+  SEARCH_WORKSPACE: "BODHI:search:workspace",
+  SEARCH_REPLACE_FILE: "BODHI:search:replaceFile",
+  SEARCH_REPLACE_ALL: "BODHI:search:replaceAll",
   // Settings
-  SETTINGS_OPEN: "cortex:settings:open",
-  SETTINGS_GET: "cortex:settings:get",
-  SETTINGS_UPDATE: "cortex:settings:update",
-  SETTINGS_CHANGED: "cortex:settings:changed",
+  SETTINGS_OPEN: "BODHI:settings:open",
+  SETTINGS_GET: "BODHI:settings:get",
+  SETTINGS_UPDATE: "BODHI:settings:update",
+  SETTINGS_CHANGED: "BODHI:settings:changed",
   // Git
-  GIT_STATUS: "cortex:git:status",
-  GIT_BRANCH: "cortex:git:branch",
-  GIT_GET_FILE_AT_HEAD: "cortex:git:getFileAtHead",
-  GIT_GET_DIFF: "cortex:git:getDiff",
-  GIT_STAGE: "cortex:git:stage",
-  GIT_UNSTAGE: "cortex:git:unstage",
-  GIT_STAGE_ALL: "cortex:git:stageAll",
-  GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
-  GIT_DISCARD: "cortex:git:discard",
-  GIT_COMMIT: "cortex:git:commit",
-  GIT_GET_FILE_CHURN: "cortex:git:getFileChurn",
+  GIT_STATUS: "BODHI:git:status",
+  GIT_BRANCH: "BODHI:git:branch",
+  GIT_GET_FILE_AT_HEAD: "BODHI:git:getFileAtHead",
+  GIT_GET_DIFF: "BODHI:git:getDiff",
+  GIT_STAGE: "BODHI:git:stage",
+  GIT_UNSTAGE: "BODHI:git:unstage",
+  GIT_STAGE_ALL: "BODHI:git:stageAll",
+  GIT_UNSTAGE_ALL: "BODHI:git:unstageAll",
+  GIT_DISCARD: "BODHI:git:discard",
+  GIT_COMMIT: "BODHI:git:commit",
+  GIT_GET_FILE_CHURN: "BODHI:git:getFileChurn",
   // Extensions
-  EXTENSIONS_GET_INSTALLED: "cortex:extensions:getInstalled",
-  EXTENSIONS_SEARCH_MARKETPLACE: "cortex:extensions:searchMarketplace",
-  EXTENSIONS_INSTALL_FROM_MARKETPLACE: "cortex:extensions:installFromMarketplace",
-  EXTENSIONS_INSTALL_FROM_VSIX: "cortex:extensions:installFromVsix",
-  EXTENSIONS_UNINSTALL: "cortex:extensions:uninstall",
-  EXTENSIONS_TOGGLE_ENABLE: "cortex:extensions:toggleEnable",
-  EXTENSIONS_GET_SNIPPETS: "cortex:extensions:getSnippets",
-  EXTENSIONS_GET_THEMES: "cortex:extensions:getThemes",
-  EXTENSIONS_OPEN_VSIX_DIALOG: "cortex:extensions:openVsixDialog",
-  EXTENSIONS_OPEN_WINDOW: "cortex:extensions:openWindow",
-  EXTENSIONS_GET_README: "cortex:extensions:getReadme",
-  EXTENSIONS_GET_EXT_SNIPPETS: "cortex:extensions:getExtSnippets",
+  EXTENSIONS_GET_INSTALLED: "BODHI:extensions:getInstalled",
+  EXTENSIONS_SEARCH_MARKETPLACE: "BODHI:extensions:searchMarketplace",
+  EXTENSIONS_INSTALL_FROM_MARKETPLACE: "BODHI:extensions:installFromMarketplace",
+  EXTENSIONS_INSTALL_FROM_VSIX: "BODHI:extensions:installFromVsix",
+  EXTENSIONS_UNINSTALL: "BODHI:extensions:uninstall",
+  EXTENSIONS_TOGGLE_ENABLE: "BODHI:extensions:toggleEnable",
+  EXTENSIONS_GET_SNIPPETS: "BODHI:extensions:getSnippets",
+  EXTENSIONS_GET_THEMES: "BODHI:extensions:getThemes",
+  EXTENSIONS_OPEN_VSIX_DIALOG: "BODHI:extensions:openVsixDialog",
+  EXTENSIONS_OPEN_WINDOW: "BODHI:extensions:openWindow",
+  EXTENSIONS_GET_README: "BODHI:extensions:getReadme",
+  EXTENSIONS_GET_EXT_SNIPPETS: "BODHI:extensions:getExtSnippets",
   // AI Intelligence
-  AI_GENERATE_COMPLETION: "cortex:ai:generateCompletion",
-  AI_GENERATE_EDIT: "cortex:ai:generateEdit",
-  AI_CHAT: "cortex:ai:chat",
-  AI_TEST_CONNECTION: "cortex:ai:testConnection"
+  AI_GENERATE_COMPLETION: "BODHI:ai:generateCompletion",
+  AI_GENERATE_EDIT: "BODHI:ai:generateEdit",
+  AI_CHAT: "BODHI:ai:chat",
+  AI_TEST_CONNECTION: "BODHI:ai:testConnection"
 };
 const IGNORED_DIRECTORIES$1 = /* @__PURE__ */ new Set([
   ".git",
@@ -120,7 +120,7 @@ class FileService {
     if (!this.mainWindow) return null;
     const result = await electron.dialog.showOpenDialog(this.mainWindow, {
       properties: ["openFile"],
-      title: "Open File in Cortex"
+      title: "Open File in BODHI"
     });
     if (result.canceled || result.filePaths.length === 0) {
       return null;
@@ -131,7 +131,7 @@ class FileService {
     if (!this.mainWindow) return null;
     const result = await electron.dialog.showOpenDialog(this.mainWindow, {
       properties: ["openDirectory", "createDirectory"],
-      title: "Open Folder in Cortex"
+      title: "Open Folder in BODHI"
     });
     if (result.canceled || result.filePaths.length === 0) {
       return null;
@@ -505,7 +505,8 @@ class TerminalService {
         cols: 80,
         rows: 24,
         cwd: workingDirectory,
-        env: process.env
+        env: process.env,
+        useConpty: false
       });
       const instance = {
         write: (data) => {
@@ -601,7 +602,7 @@ class TerminalService {
         }
         this.pendingWrites.delete(id);
       }
-      this.sendData(id, `\x1B[38;2;93;214;44m[Cortex Terminal Ready: ${workingDirectory}]\x1B[0m\r
+      this.sendData(id, `\x1B[38;2;93;214;44m[Bodhi Terminal Ready: ${workingDirectory}]\x1B[0m\r
 `);
       return true;
     } catch (fallbackErr) {
@@ -650,7 +651,11 @@ class TerminalService {
     const term = this.terminals.get(id);
     if (term) {
       this.terminals.delete(id);
-      term.kill();
+      try {
+        term.kill();
+      } catch (err) {
+        console.warn(`[terminalService] Error killing terminal session ${id}:`, err);
+      }
     }
     this.pendingWrites.delete(id);
   }
@@ -1303,7 +1308,7 @@ class ExtensionService {
       const response = await fetch(url, {
         headers: {
           Accept: "application/json",
-          "User-Agent": "Cortex-Editor/1.0.0"
+          "User-Agent": "bodhi-editor/1.0.0"
         }
       });
       if (!response.ok) {
@@ -1346,7 +1351,7 @@ class ExtensionService {
     if (downloadUrl) {
       try {
         const res = await fetch(downloadUrl, {
-          headers: { "User-Agent": "Cortex-Editor/1.0.0" },
+          headers: { "User-Agent": "bodhi-editor/1.0.0" },
           redirect: "follow"
         });
         if (res.ok) {
@@ -1362,7 +1367,7 @@ class ExtensionService {
       try {
         const metaUrl = `https://open-vsx.org/api/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
         const metaRes = await fetch(metaUrl, {
-          headers: { Accept: "application/json", "User-Agent": "Cortex-Editor/1.0.0" },
+          headers: { Accept: "application/json", "User-Agent": "bodhi-editor/1.0.0" },
           redirect: "follow"
         });
         if (metaRes.ok) {
@@ -1370,7 +1375,7 @@ class ExtensionService {
           if (metaData.files?.download) {
             downloadUrl = metaData.files.download;
             const retryRes = await fetch(downloadUrl, {
-              headers: { "User-Agent": "Cortex-Editor/1.0.0" },
+              headers: { "User-Agent": "bodhi-editor/1.0.0" },
               redirect: "follow"
             });
             if (retryRes.ok) {
@@ -1627,7 +1632,7 @@ class ExtensionService {
       try {
         const url = `https://open-vsx.org/api/${encodeURIComponent(ns)}/${encodeURIComponent(nm)}/latest/file/readme.md`;
         const res = await fetch(url, {
-          headers: { "User-Agent": "Cortex-Editor/1.0.0" },
+          headers: { "User-Agent": "bodhi-editor/1.0.0" },
           redirect: "follow"
         });
         if (res.ok) {
@@ -1732,7 +1737,7 @@ class AIService {
     const prefix = req.prefix || "";
     const suffix = req.suffix || "";
     const lang = req.language || "typescript";
-    const prompt = `You are a high-speed AI code completion assistant inside Cortex Editor.
+    const prompt = `You are a high-speed AI code completion assistant inside BODHI EDITOR.
 Complete the code immediately following the cursor.
 Return ONLY the raw completion text that directly completes the line or statement.
 Do NOT include markdown code blocks, backticks, explanations, or commentary.
@@ -1776,7 +1781,7 @@ ${suffix.slice(0, 300)}`;
         error: "No AI API Key configured. Go to Settings (Ctrl+,) > AI to configure."
       };
     }
-    const prompt = `You are an expert pair-programming software engineer inside Cortex Editor.
+    const prompt = `You are an expert pair-programming software engineer inside BODHI EDITOR.
 The user wants to edit or transform the following code snippet according to their instruction.
 
 Language: ${req.language || "typescript"}
@@ -1826,7 +1831,7 @@ Do NOT include preamble, comments about what you did, or conversational text.`;
         error: "No AI API Key configured. Go to Settings (Ctrl+,) > AI to configure."
       };
     }
-    const systemPrompt = `You are Cortex AI, a highly capable software engineering copilot integrated directly inside Cortex Code Editor.
+    const systemPrompt = `You are Bodhi AI, a highly capable software engineering copilot integrated directly inside Bodhi Code Editor.
 You write clean, modular, modern, bug-free code.
 When generating code snippets, always format them with standard markdown code blocks and identify the language (e.g. \`\`\`tsx).
 Keep responses helpful, technical, concise, and focused on solving the user's coding questions.`;
@@ -2114,7 +2119,31 @@ ${req.contextFile.content.slice(0, 8e3)}
 }
 const aiService = new AIService();
 const searchService = new SearchService();
-let storedSettings = {};
+function getSettingsFilePath() {
+  return path__namespace.join(electron.app.getPath("userData"), "settings.json");
+}
+function loadPersistedSettings() {
+  try {
+    const filePath = getSettingsFilePath();
+    if (fsSync__namespace.existsSync(filePath)) {
+      const raw = fsSync__namespace.readFileSync(filePath, "utf-8");
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.warn("[IPC] Failed to read persisted settings.json:", err);
+  }
+  return {};
+}
+async function savePersistedSettings(settings) {
+  try {
+    const filePath = getSettingsFilePath();
+    await fs__namespace.mkdir(path__namespace.dirname(filePath), { recursive: true });
+    await fs__namespace.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
+  } catch (err) {
+    console.error("[IPC] Failed to save settings.json:", err);
+  }
+}
+let storedSettings = loadPersistedSettings();
 function registerIpcHandlers(mainWindow2, openSettingsWindow2, openExtensionsWindow2) {
   fileService.setMainWindow(mainWindow2);
   terminalService.setMainWindow(mainWindow2);
@@ -2152,8 +2181,9 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2, openExtensionsWin
   electron.ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, () => {
     return storedSettings;
   });
-  electron.ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE, (_, partialSettings) => {
+  electron.ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE, async (_, partialSettings) => {
     storedSettings = { ...storedSettings, ...partialSettings };
+    await savePersistedSettings(storedSettings);
     electron.BrowserWindow.getAllWindows().forEach((win) => {
       if (!win.isDestroyed()) {
         win.webContents.send(IPC_CHANNELS.SETTINGS_CHANGED, partialSettings);
@@ -2345,38 +2375,64 @@ function registerIpcHandlers(mainWindow2, openSettingsWindow2, openExtensionsWin
   electron.ipcMain.handle(
     IPC_CHANNELS.AI_GENERATE_COMPLETION,
     async (_, req) => {
-      return await aiService.generateCompletion(req);
+      const mergedReq = {
+        ...req,
+        settings: { ...storedSettings, ...req.settings }
+      };
+      return await aiService.generateCompletion(mergedReq);
     }
   );
   electron.ipcMain.handle(
     IPC_CHANNELS.AI_GENERATE_EDIT,
     async (_, req) => {
-      return await aiService.generateEdit(req);
+      const mergedReq = {
+        ...req,
+        settings: { ...storedSettings, ...req.settings }
+      };
+      return await aiService.generateEdit(mergedReq);
     }
   );
   electron.ipcMain.handle(
     IPC_CHANNELS.AI_CHAT,
     async (_, req) => {
-      return await aiService.chat(req);
+      const mergedReq = {
+        ...req,
+        settings: { ...storedSettings, ...req.settings }
+      };
+      return await aiService.chat(mergedReq);
     }
   );
   electron.ipcMain.handle(
     IPC_CHANNELS.AI_TEST_CONNECTION,
     async (_, provider, apiKey) => {
-      return await aiService.testConnection(provider, apiKey);
+      const resolvedProvider = provider || storedSettings.aiModelProvider;
+      const resolvedKey = apiKey || storedSettings.aiApiKey;
+      return await aiService.testConnection(resolvedProvider, resolvedKey);
     }
   );
 }
+process.on("uncaughtException", (error) => {
+  console.error("[Bodhi Main Process] Uncaught Exception:", error);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[Bodhi Main Process] Unhandled Rejection:", reason);
+});
 let mainWindow = null;
 let settingsWindow = null;
 let extensionsWindow = null;
 function getAppIconPath() {
   const isDev = !electron.app.isPackaged;
   const filename = process.platform === "win32" ? "icon.ico" : "icon.png";
-  if (isDev) {
-    return path.join(__dirname, "../../resources", filename);
+  const candidates = isDev ? [path.join(__dirname, "../../resources", filename)] : [
+    path.join(process.resourcesPath, "resources", filename),
+    path.join(process.resourcesPath, filename)
+  ];
+  for (const candidate of candidates) {
+    if (fsSync__namespace.existsSync(candidate)) {
+      return candidate;
+    }
   }
-  return path.join(process.resourcesPath, filename);
+  return void 0;
 }
 function openSettingsWindow() {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
@@ -2389,7 +2445,7 @@ function openSettingsWindow() {
   }
   const iconPath = getAppIconPath();
   settingsWindow = new electron.BrowserWindow({
-    title: "Settings - Cortex",
+    title: "Settings - Bodhi",
     width: 780,
     height: 560,
     minWidth: 640,
@@ -2397,9 +2453,9 @@ function openSettingsWindow() {
     show: false,
     autoHideMenuBar: true,
     frame: false,
-    titleBarStyle: "hidden",
+    ...process.platform === "darwin" ? { titleBarStyle: "hidden" } : {},
     backgroundColor: "#0f1117",
-    icon: iconPath,
+    ...iconPath ? { icon: iconPath } : {},
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : void 0,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
@@ -2440,7 +2496,7 @@ function openExtensionsWindow() {
   }
   const iconPath = getAppIconPath();
   extensionsWindow = new electron.BrowserWindow({
-    title: "Extensions - Cortex",
+    title: "Extensions - Bodhi",
     width: 980,
     height: 680,
     minWidth: 800,
@@ -2448,9 +2504,9 @@ function openExtensionsWindow() {
     show: false,
     autoHideMenuBar: true,
     frame: false,
-    titleBarStyle: "hidden",
+    ...process.platform === "darwin" ? { titleBarStyle: "hidden" } : {},
     backgroundColor: "#0f1117",
-    icon: iconPath,
+    ...iconPath ? { icon: iconPath } : {},
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : void 0,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
@@ -2481,8 +2537,9 @@ function openExtensionsWindow() {
   return extensionsWindow;
 }
 function createWindow() {
+  const iconPath = getAppIconPath();
   mainWindow = new electron.BrowserWindow({
-    title: "Cortex",
+    title: "Bodhi",
     width: 1280,
     height: 800,
     minWidth: 900,
@@ -2490,9 +2547,9 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     frame: false,
-    titleBarStyle: "hidden",
+    ...process.platform === "darwin" ? { titleBarStyle: "hidden" } : {},
     backgroundColor: "#0f1117",
-    icon: getAppIconPath(),
+    ...iconPath ? { icon: iconPath } : {},
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -2501,10 +2558,22 @@ function createWindow() {
     }
   });
   registerIpcHandlers(mainWindow, openSettingsWindow, openExtensionsWindow);
-  mainWindow.on("ready-to-show", () => {
-    if (mainWindow) {
+  let hasShown = false;
+  const showMainWindow = () => {
+    if (!hasShown && mainWindow && !mainWindow.isDestroyed()) {
+      hasShown = true;
       mainWindow.show();
+      mainWindow.focus();
     }
+  };
+  mainWindow.once("ready-to-show", showMainWindow);
+  setTimeout(showMainWindow, 1e3);
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[Bodhi] Renderer failed to load [${errorCode}]: ${errorDescription} (${validatedURL})`);
+    showMainWindow();
+  });
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("[Bodhi] Renderer process gone:", details);
   });
   mainWindow.on("close", () => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {

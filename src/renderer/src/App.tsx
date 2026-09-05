@@ -8,6 +8,8 @@ import { TerminalPanel } from './components/Terminal/TerminalPanel'
 import { StatusBar } from './components/StatusBar'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { AboutModal } from './components/AboutModal/AboutModal'
+import { TermsModal } from './components/TermsModal/TermsModal'
+import { WelcomeWalkthrough } from './components/WelcomeWalkthrough/WelcomeWalkthrough'
 import { useEditorStore } from './store/useEditorStore'
 import { useWorkspaceStore } from './store/useWorkspaceStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -50,15 +52,46 @@ export const App: React.FC = () => {
     if (isRestoredRef.current) return
     isRestoredRef.current = true
 
-    const saved = sessionService.loadSession()
-    if (saved) {
+    const rehydrate = async (): Promise<void> => {
+      const saved = sessionService.loadSession()
+      if (!saved) return
+
       if (saved.rootPath) {
-        openFolder(saved.rootPath)
+        await openFolder(saved.rootPath)
       }
+
+      // Re-read fresh content from disk for persisted tabs
+      const restoreTabsWithContent = async (rawTabs: typeof tabs = []): Promise<typeof tabs> => {
+        const results: typeof tabs = []
+        for (const t of rawTabs) {
+          try {
+            if (t.isDirty && t.content) {
+              results.push(t)
+            } else if (window.bodhiAPI?.readFile && t.path) {
+              const fresh = await window.bodhiAPI.readFile(t.path)
+              results.push({
+                ...t,
+                content: fresh,
+                savedContent: fresh
+              })
+            } else {
+              results.push(t)
+            }
+          } catch (err) {
+            console.warn(`Could not restore file from disk [${t.path}]:`, err)
+            results.push(t)
+          }
+        }
+        return results
+      }
+
+      const tabsWithContent = await restoreTabsWithContent(saved.tabs || [])
+      const pane2WithContent = await restoreTabsWithContent(saved.pane2Tabs || [])
+
       restoreSession({
-        tabs: saved.tabs || [],
+        tabs: tabsWithContent,
         activeTabId: saved.activeTabId || null,
-        pane2Tabs: saved.pane2Tabs || [],
+        pane2Tabs: pane2WithContent,
         pane2ActiveTabId: saved.pane2ActiveTabId || null,
         isSplitEditorOpen: !!saved.isSplitEditorOpen,
         splitRatio: saved.splitRatio || 0.5,
@@ -70,8 +103,44 @@ export const App: React.FC = () => {
             : undefined,
         activeTerminalId: saved.activeTerminalId || ''
       })
+
+      // If a saved cursor position exists for the active tab, restore it directly
+      if (saved.activeTabId && saved.cursorPosition) {
+        useEditorStore.getState().setTargetEditorLocation({
+          path: saved.activeTabId,
+          line: saved.cursorPosition.line,
+          col: saved.cursorPosition.col
+        })
+      }
     }
+
+    rehydrate()
   }, [openFolder, restoreSession])
+
+  // Synchronously flush active session state on window close/exit
+  useEffect(() => {
+    const handleBeforeUnload = (): void => {
+      const state = useEditorStore.getState()
+      const wsState = useWorkspaceStore.getState()
+      sessionService.saveSession({
+        rootPath: wsState.rootPath,
+        tabs: state.tabs,
+        activeTabId: state.activeTabId,
+        pane2Tabs: state.pane2Tabs,
+        pane2ActiveTabId: state.pane2ActiveTabId,
+        isSplitEditorOpen: state.isSplitEditorOpen,
+        splitRatio: state.splitRatio,
+        isTerminalOpen: state.isTerminalOpen,
+        terminalHeight: state.terminalHeight,
+        terminalSessions: state.terminalSessions,
+        activeTerminalId: state.activeTerminalId,
+        cursorPosition: state.cursorPosition
+      })
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
 
   // Debounced auto-save of workspace session whenever layout or files change
   useEffect(() => {
@@ -89,9 +158,10 @@ export const App: React.FC = () => {
         isTerminalOpen,
         terminalHeight,
         terminalSessions,
-        activeTerminalId
+        activeTerminalId,
+        cursorPosition: useEditorStore.getState().cursorPosition
       })
-    }, 1000)
+    }, 800)
 
     return () => clearTimeout(timer)
   }, [
@@ -110,7 +180,7 @@ export const App: React.FC = () => {
 
   // Initialize file watcher and settings subscriptions
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.cortexAPI) {
+    if (typeof window !== 'undefined' && window.bodhiAPI) {
       const unsubWatcher = initWatcher()
       const unsubSettings = initSettingsSync()
       return () => {
@@ -167,7 +237,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-cortex-bg text-cortex-text overflow-hidden font-sans">
+    <div className="h-screen w-screen flex flex-col bg-bodhi-bg text-BODHI-text overflow-hidden font-sans">
       {/* Frameless Draggable TitleBar */}
       <TitleBar />
 
@@ -181,7 +251,7 @@ export const App: React.FC = () => {
         <Sidebar />
 
         {/* Editor & Terminal Area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-cortex-bg border border-cortex-border/80 rounded-2xl relative shadow-md">
+        <div className="flex-1 flex flex-col overflow-hidden bg-bodhi-bg border border-BODHI-border/80 rounded-2xl relative shadow-md">
           {/* Main Editor Section */}
           <div ref={splitContainerRef} className="flex-1 flex overflow-hidden relative">
             {isSplitEditorOpen ? (
@@ -189,7 +259,7 @@ export const App: React.FC = () => {
                 {/* Pane 1 (Left) */}
                 <div
                   style={{ width: `${splitRatio * 100}%` }}
-                  className="h-full flex flex-col overflow-hidden border-r border-cortex-border relative"
+                  className="h-full flex flex-col overflow-hidden border-r border-BODHI-border relative"
                 >
                   <TabBar pane={1} />
                   <div className="flex-1 overflow-hidden relative">
@@ -202,7 +272,7 @@ export const App: React.FC = () => {
                   onMouseDown={handleSplitMouseDown}
                   onDoubleClick={handleSplitDoubleClick}
                   title="Drag to resize split (Double-click to center)"
-                  className="w-1.5 h-full cursor-col-resize hover:bg-cortex-accent active:bg-cortex-accent transition-colors z-20 shrink-0 bg-cortex-panel -mx-[3px]"
+                  className="w-1.5 h-full cursor-col-resize hover:bg-bodhi-accent active:bg-bodhi-accent transition-colors z-20 shrink-0 bg-bodhi-panel -mx-[3px]"
                 />
 
                 {/* Pane 2 (Right) */}
@@ -239,10 +309,17 @@ export const App: React.FC = () => {
       {/* Global Quick Open & Command Palette Modal */}
       <CommandPalette />
 
-      {/* About Cortex Modal Dialog */}
+      {/* About BODHI Modal Dialog */}
       <AboutModal />
+
+      {/* Terms & Conditions Modal Dialog */}
+      <TermsModal />
+
+      {/* Interactive First-Time & On-Demand Walkthrough */}
+      <WelcomeWalkthrough />
     </div>
   )
 }
 
 export default App
+

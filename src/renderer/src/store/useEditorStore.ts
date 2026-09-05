@@ -21,6 +21,8 @@ interface EditorState {
   isPaletteOpen: boolean
   paletteMode: 'files' | 'commands' | 'themes' | 'accents' | 'recent-workspaces' | 'fonts'
   isAboutModalOpen: boolean
+  isTermsModalOpen: boolean
+  isWalkthroughOpen: boolean
   isSplitEditorOpen: boolean
   splitRatio: number
   pane2Tabs: Tab[]
@@ -30,6 +32,9 @@ interface EditorState {
   isTerminalSearchOpen: boolean
 
   // Actions
+  setTermsModalOpen: (open: boolean) => void
+  setWalkthroughOpen: (open: boolean) => void
+  completeWalkthrough: () => void
   toggleDiffViewMode: () => void
   openDiffTab: (
     filePath: string,
@@ -109,7 +114,7 @@ const getDefaultSettings = (): EditorSettings => {
     tabSize: 2,
     wordWrap: 'on',
     minimap: true,
-    theme: 'cortex-cyber',
+    theme: 'bodhi-cyber',
     accentColor: '#5DD62C',
     sidebarPosition: 'left',
     autoSave: true,
@@ -132,13 +137,19 @@ const getDefaultSettings = (): EditorSettings => {
 
   if (typeof window !== 'undefined') {
     try {
-      const saved = localStorage.getItem('cortex_editor_settings')
+      const saved = localStorage.getItem('BODHI_editor_settings')
+      const dedicatedAiKey = localStorage.getItem('BODHI_ai_api_key')
       if (saved) {
         const parsed = { ...defaults, ...JSON.parse(saved) }
+        if (dedicatedAiKey && !parsed.aiApiKey) {
+          parsed.aiApiKey = dedicatedAiKey
+        }
         // Ensure theme exists
-        if (parsed.theme === 'vs-dark') parsed.theme = 'cortex-cyber'
+        if (parsed.theme === 'vs-dark') parsed.theme = 'bodhi-cyber'
         applyThemeAndAccent(parsed.theme, parsed.accentColor)
         return parsed
+      } else if (dedicatedAiKey) {
+        defaults.aiApiKey = dedicatedAiKey
       }
     } catch {
       // ignore
@@ -164,6 +175,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isPaletteOpen: false,
   paletteMode: 'files',
   isAboutModalOpen: false,
+  isTermsModalOpen: false,
+  isWalkthroughOpen: typeof window !== 'undefined' ? localStorage.getItem('BODHI_walkthrough_completed') !== 'true' : false,
   isSplitEditorOpen: false,
   splitRatio: 0.5,
   pane2Tabs: [],
@@ -203,17 +216,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (existingRegularTab) {
         content = existingRegularTab.content
       } else {
-        content = await window.cortexAPI.readFile(filePath)
+        content = await window.bodhiAPI.readFile(filePath)
       }
 
       let original = originalContent
-      if (original === undefined && window.cortexAPI) {
+      if (original === undefined && window.bodhiAPI) {
         const { rootPath } = useWorkspaceStore.getState()
         if (rootPath) {
           const relativePath = filePath.startsWith(rootPath)
             ? filePath.slice(rootPath.length).replace(/^[/\\]+/, '')
             : filePath
-          original = (await window.cortexAPI.gitGetFileAtHead(rootPath, relativePath)) ?? ''
+          original = (await window.bodhiAPI.gitGetFileAtHead(rootPath, relativePath)) ?? ''
         }
       }
 
@@ -279,7 +292,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     try {
       const content =
-        initialContent !== undefined ? initialContent : await window.cortexAPI.readFile(filePath)
+        initialContent !== undefined ? initialContent : await window.bodhiAPI.readFile(filePath)
       const fileName = filePath.split(/[/\\]/).pop() || 'Untitled'
       const language = getLanguageForFile(fileName)
 
@@ -313,7 +326,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     try {
       const content =
-        initialContent !== undefined ? initialContent : await window.cortexAPI.readFile(filePath)
+        initialContent !== undefined ? initialContent : await window.bodhiAPI.readFile(filePath)
       const fileName = filePath.split(/[/\\]/).pop() || 'Untitled'
       const language = getLanguageForFile(fileName)
 
@@ -435,7 +448,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!tab) return false
 
     try {
-      await window.cortexAPI.writeFile(tab.path, tab.content)
+      await window.bodhiAPI.writeFile(tab.path, tab.content)
       const markSaved = (t: Tab): Tab =>
         t.id === tabId ? { ...t, savedContent: t.content, isDirty: false } : t
 
@@ -626,8 +639,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   removeTerminalSession: (id: string) => {
     const { terminalSessions, activeTerminalId } = get()
-    if (window.cortexAPI?.killTerminal) {
-      window.cortexAPI.killTerminal(id)
+    if (window.bodhiAPI?.killTerminal) {
+      window.bodhiAPI.killTerminal(id)
     }
 
     const remaining = terminalSessions.filter((s) => s.id !== id)
@@ -694,8 +707,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!parentSession || !parentSession.splitSessionId) return
 
     const splitId = parentSession.splitSessionId
-    if (window.cortexAPI?.killTerminal) {
-      window.cortexAPI.killTerminal(splitId)
+    if (window.bodhiAPI?.killTerminal) {
+      window.bodhiAPI.killTerminal(splitId)
     }
 
     const updatedSessions = terminalSessions
@@ -766,26 +779,66 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setAboutModalOpen: (open: boolean) => set({ isAboutModalOpen: open }),
 
+  setTermsModalOpen: (open: boolean) => set({ isTermsModalOpen: open }),
+
+  setWalkthroughOpen: (open: boolean) => set({ isWalkthroughOpen: open }),
+
+  completeWalkthrough: () => {
+    try {
+      localStorage.setItem('BODHI_walkthrough_completed', 'true')
+    } catch {
+      // ignore
+    }
+    set({ isWalkthroughOpen: false })
+  },
+
   openSettingsWindow: () => {
-    if (typeof window !== 'undefined' && window.cortexAPI?.openSettingsWindow) {
-      window.cortexAPI.openSettingsWindow()
+    if (typeof window !== 'undefined' && window.bodhiAPI?.openSettingsWindow) {
+      window.bodhiAPI.openSettingsWindow()
     }
   },
 
   initSettingsSync: () => {
-    if (typeof window !== 'undefined' && window.cortexAPI?.onSettingsChanged) {
-      return window.cortexAPI.onSettingsChanged((incomingSettings) => {
-        set((state) => {
-          const next = { ...state.settings, ...incomingSettings }
-          try {
-            localStorage.setItem('cortex_editor_settings', JSON.stringify(next))
-          } catch {
-            // ignore
+    if (typeof window !== 'undefined' && window.bodhiAPI) {
+      // 1. Initial sync from disk-backed main process settings.json
+      if (window.bodhiAPI.getSettings) {
+        window.bodhiAPI.getSettings().then((persisted) => {
+          if (persisted && Object.keys(persisted).length > 0) {
+            set((state) => {
+              const next = { ...state.settings, ...persisted }
+              try {
+                localStorage.setItem('BODHI_editor_settings', JSON.stringify(next))
+                if (next.aiApiKey) {
+                  localStorage.setItem('BODHI_ai_api_key', next.aiApiKey)
+                }
+              } catch {
+                // ignore
+              }
+              applyThemeAndAccent(next.theme, next.accentColor)
+              return { settings: next }
+            })
           }
-          applyThemeAndAccent(next.theme, next.accentColor)
-          return { settings: next }
         })
-      })
+      }
+
+      // 2. Real-time broadcast sync across all windows
+      if (window.bodhiAPI.onSettingsChanged) {
+        return window.bodhiAPI.onSettingsChanged((incomingSettings) => {
+          set((state) => {
+            const next = { ...state.settings, ...incomingSettings }
+            try {
+              localStorage.setItem('BODHI_editor_settings', JSON.stringify(next))
+              if (next.aiApiKey) {
+                localStorage.setItem('BODHI_ai_api_key', next.aiApiKey)
+              }
+            } catch {
+              // ignore
+            }
+            applyThemeAndAccent(next.theme, next.accentColor)
+            return { settings: next }
+          })
+        })
+      }
     }
     return () => {}
   },
@@ -794,15 +847,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => {
       const next = { ...state.settings, ...partial }
       try {
-        localStorage.setItem('cortex_editor_settings', JSON.stringify(next))
+        localStorage.setItem('BODHI_editor_settings', JSON.stringify(next))
+        if (partial.aiApiKey !== undefined) {
+          if (partial.aiApiKey) {
+            localStorage.setItem('BODHI_ai_api_key', partial.aiApiKey)
+          } else {
+            localStorage.removeItem('BODHI_ai_api_key')
+          }
+        }
       } catch {
         // ignore
       }
       applyThemeAndAccent(next.theme, next.accentColor)
       return { settings: next }
     })
-    if (typeof window !== 'undefined' && window.cortexAPI?.updateSettings) {
-      window.cortexAPI.updateSettings(partial)
+    if (typeof window !== 'undefined' && window.bodhiAPI?.updateSettings) {
+      window.bodhiAPI.updateSettings(partial)
     }
   },
 
@@ -850,3 +910,4 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     })
   }
 }))
+

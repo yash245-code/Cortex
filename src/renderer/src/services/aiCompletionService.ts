@@ -69,7 +69,7 @@ class AICompletionService {
               }
 
               try {
-                const res = await window.cortexAPI.aiGenerateCompletion({
+                const res = await window.bodhiAPI.aiGenerateCompletion({
                   prefix,
                   suffix,
                   language: lang,
@@ -122,3 +122,4 @@ class AICompletionService {
 }
 
 export const aiCompletionService = new AICompletionService()
+

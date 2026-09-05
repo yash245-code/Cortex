@@ -35,7 +35,7 @@ export const StatusBar: React.FC = () => {
   }
 
   return (
-    <div className="h-6 w-full bg-cortex-panel border-t border-cortex-border flex items-center justify-between px-3 text-[11px] select-none text-cortex-muted shrink-0 z-40">
+    <div className="h-6 w-full bg-bodhi-panel border-t border-BODHI-border flex items-center justify-between px-3 text-[11px] select-none text-bodhi-muted shrink-0 z-40">
       {/* Left Section */}
       <div className="flex items-center gap-3">
         <button
@@ -50,18 +50,18 @@ export const StatusBar: React.FC = () => {
           <button
             onClick={handleBranchClick}
             title={`Git Branch: ${branch} (${totalChanges} uncommitted changes) - Click to open Source Control`}
-            className="flex items-center gap-1.5 text-cortex-accent font-medium hover:brightness-125 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 text-bodhi-accent font-medium hover:brightness-125 transition-all cursor-pointer"
           >
             <GitBranch size={12} />
             <span>{branch}</span>
             {totalChanges > 0 && (
-              <span className="px-1 py-0.2 rounded bg-cortex-surface text-cortex-accent font-mono text-[9px] border border-cortex-border">
+              <span className="px-1 py-0.2 rounded bg-bodhi-surface text-bodhi-accent font-mono text-[9px] border border-BODHI-border">
                 {totalChanges}*
               </span>
             )}
           </button>
         ) : (
-          <div className="flex items-center gap-1 text-cortex-muted">
+          <div className="flex items-center gap-1 text-bodhi-muted">
             <GitBranch size={12} />
             <span>no repo</span>
           </div>
@@ -74,7 +74,7 @@ export const StatusBar: React.FC = () => {
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-all cursor-pointer select-none ${
               settings.enableChurnHeatmap !== false
                 ? 'text-amber-400 hover:text-amber-300 bg-amber-400/10 border border-amber-400/20 shadow-xs'
-                : 'text-cortex-muted hover:text-white bg-transparent border border-transparent'
+                : 'text-bodhi-muted hover:text-white bg-transparent border border-transparent'
             }`}
           >
             <Flame size={12} className={settings.enableChurnHeatmap !== false ? 'text-rose-500 fill-rose-500/20' : ''} />
@@ -84,13 +84,13 @@ export const StatusBar: React.FC = () => {
           </button>
         )}
 
-        <div className="flex items-center gap-1 text-cortex-accent">
+        <div className="flex items-center gap-1 text-bodhi-accent">
           <CheckCircle2 size={12} />
           <span>Ready</span>
         </div>
 
         {rootPath && (
-          <span className="hidden md:inline text-cortex-muted">
+          <span className="hidden md:inline text-bodhi-muted">
             {tabs.length} open {tabs.length === 1 ? 'file' : 'files'}
           </span>
         )}
@@ -112,7 +112,7 @@ export const StatusBar: React.FC = () => {
               UTF-8
             </div>
 
-            <div className="flex items-center gap-1 text-cortex-accent font-medium hover:text-white cursor-pointer transition-colors uppercase">
+            <div className="flex items-center gap-1 text-bodhi-accent font-medium hover:text-white cursor-pointer transition-colors uppercase">
               <FileCode size={12} />
               <span>{activeTab.language}</span>
             </div>
@@ -122,7 +122,7 @@ export const StatusBar: React.FC = () => {
         <button
           onClick={toggleTerminal}
           className={`flex items-center gap-1 transition-colors ${
-            isTerminalOpen ? 'text-cortex-accent font-medium' : 'hover:text-white'
+            isTerminalOpen ? 'text-bodhi-accent font-medium' : 'hover:text-white'
           }`}
           title="Toggle Terminal"
         >

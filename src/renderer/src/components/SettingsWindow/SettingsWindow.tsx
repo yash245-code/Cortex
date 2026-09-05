@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
 import {
   Sliders,
   Eye,
@@ -42,7 +42,7 @@ export const SettingsWindow: React.FC = () => {
 
   // Listen to cross-window sync and set window title
   useEffect(() => {
-    document.title = 'Settings - Cortex'
+    document.title = 'Settings - Bodhi'
     const unsub = initSettingsSync()
     return () => {
       unsub()
@@ -50,11 +50,11 @@ export const SettingsWindow: React.FC = () => {
   }, [initSettingsSync])
 
   const handleMinimize = (): void => {
-    window.cortexAPI?.minimizeWindow?.()
+    window.bodhiAPI?.minimizeWindow?.()
   }
 
   const handleClose = (): void => {
-    window.cortexAPI?.closeWindow?.()
+    window.bodhiAPI?.closeWindow?.()
   }
 
   const handleSettingChange = (partial: Partial<EditorSettings>): void => {
@@ -69,7 +69,7 @@ export const SettingsWindow: React.FC = () => {
     setIsTestingAiKey(true)
     setAiTestResult(null)
     try {
-      const res = await window.cortexAPI?.aiTestConnection?.(
+      const res = await window.bodhiAPI?.aiTestConnection?.(
         settings.aiModelProvider,
         settings.aiApiKey
       )
@@ -158,7 +158,7 @@ export const SettingsWindow: React.FC = () => {
             <Sliders size={12} />
           </div>
           <span className="text-xs font-semibold tracking-wide text-cortex-text">
-            Cortex Settings
+            Bodhi Settings
           </span>
           <span className="text-[10px] text-cortex-muted bg-cortex-surface px-1.5 py-0.5 rounded font-mono">
             v1.0
@@ -394,7 +394,7 @@ export const SettingsWindow: React.FC = () => {
                         onChange={(e) =>
                           handleSettingChange({ fontSize: Number(e.target.value) })
                         }
-                        style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                        style={{ accentColor: settings.accentColor || 'var(--bodhi-accent, #5DD62C)' }}
                         className="flex-1 cursor-pointer"
                       />
                       <span className="text-[10px] text-cortex-muted">32px</span>
@@ -935,19 +935,19 @@ export const SettingsWindow: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => window.cortexAPI?.zoomOut?.()}
+                        onClick={() => window.bodhiAPI?.zoomOut?.()}
                         className="px-2.5 py-1 rounded bg-cortex-surface hover:bg-cortex-border text-xs text-cortex-text transition-colors"
                       >
                         Zoom -
                       </button>
                       <button
-                        onClick={() => window.cortexAPI?.resetZoom?.()}
+                        onClick={() => window.bodhiAPI?.resetZoom?.()}
                         className="px-2.5 py-1 rounded bg-cortex-surface hover:bg-cortex-border text-xs text-cortex-text transition-colors"
                       >
                         Reset (100%)
                       </button>
                       <button
-                        onClick={() => window.cortexAPI?.zoomIn?.()}
+                        onClick={() => window.bodhiAPI?.zoomIn?.()}
                         className="px-2.5 py-1 rounded bg-cortex-surface hover:bg-cortex-border text-xs text-cortex-text transition-colors"
                       >
                         Zoom +
@@ -1020,7 +1020,7 @@ export const SettingsWindow: React.FC = () => {
                         onChange={(e) =>
                           handleSettingChange({ terminalFontSize: Number(e.target.value) })
                         }
-                        style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                        style={{ accentColor: settings.accentColor || 'var(--bodhi-accent, #5DD62C)' }}
                         className="flex-1 cursor-pointer"
                       />
                       <span className="text-[10px] text-cortex-muted">24px</span>
@@ -1089,7 +1089,7 @@ export const SettingsWindow: React.FC = () => {
                           onChange={(e) =>
                             handleSettingChange({ autoSaveDelay: Number(e.target.value) })
                           }
-                          style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                          style={{ accentColor: settings.accentColor || 'var(--bodhi-accent, #5DD62C)' }}
                           className="flex-1 cursor-pointer"
                         />
                         <span className="text-[10px] text-cortex-muted">15s</span>
@@ -1200,7 +1200,7 @@ export const SettingsWindow: React.FC = () => {
                       if (isSk && currentProv !== 'openai') {
                         return (
                           <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
-                            <span>⚠️ This looks like an <strong>OpenAI</strong> key (starts with <code className="text-white">sk-</code>), but provider is set to <strong>{currentProv}</strong>.</span>
+                            <span>G��n+� This looks like an <strong>OpenAI</strong> key (starts with <code className="text-white">sk-</code>), but provider is set to <strong>{currentProv}</strong>.</span>
                             <button
                               onClick={() => handleSettingChange({ aiModelProvider: 'openai' })}
                               className="px-2 py-1 rounded bg-amber-500 text-black font-bold text-[10px] hover:brightness-110 shrink-0"
@@ -1214,7 +1214,7 @@ export const SettingsWindow: React.FC = () => {
                       if (isAnt && currentProv !== 'anthropic') {
                         return (
                           <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs flex items-center justify-between gap-2">
-                            <span>⚠️ This looks like an <strong>Anthropic</strong> key (starts with <code className="text-white">sk-ant-</code>), but provider is set to <strong>{currentProv}</strong>.</span>
+                            <span>G��n+� This looks like an <strong>Anthropic</strong> key (starts with <code className="text-white">sk-ant-</code>), but provider is set to <strong>{currentProv}</strong>.</span>
                             <button
                               onClick={() => handleSettingChange({ aiModelProvider: 'anthropic' })}
                               className="px-2 py-1 rounded bg-purple-500 text-white font-bold text-[10px] hover:brightness-110 shrink-0"
@@ -1228,7 +1228,7 @@ export const SettingsWindow: React.FC = () => {
                       if (isGemini && currentProv !== 'google-gemini') {
                         return (
                           <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs flex items-center justify-between gap-2">
-                            <span>ℹ️ This looks like a <strong>Google Gemini</strong> key (starts with <code className="text-white">AIzaSy</code>).</span>
+                            <span>G�n+� This looks like a <strong>Google Gemini</strong> key (starts with <code className="text-white">AIzaSy</code>).</span>
                             <button
                               onClick={() => handleSettingChange({ aiModelProvider: 'google-gemini' })}
                               className="px-2 py-1 rounded bg-blue-500 text-white font-bold text-[10px] hover:brightness-110 shrink-0"
@@ -1328,7 +1328,7 @@ export const SettingsWindow: React.FC = () => {
                         onChange={(e) =>
                           handleSettingChange({ aiTemperature: Number(e.target.value) })
                         }
-                        style={{ accentColor: settings.accentColor || 'var(--cortex-accent, #5DD62C)' }}
+                        style={{ accentColor: settings.accentColor || 'var(--bodhi-accent, #5DD62C)' }}
                         className="flex-1 cursor-pointer"
                       />
                       <span className="text-[10px] text-cortex-muted">1.0 (Creative)</span>
@@ -1383,3 +1383,6 @@ export const SettingsWindow: React.FC = () => {
 }
 
 export default SettingsWindow
+
+
+

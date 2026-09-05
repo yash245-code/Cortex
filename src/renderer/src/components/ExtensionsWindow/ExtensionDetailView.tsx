@@ -60,7 +60,7 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
 
     const fetchReadme = async (): Promise<void> => {
       try {
-        const text = await window.cortexAPI.extensionsGetReadme(
+        const text = await window.bodhiAPI.extensionsGetReadme(
           extension.id,
           namespace,
           extension.name
@@ -72,7 +72,7 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
         }
       } catch (err) {
         if (!isCancelled) {
-          setReadmeHtml('<p class="text-cortex-muted">Failed to load documentation.</p>')
+          setReadmeHtml('<p class="text-bodhi-muted">Failed to load documentation.</p>')
           setIsLoadingReadme(false)
         }
       }
@@ -88,7 +88,7 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
   useEffect(() => {
     if (activeTab === 'snippets') {
       setIsLoadingSnippets(true)
-      window.cortexAPI
+      window.bodhiAPI
         .extensionsGetSnippetsForExt(extension.id)
         .then((items) => {
           setSnippets(items || [])
@@ -109,27 +109,27 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-cortex-bg text-white overflow-hidden select-text animate-fade-in">
+    <div className="h-full flex flex-col bg-bodhi-bg text-white overflow-hidden select-text animate-fade-in">
       {/* Top Breadcrumb Bar */}
-      <div className="h-11 px-6 flex items-center gap-3 border-b border-cortex-border/70 bg-cortex-panel/40 shrink-0">
+      <div className="h-11 px-6 flex items-center gap-3 border-b border-BODHI-border/70 bg-bodhi-panel/40 shrink-0">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs text-cortex-muted hover:text-white transition-colors py-1 px-2 -ml-2 rounded-lg hover:bg-cortex-surface"
+          className="flex items-center gap-1.5 text-xs text-bodhi-muted hover:text-white transition-colors py-1 px-2 -ml-2 rounded-lg hover:bg-bodhi-surface"
         >
           <ArrowLeft size={14} />
           <span>Back to Extensions</span>
         </button>
-        <span className="text-cortex-border/70 text-sm">/</span>
+        <span className="text-BODHI-border/70 text-sm">/</span>
         <span className="text-xs font-semibold text-white truncate max-w-[300px]">
           {extension.displayName || extension.name}
         </span>
       </div>
 
       {/* Main Extension Header Card */}
-      <div className="p-6 border-b border-cortex-border/60 bg-cortex-sidebar/30 shrink-0">
+      <div className="p-6 border-b border-BODHI-border/60 bg-BODHI-sidebar/30 shrink-0">
         <div className="flex items-start gap-5">
           {/* Extension Icon */}
-          <div className="w-16 h-16 rounded-2xl bg-cortex-panel flex items-center justify-center shrink-0 border border-cortex-border/80 overflow-hidden shadow-lg p-2">
+          <div className="w-16 h-16 rounded-2xl bg-bodhi-panel flex items-center justify-center shrink-0 border border-BODHI-border/80 overflow-hidden shadow-lg p-2">
             {extension.icon ? (
               <img
                 src={extension.icon}
@@ -140,7 +140,7 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
                 }}
               />
             ) : (
-              <Package size={32} className="text-cortex-accent" />
+              <Package size={32} className="text-bodhi-accent" />
             )}
           </div>
 
@@ -150,13 +150,13 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2.5">
                   {extension.displayName || extension.name}
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-cortex-surface text-cortex-muted border border-cortex-border font-mono font-normal">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-bodhi-surface text-bodhi-muted border border-BODHI-border font-mono font-normal">
                     v{extension.version}
                   </span>
                 </h1>
-                <p className="text-xs text-cortex-muted mt-0.5">
+                <p className="text-xs text-bodhi-muted mt-0.5">
                   By <span className="text-white font-medium">{namespace}</span> •{' '}
-                  <span className="font-mono text-cortex-muted/80">{extension.id}</span>
+                  <span className="font-mono text-bodhi-muted/80">{extension.id}</span>
                 </p>
               </div>
 
@@ -169,7 +169,7 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
                       className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
                         isEnabled
                           ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
-                          : 'text-cortex-muted bg-cortex-surface border-cortex-border hover:text-white'
+                          : 'text-bodhi-muted bg-bodhi-surface border-BODHI-border hover:text-white'
                       }`}
                     >
                       <Power size={13} />
@@ -191,8 +191,8 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
                     disabled={isInstalling}
                     className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md ${
                       isInstalling
-                        ? 'bg-cortex-surface text-cortex-muted border border-cortex-border cursor-wait'
-                        : 'bg-cortex-accent text-black hover:brightness-110 active:scale-95'
+                        ? 'bg-bodhi-surface text-bodhi-muted border border-BODHI-border cursor-wait'
+                        : 'bg-bodhi-accent text-black hover:brightness-110 active:scale-95'
                     }`}
                   >
                     {isInstalling ? (
@@ -217,10 +217,10 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
             </p>
 
             {/* Badges / Stats Rail */}
-            <div className="flex items-center gap-4 mt-3 text-xs text-cortex-muted flex-wrap">
+            <div className="flex items-center gap-4 mt-3 text-xs text-bodhi-muted flex-wrap">
               {'downloadCount' in extension && extension.downloadCount ? (
                 <span className="flex items-center gap-1">
-                  <Download size={13} className="text-cortex-accent" />
+                  <Download size={13} className="text-bodhi-accent" />
                   <span className="text-white font-medium font-mono">
                     {extension.downloadCount > 1000
                       ? `${(extension.downloadCount / 1000).toFixed(1)}k`
@@ -244,7 +244,7 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
                 href={openVsxUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-cortex-accent hover:underline ml-auto"
+                className="inline-flex items-center gap-1 text-bodhi-accent hover:underline ml-auto"
               >
                 <span>View on Open VSX</span>
                 <ExternalLink size={12} />
@@ -255,13 +255,13 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
       </div>
 
       {/* Tabs Switcher */}
-      <div className="px-6 border-b border-cortex-border/70 bg-cortex-panel/20 flex items-center gap-4 shrink-0">
+      <div className="px-6 border-b border-BODHI-border/70 bg-bodhi-panel/20 flex items-center gap-4 shrink-0">
         <button
           onClick={() => setActiveTab('overview')}
           className={`py-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
             activeTab === 'overview'
-              ? 'text-cortex-accent border-cortex-accent'
-              : 'text-cortex-muted border-transparent hover:text-white'
+              ? 'text-bodhi-accent border-bodhi-accent'
+              : 'text-bodhi-muted border-transparent hover:text-white'
           }`}
         >
           <BookOpen size={14} />
@@ -273,8 +273,8 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
             onClick={() => setActiveTab('snippets')}
             className={`py-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'snippets'
-                ? 'text-cortex-accent border-cortex-accent'
-                : 'text-cortex-muted border-transparent hover:text-white'
+                ? 'text-bodhi-accent border-bodhi-accent'
+                : 'text-bodhi-muted border-transparent hover:text-white'
             }`}
           >
             <FileCode2 size={14} />
@@ -289,8 +289,8 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
         {activeTab === 'overview' && (
           <div className="max-w-4xl">
             {isLoadingReadme ? (
-              <div className="py-16 flex flex-col items-center justify-center gap-3 text-cortex-muted text-xs">
-                <RefreshCw size={22} className="animate-spin text-cortex-accent" />
+              <div className="py-16 flex flex-col items-center justify-center gap-3 text-bodhi-muted text-xs">
+                <RefreshCw size={22} className="animate-spin text-bodhi-accent" />
                 <span>Loading extension documentation...</span>
               </div>
             ) : (
@@ -310,22 +310,22 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
                 <h3 className="text-sm font-semibold text-white">
                   Available Snippet Triggers
                 </h3>
-                <p className="text-xs text-cortex-muted mt-0.5">
+                <p className="text-xs text-bodhi-muted mt-0.5">
                   Type these prefixes in your editor to expand boilerplate code.
                 </p>
               </div>
-              <span className="text-xs font-mono text-cortex-muted">
+              <span className="text-xs font-mono text-bodhi-muted">
                 {snippets.length} snippets found
               </span>
             </div>
 
             {isLoadingSnippets ? (
-              <div className="py-12 text-center text-xs text-cortex-muted">
-                <RefreshCw size={18} className="animate-spin text-cortex-accent mx-auto mb-2" />
+              <div className="py-12 text-center text-xs text-bodhi-muted">
+                <RefreshCw size={18} className="animate-spin text-bodhi-accent mx-auto mb-2" />
                 Loading snippets...
               </div>
             ) : snippets.length === 0 ? (
-              <div className="p-8 rounded-xl bg-cortex-surface/40 border border-cortex-border text-center text-xs text-cortex-muted">
+              <div className="p-8 rounded-xl bg-bodhi-surface/40 border border-BODHI-border text-center text-xs text-bodhi-muted">
                 No individual snippet triggers detected in this extension package.
               </div>
             ) : (
@@ -341,11 +341,11 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
                   return (
                     <div
                       key={idx}
-                      className="p-4 rounded-xl bg-cortex-surface/50 border border-cortex-border/70 hover:border-cortex-accent/40 transition-all flex flex-col gap-2.5 group"
+                      className="p-4 rounded-xl bg-bodhi-surface/50 border border-BODHI-border/70 hover:border-bodhi-accent/40 transition-all flex flex-col gap-2.5 group"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <code className="text-xs font-mono font-bold text-cortex-accent bg-cortex-panel px-2 py-0.5 rounded-md border border-cortex-border">
+                          <code className="text-xs font-mono font-bold text-bodhi-accent bg-bodhi-panel px-2 py-0.5 rounded-md border border-BODHI-border">
                             {prefixes}
                           </code>
                           <span className="text-xs font-semibold text-white">
@@ -355,14 +355,14 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
 
                         <div className="flex items-center gap-2 shrink-0">
                           {snip.language && (
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cortex-panel text-cortex-muted border border-cortex-border uppercase">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-bodhi-panel text-bodhi-muted border border-BODHI-border uppercase">
                               {snip.language}
                             </span>
                           )}
                           <button
                             onClick={() => handleCopy(body, `${idx}`)}
                             title="Copy snippet code"
-                            className="p-1 rounded-md text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors"
+                            className="p-1 rounded-md text-bodhi-muted hover:text-white hover:bg-bodhi-surface transition-colors"
                           >
                             {copiedSnippet === `${idx}` ? (
                               <CheckCheck size={14} className="text-emerald-400" />
@@ -374,12 +374,12 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
                       </div>
 
                       {snip.description && (
-                        <p className="text-xs text-cortex-muted">
+                        <p className="text-xs text-bodhi-muted">
                           {snip.description}
                         </p>
                       )}
 
-                      <pre className="text-[11px] font-mono bg-cortex-panel/90 text-emerald-300/90 p-3 rounded-lg border border-cortex-border/60 overflow-x-auto max-h-48">
+                      <pre className="text-[11px] font-mono bg-bodhi-panel/90 text-emerald-300/90 p-3 rounded-lg border border-BODHI-border/60 overflow-x-auto max-h-48">
                         <code>{body}</code>
                       </pre>
                     </div>
@@ -393,3 +393,4 @@ export const ExtensionDetailView: React.FC<ExtensionDetailViewProps> = ({
     </div>
   )
 }
+

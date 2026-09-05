@@ -116,7 +116,7 @@ export const FONT_THEMES: Record<string, FontTheme> = {
     id: 'custom',
     name: 'Custom Monospace',
     vibe: '⚙️ User Configured',
-    description: 'Use your custom font family configured in Cortex Editor Settings.',
+    description: 'Use your custom font family configured in BODHI EDITOR Settings.',
     fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
     fontLigatures: true,
     letterSpacing: 0,

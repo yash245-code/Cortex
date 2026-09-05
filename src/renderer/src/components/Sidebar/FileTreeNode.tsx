@@ -67,7 +67,7 @@ function getFileIcon(filename: string): React.ReactNode {
     case 'webp':
       return <FileImage size={14} className="text-purple-400 shrink-0" />
     default:
-      return <File size={14} className="text-cortex-muted shrink-0" />
+      return <File size={14} className="text-bodhi-muted shrink-0" />
   }
 }
 
@@ -179,13 +179,13 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
         style={{ paddingLeft: `${depth * 14 + 10}px` }}
         className={`group relative flex items-center h-7 pr-2 text-xs cursor-pointer rounded transition-colors ${
           isSelected
-            ? 'bg-cortex-selection/40 text-white font-medium'
-            : 'hover:bg-cortex-surface/60 hover:text-white'
+            ? 'bg-BODHI-selection/40 text-white font-medium'
+            : 'hover:bg-bodhi-surface/60 hover:text-white'
         } ${getFileTextColor()}`}
       >
         {/* Expand/Collapse Chevron for directories */}
         {isDirectory ? (
-          <span className="w-4 h-4 flex items-center justify-center text-cortex-muted group-hover:text-cortex-text mr-1">
+          <span className="w-4 h-4 flex items-center justify-center text-bodhi-muted group-hover:text-BODHI-text mr-1">
             {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </span>
         ) : (
@@ -196,9 +196,9 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
         <span className="mr-1.5 flex items-center">
           {isDirectory ? (
             isExpanded ? (
-              <FolderOpen size={14} className="text-cortex-accent shrink-0" />
+              <FolderOpen size={14} className="text-bodhi-accent shrink-0" />
             ) : (
-              <Folder size={14} className="text-cortex-accent shrink-0" />
+              <Folder size={14} className="text-bodhi-accent shrink-0" />
             )
           ) : (
             getFileIcon(node.name)
@@ -218,7 +218,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
               if (e.key === 'Escape') setRenamingPath(null)
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-cortex-bg border border-cortex-accent rounded px-1 text-xs text-white outline-none"
+            className="flex-1 bg-bodhi-bg border border-bodhi-accent rounded px-1 text-xs text-white outline-none"
           />
         ) : (
           <span className="truncate flex-1">{node.name}</span>
@@ -247,7 +247,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
                 ? 'text-green-400 bg-green-400/10'
                 : gitStatus === 'D'
                 ? 'text-rose-400 bg-rose-400/10'
-                : 'text-cortex-muted bg-cortex-surface'
+                : 'text-bodhi-muted bg-bodhi-surface'
             }`}
           >
             {gitStatus === '??' ? 'U' : gitStatus}
@@ -256,7 +256,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
 
         {/* Hover Quick Actions */}
         {!isRenaming && (
-          <div className="hidden group-hover:flex items-center gap-1 ml-auto bg-cortex-panel/90 px-1 rounded">
+          <div className="hidden group-hover:flex items-center gap-1 ml-auto bg-bodhi-panel/90 px-1 rounded">
             {isDirectory && (
               <>
                 <button
@@ -266,7 +266,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
                     if (!isExpanded) toggleExpand(node.path)
                   }}
                   title="New File"
-                  className="p-0.5 text-cortex-muted hover:text-white rounded"
+                  className="p-0.5 text-bodhi-muted hover:text-white rounded"
                 >
                   <Plus size={12} />
                 </button>
@@ -277,7 +277,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
                     if (!isExpanded) toggleExpand(node.path)
                   }}
                   title="New Folder"
-                  className="p-0.5 text-cortex-muted hover:text-white rounded"
+                  className="p-0.5 text-bodhi-muted hover:text-white rounded"
                 >
                   <FolderPlus size={12} />
                 </button>
@@ -289,14 +289,14 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
                 setRenamingPath(node.path)
               }}
               title="Rename"
-              className="p-0.5 text-cortex-muted hover:text-white rounded"
+              className="p-0.5 text-bodhi-muted hover:text-white rounded"
             >
               <Edit2 size={11} />
             </button>
             <button
               onClick={handleDelete}
               title="Delete"
-              className="p-0.5 text-cortex-muted hover:text-red-400 rounded"
+              className="p-0.5 text-bodhi-muted hover:text-red-400 rounded"
             >
               <Trash2 size={11} />
             </button>
@@ -308,14 +308,14 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
       {isDirectory && isExpanded && isCreatingUnderThis && (
         <div
           style={{ paddingLeft: `${(depth + 1) * 14 + 10}px` }}
-          className="flex items-center h-7 pr-2 text-xs bg-cortex-surface/40"
+          className="flex items-center h-7 pr-2 text-xs bg-bodhi-surface/40"
         >
           <span className="w-4 h-4 mr-1" />
           <span className="mr-1.5 flex items-center">
             {creatingItem.type === 'file' ? (
-              <File size={14} className="text-cortex-muted" />
+              <File size={14} className="text-bodhi-muted" />
             ) : (
-              <Folder size={14} className="text-cortex-accent" />
+              <Folder size={14} className="text-bodhi-accent" />
             )}
           </span>
           <input
@@ -330,7 +330,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, depth }) => {
               if (e.key === 'Escape') setCreatingItem(null)
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-cortex-bg border border-cortex-accent rounded px-1.5 py-0.5 text-xs text-white outline-none"
+            className="flex-1 bg-bodhi-bg border border-bodhi-accent rounded px-1.5 py-0.5 text-xs text-white outline-none"
           />
         </div>
       )}

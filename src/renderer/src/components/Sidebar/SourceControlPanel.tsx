@@ -32,7 +32,7 @@ function getStatusBadge(status: GitFileStatusType): { text: string; color: strin
     case 'R':
       return { text: 'R', color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/30' }
     default:
-      return { text: status, color: 'text-cortex-muted', bg: 'bg-cortex-surface border-cortex-border' }
+      return { text: status, color: 'text-bodhi-muted', bg: 'bg-bodhi-surface border-BODHI-border' }
   }
 }
 
@@ -86,13 +86,13 @@ export const SourceControlPanel: React.FC = () => {
 
   if (!rootPath) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none text-cortex-muted">
-        <GitBranch size={32} className="text-cortex-muted mb-2 opacity-50" />
-        <h4 className="text-xs font-semibold text-cortex-text mb-1">No Folder Opened</h4>
+      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none text-bodhi-muted">
+        <GitBranch size={32} className="text-bodhi-muted mb-2 opacity-50" />
+        <h4 className="text-xs font-semibold text-BODHI-text mb-1">No Folder Opened</h4>
         <p className="text-[11px] mb-3">Open a workspace to view Git source control.</p>
         <button
           onClick={() => openFolder()}
-          className="px-3 py-1 rounded bg-cortex-accent text-black font-semibold text-xs transition-transform active:scale-95"
+          className="px-3 py-1 rounded bg-bodhi-accent text-black font-semibold text-xs transition-transform active:scale-95"
         >
           Open Folder
         </button>
@@ -102,17 +102,17 @@ export const SourceControlPanel: React.FC = () => {
 
   if (!isGitRepo) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none text-cortex-muted">
-        <div className="w-10 h-10 rounded-full bg-cortex-surface flex items-center justify-center text-cortex-muted mb-2 border border-cortex-border">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none text-bodhi-muted">
+        <div className="w-10 h-10 rounded-full bg-bodhi-surface flex items-center justify-center text-bodhi-muted mb-2 border border-BODHI-border">
           <AlertCircle size={20} />
         </div>
-        <h4 className="text-xs font-semibold text-cortex-text mb-1">No Git Repository Found</h4>
+        <h4 className="text-xs font-semibold text-BODHI-text mb-1">No Git Repository Found</h4>
         <p className="text-[11px] mb-3 max-w-[200px]">
           The folder is not tracked by Git. Initialize a repository to enable version control.
         </p>
         <button
           onClick={() => refreshGitStatus()}
-          className="flex items-center gap-1 px-3 py-1.5 rounded bg-cortex-surface hover:bg-cortex-active border border-cortex-border text-xs text-cortex-text transition-all shadow-sm"
+          className="flex items-center gap-1 px-3 py-1.5 rounded bg-bodhi-surface hover:bg-BODHI-active border border-BODHI-border text-xs text-BODHI-text transition-all shadow-sm"
         >
           <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
           <span>Check Again</span>
@@ -137,11 +137,11 @@ export const SourceControlPanel: React.FC = () => {
             openDiffTab(item.path)
           }
         }}
-        className="group flex items-center h-7 px-3 text-xs text-cortex-text hover:bg-cortex-surface/60 rounded cursor-pointer transition-colors"
+        className="group flex items-center h-7 px-3 text-xs text-BODHI-text hover:bg-bodhi-surface/60 rounded cursor-pointer transition-colors"
       >
-        <File size={13} className="text-cortex-muted mr-1.5 shrink-0 group-hover:text-cortex-text" />
+        <File size={13} className="text-bodhi-muted mr-1.5 shrink-0 group-hover:text-BODHI-text" />
         <span className="truncate font-medium flex-1 mr-2">{item.fileName}</span>
-        <span className="text-[10px] text-cortex-muted truncate max-w-[90px] mr-2">
+        <span className="text-[10px] text-bodhi-muted truncate max-w-[90px] mr-2">
           {item.relativePath.includes('/')
             ? item.relativePath.substring(0, item.relativePath.lastIndexOf('/'))
             : ''}
@@ -156,7 +156,7 @@ export const SourceControlPanel: React.FC = () => {
               openDiffTab(item.path)
             }}
             title="Open Changes (Diff View)"
-            className="p-1 text-cortex-muted hover:text-amber-400 hover:bg-cortex-active rounded transition-colors"
+            className="p-1 text-bodhi-muted hover:text-amber-400 hover:bg-BODHI-active rounded transition-colors"
           >
             <GitCompare size={12} />
           </button>
@@ -168,7 +168,7 @@ export const SourceControlPanel: React.FC = () => {
                 unstageFile(item.relativePath)
               }}
               title="Unstage Changes"
-              className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-active rounded transition-colors"
+              className="p-1 text-bodhi-muted hover:text-white hover:bg-BODHI-active rounded transition-colors"
             >
               <Minus size={12} />
             </button>
@@ -182,7 +182,7 @@ export const SourceControlPanel: React.FC = () => {
                   discardChanges(item.relativePath, false)
                 }}
                 title="Discard Changes"
-                className="p-1 text-cortex-muted hover:text-rose-400 hover:bg-cortex-active rounded transition-colors"
+                className="p-1 text-bodhi-muted hover:text-rose-400 hover:bg-BODHI-active rounded transition-colors"
               >
                 <RotateCcw size={12} />
               </button>
@@ -192,7 +192,7 @@ export const SourceControlPanel: React.FC = () => {
                   stageFile(item.relativePath)
                 }}
                 title="Stage Changes"
-                className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-active rounded transition-colors"
+                className="p-1 text-bodhi-muted hover:text-white hover:bg-BODHI-active rounded transition-colors"
               >
                 <Plus size={12} />
               </button>
@@ -207,7 +207,7 @@ export const SourceControlPanel: React.FC = () => {
                   discardChanges(item.relativePath, true)
                 }}
                 title="Delete Untracked File"
-                className="p-1 text-cortex-muted hover:text-rose-400 hover:bg-cortex-active rounded transition-colors"
+                className="p-1 text-bodhi-muted hover:text-rose-400 hover:bg-BODHI-active rounded transition-colors"
               >
                 <RotateCcw size={12} />
               </button>
@@ -217,7 +217,7 @@ export const SourceControlPanel: React.FC = () => {
                   stageFile(item.relativePath)
                 }}
                 title="Track / Stage File"
-                className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-active rounded transition-colors"
+                className="p-1 text-bodhi-muted hover:text-white hover:bg-BODHI-active rounded transition-colors"
               >
                 <Plus size={12} />
               </button>
@@ -236,15 +236,15 @@ export const SourceControlPanel: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-cortex-sidebar text-cortex-text select-none">
+    <div className="flex-1 flex flex-col overflow-hidden bg-BODHI-sidebar text-BODHI-text select-none">
       {/* Header */}
-      <div className="h-8 px-3 flex items-center justify-between border-b border-cortex-border shrink-0">
+      <div className="h-8 px-3 flex items-center justify-between border-b border-BODHI-border shrink-0">
         <div className="flex items-center gap-1.5 truncate">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-cortex-muted">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-bodhi-muted">
             Source Control
           </span>
           {branch && (
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cortex-surface text-cortex-accent font-mono text-[10px] border border-cortex-border">
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-bodhi-surface text-bodhi-accent font-mono text-[10px] border border-BODHI-border">
               <GitBranch size={10} />
               <span className="truncate max-w-[80px]">{branch}</span>
             </span>
@@ -252,12 +252,12 @@ export const SourceControlPanel: React.FC = () => {
         </div>
 
         {/* Top actions */}
-        <div className="flex items-center gap-0.5 text-cortex-muted">
+        <div className="flex items-center gap-0.5 text-bodhi-muted">
           {totalChanges > 0 && stagedFiles.length > 0 && (
             <button
               onClick={() => unstageAll()}
               title="Unstage All Changes"
-              className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+              className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
             >
               <Minus size={13} />
             </button>
@@ -266,7 +266,7 @@ export const SourceControlPanel: React.FC = () => {
             <button
               onClick={() => stageAll()}
               title="Stage All Changes"
-              className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+              className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
             >
               <Plus size={13} />
             </button>
@@ -274,8 +274,8 @@ export const SourceControlPanel: React.FC = () => {
           <button
             onClick={() => refreshGitStatus()}
             title="Refresh Git Status"
-            className={`p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors ${
-              isLoading ? 'animate-spin text-cortex-accent' : ''
+            className={`p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors ${
+              isLoading ? 'animate-spin text-bodhi-accent' : ''
             }`}
           >
             <RefreshCw size={13} />
@@ -284,14 +284,14 @@ export const SourceControlPanel: React.FC = () => {
       </div>
 
       {/* Commit Box */}
-      <div className="p-3 border-b border-cortex-border space-y-2 shrink-0">
+      <div className="p-3 border-b border-BODHI-border space-y-2 shrink-0">
         <textarea
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Message (Ctrl+Enter to commit)"
           rows={2}
-          className="w-full bg-cortex-panel text-xs text-cortex-text p-2 rounded border border-cortex-border focus:border-cortex-accent focus:outline-none resize-none placeholder:text-cortex-muted"
+          className="w-full bg-bodhi-panel text-xs text-BODHI-text p-2 rounded border border-BODHI-border focus:border-bodhi-accent focus:outline-none resize-none placeholder:text-bodhi-muted"
         />
 
         <button
@@ -299,8 +299,8 @@ export const SourceControlPanel: React.FC = () => {
           disabled={!commitMessage.trim() || isCommitting || totalChanges === 0}
           className={`w-full py-1.5 rounded flex items-center justify-center gap-1.5 text-xs font-semibold transition-all ${
             commitMessage.trim() && totalChanges > 0 && !isCommitting
-              ? 'bg-cortex-accent text-black hover:opacity-90 active:scale-[0.99] shadow-sm'
-              : 'bg-cortex-surface text-cortex-muted opacity-50 cursor-not-allowed border border-cortex-border'
+              ? 'bg-bodhi-accent text-black hover:opacity-90 active:scale-[0.99] shadow-sm'
+              : 'bg-bodhi-surface text-bodhi-muted opacity-50 cursor-not-allowed border border-BODHI-border'
           }`}
         >
           {isCommitting ? (
@@ -320,10 +320,10 @@ export const SourceControlPanel: React.FC = () => {
       {/* Changes Accordions Container */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 space-y-1">
         {totalChanges === 0 ? (
-          <div className="p-6 flex flex-col items-center justify-center text-center text-cortex-muted">
-            <CheckCircle2 size={28} className="text-cortex-accent mb-2 opacity-80" />
-            <span className="text-xs font-medium text-cortex-text">Working tree clean</span>
-            <span className="text-[11px] text-cortex-muted mt-0.5">No changes to commit</span>
+          <div className="p-6 flex flex-col items-center justify-center text-center text-bodhi-muted">
+            <CheckCircle2 size={28} className="text-bodhi-accent mb-2 opacity-80" />
+            <span className="text-xs font-medium text-BODHI-text">Working tree clean</span>
+            <span className="text-[11px] text-bodhi-muted mt-0.5">No changes to commit</span>
           </div>
         ) : (
           <>
@@ -332,14 +332,14 @@ export const SourceControlPanel: React.FC = () => {
               <div>
                 <div
                   onClick={() => setIsStagedOpen(!isStagedOpen)}
-                  className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-cortex-muted hover:text-cortex-text cursor-pointer group"
+                  className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-bodhi-muted hover:text-BODHI-text cursor-pointer group"
                 >
                   <div className="flex items-center gap-1">
                     {isStagedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                     <span className="tracking-wide">STAGED CHANGES</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="px-1.5 py-0.2 rounded-full bg-cortex-surface text-[10px] font-mono text-cortex-accent">
+                    <span className="px-1.5 py-0.2 rounded-full bg-bodhi-surface text-[10px] font-mono text-bodhi-accent">
                       {stagedFiles.length}
                     </span>
                     <button
@@ -368,14 +368,14 @@ export const SourceControlPanel: React.FC = () => {
               <div>
                 <div
                   onClick={() => setIsChangesOpen(!isChangesOpen)}
-                  className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-cortex-muted hover:text-cortex-text cursor-pointer group"
+                  className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-bodhi-muted hover:text-BODHI-text cursor-pointer group"
                 >
                   <div className="flex items-center gap-1">
                     {isChangesOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                     <span className="tracking-wide">CHANGES</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="px-1.5 py-0.2 rounded-full bg-cortex-surface text-[10px] font-mono text-amber-400">
+                    <span className="px-1.5 py-0.2 rounded-full bg-bodhi-surface text-[10px] font-mono text-amber-400">
                       {unstagedFiles.length}
                     </span>
                     <button
@@ -404,14 +404,14 @@ export const SourceControlPanel: React.FC = () => {
               <div>
                 <div
                   onClick={() => setIsUntrackedOpen(!isUntrackedOpen)}
-                  className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-cortex-muted hover:text-cortex-text cursor-pointer group"
+                  className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-bodhi-muted hover:text-BODHI-text cursor-pointer group"
                 >
                   <div className="flex items-center gap-1">
                     {isUntrackedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                     <span className="tracking-wide">UNTRACKED FILES</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="px-1.5 py-0.2 rounded-full bg-cortex-surface text-[10px] font-mono text-emerald-400">
+                    <span className="px-1.5 py-0.2 rounded-full bg-bodhi-surface text-[10px] font-mono text-emerald-400">
                       {untrackedFiles.length}
                     </span>
                     <button

@@ -1,25 +1,33 @@
 import type { Config } from 'tailwindcss'
 
+// Shared color palette — all pointing to --bodhi-* CSS variables defined in index.css
+const bodhiColors = {
+  bg: 'var(--bodhi-bg, #111111)',
+  sidebar: 'var(--bodhi-sidebar, #181818)',
+  panel: 'var(--bodhi-panel, #141414)',
+  surface: 'var(--bodhi-surface, #252525)',
+  border: 'var(--bodhi-border, #2d2d2d)',
+  active: 'var(--bodhi-active, #2a2a2a)',
+  accent: 'var(--bodhi-accent, #5DD62C)',
+  accentHover: 'var(--bodhi-accent-hover, #4ec023)',
+  accentSecondary: 'var(--bodhi-selection, #337418)',
+  text: 'var(--bodhi-text, #F4F4F4)',
+  muted: 'var(--bodhi-muted, #9E9E9E)',
+  selection: 'var(--bodhi-selection, #5DD62C33)'
+}
+
 export default {
   content: ['./src/renderer/index.html', './src/renderer/src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        cortex: {
-          bg: 'var(--cortex-bg, #0F0F0F)',
-          sidebar: 'var(--cortex-sidebar, #171717)',
-          panel: 'var(--cortex-panel, #202020)',
-          surface: 'var(--cortex-surface, #282828)',
-          border: 'var(--cortex-border, #2F2F2F)',
-          active: 'var(--cortex-active, #333333)',
-          accent: 'var(--cortex-accent, #5DD62C)',
-          accentHover: 'var(--cortex-accent-hover, #4ec023)',
-          accentSecondary: 'var(--cortex-selection, #337418)',
-          text: 'var(--cortex-text, #F8F8F8)',
-          muted: 'var(--cortex-muted, #8E8E8E)',
-          selection: 'var(--cortex-selection, #33741866)'
-        }
+        // BODHI (uppercase) — used in most component files as bg-BODHI-bg, text-BODHI-text etc.
+        BODHI: bodhiColors,
+        // bodhi (lowercase) — used in App.tsx and some other files
+        bodhi: bodhiColors,
+        // cortex — legacy alias used in SettingsWindow and ExtensionsWindow
+        cortex: bodhiColors
       },
       fontFamily: {
         mono: ['Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Consolas', 'monospace'],

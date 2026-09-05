@@ -1,5 +1,5 @@
-appId: com.cortex.editor
-productName: Cortex
+appId: com.bodhi.editor
+productName: Bodhi Code Editor
 npmRebuild: false
 directories:
   output: dist
@@ -7,11 +7,15 @@ directories:
 files:
   - out/**/*
   - package.json
+extraResources:
+  - from: resources
+    to: resources
 asar: true
 asarUnpack:
   - node_modules/node-pty/**/*
+
 win:
-  executableName: Cortex
+  executableName: BodhiCodeEditor
   icon: resources/icon.ico
   target:
     - target: nsis
@@ -20,13 +24,21 @@ win:
     - target: portable
       arch:
         - x64
+    - target: zip
+      arch:
+        - x64
+
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Cortex
+  shortcutName: Bodhi Code Editor
   installerIcon: resources/icon.ico
   uninstallerIcon: resources/icon.ico
   installerHeaderIcon: resources/icon.ico
+  artifactName: "Bodhi Code Editor Setup ${version}.${ext}"
+  license: resources/TERMS.txt
 
+portable:
+  artifactName: "Bodhi Code Editor ${version} Portable.${ext}"

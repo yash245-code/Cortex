@@ -1,4 +1,7 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
+import * as path from 'path'
+import * as fsSync from 'fs'
+import * as fs from 'fs/promises'
 import { IPC_CHANNELS } from '../shared/constants'
 import { fileService } from './services/fileService'
 import { terminalService } from './services/terminalService'
@@ -10,7 +13,34 @@ import { SearchOptions, MarketplaceExtension, AICompletionRequest, AIEditRequest
 
 const searchService = new SearchService()
 
-let storedSettings: Record<string, unknown> = {}
+function getSettingsFilePath(): string {
+  return path.join(app.getPath('userData'), 'settings.json')
+}
+
+function loadPersistedSettings(): Record<string, unknown> {
+  try {
+    const filePath = getSettingsFilePath()
+    if (fsSync.existsSync(filePath)) {
+      const raw = fsSync.readFileSync(filePath, 'utf-8')
+      return JSON.parse(raw)
+    }
+  } catch (err) {
+    console.warn('[IPC] Failed to read persisted settings.json:', err)
+  }
+  return {}
+}
+
+async function savePersistedSettings(settings: Record<string, unknown>): Promise<void> {
+  try {
+    const filePath = getSettingsFilePath()
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), 'utf-8')
+  } catch (err) {
+    console.error('[IPC] Failed to save settings.json:', err)
+  }
+}
+
+let storedSettings: Record<string, unknown> = loadPersistedSettings()
 
 export function registerIpcHandlers(
   mainWindow: BrowserWindow,
@@ -62,8 +92,9 @@ export function registerIpcHandlers(
     return storedSettings
   })
 
-  ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE, (_, partialSettings: Record<string, unknown>) => {
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE, async (_, partialSettings: Record<string, unknown>) => {
     storedSettings = { ...storedSettings, ...partialSettings }
+    await savePersistedSettings(storedSettings)
     // Broadcast to all windows
     BrowserWindow.getAllWindows().forEach((win) => {
       if (!win.isDestroyed()) {
@@ -319,28 +350,42 @@ export function registerIpcHandlers(
   ipcMain.handle(
     IPC_CHANNELS.AI_GENERATE_COMPLETION,
     async (_, req: AICompletionRequest) => {
-      return await aiService.generateCompletion(req)
+      const mergedReq: AICompletionRequest = {
+        ...req,
+        settings: { ...(storedSettings as any), ...req.settings }
+      }
+      return await aiService.generateCompletion(mergedReq)
     }
   )
 
   ipcMain.handle(
     IPC_CHANNELS.AI_GENERATE_EDIT,
     async (_, req: AIEditRequest) => {
-      return await aiService.generateEdit(req)
+      const mergedReq: AIEditRequest = {
+        ...req,
+        settings: { ...(storedSettings as any), ...req.settings }
+      }
+      return await aiService.generateEdit(mergedReq)
     }
   )
 
   ipcMain.handle(
     IPC_CHANNELS.AI_CHAT,
     async (_, req: AIChatRequest) => {
-      return await aiService.chat(req)
+      const mergedReq: AIChatRequest = {
+        ...req,
+        settings: { ...(storedSettings as any), ...req.settings }
+      }
+      return await aiService.chat(mergedReq)
     }
   )
 
   ipcMain.handle(
     IPC_CHANNELS.AI_TEST_CONNECTION,
     async (_, provider?: string, apiKey?: string) => {
-      return await aiService.testConnection(provider, apiKey)
+      const resolvedProvider = provider || (storedSettings.aiModelProvider as string)
+      const resolvedKey = apiKey || (storedSettings.aiApiKey as string)
+      return await aiService.testConnection(resolvedProvider, resolvedKey)
     }
   )
 }

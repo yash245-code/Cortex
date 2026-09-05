@@ -55,8 +55,8 @@ export const TerminalPanel: React.FC = () => {
 
   // 1. Fetch available system shells on mount
   useEffect(() => {
-    if (window.cortexAPI?.terminalGetAvailableShells) {
-      window.cortexAPI.terminalGetAvailableShells().then((shells) => {
+    if (window.bodhiAPI?.terminalGetAvailableShells) {
+      window.bodhiAPI.terminalGetAvailableShells().then((shells) => {
         if (shells && shells.length > 0) {
           setAvailableShells(shells)
         }
@@ -66,7 +66,7 @@ export const TerminalPanel: React.FC = () => {
 
   // 2. Discover package.json scripts from open workspace
   useEffect(() => {
-    if (!rootPath || !window.cortexAPI?.readFile) {
+    if (!rootPath || !window.bodhiAPI?.readFile) {
       setPackageScripts([])
       return
     }
@@ -75,7 +75,7 @@ export const TerminalPanel: React.FC = () => {
       ? `${rootPath}\\package.json`
       : `${rootPath}/package.json`
 
-    window.cortexAPI
+    window.bodhiAPI
       .readFile(pkgPath)
       .then((content) => {
         if (content) {
@@ -193,14 +193,14 @@ export const TerminalPanel: React.FC = () => {
   }, [isShellMenuOpen, isTasksMenuOpen])
 
   const handleClear = (): void => {
-    if (window.cortexAPI?.writeTerminal && activeTerminalId) {
-      window.cortexAPI.writeTerminal(activeTerminalId, 'cls\r')
+    if (window.bodhiAPI?.writeTerminal && activeTerminalId) {
+      window.bodhiAPI.writeTerminal(activeTerminalId, 'cls\r')
     }
   }
 
   const handleRestart = (): void => {
-    if (window.cortexAPI?.writeTerminal && activeTerminalId) {
-      window.cortexAPI.writeTerminal(activeTerminalId, '\x03clear\r')
+    if (window.bodhiAPI?.writeTerminal && activeTerminalId) {
+      window.bodhiAPI.writeTerminal(activeTerminalId, '\x03clear\r')
     }
   }
 
@@ -216,8 +216,8 @@ export const TerminalPanel: React.FC = () => {
 
     // Delay slightly to allow backend PTY spawn before piping npm run command
     setTimeout(() => {
-      if (window.cortexAPI?.writeTerminal) {
-        window.cortexAPI.writeTerminal(newSessionId, `npm run ${scriptName}\r`)
+      if (window.bodhiAPI?.writeTerminal) {
+        window.bodhiAPI.writeTerminal(newSessionId, `npm run ${scriptName}\r`)
       }
     }, 400)
   }
@@ -278,7 +278,7 @@ export const TerminalPanel: React.FC = () => {
   return (
     <div
       style={{ height: `${terminalHeight}px` }}
-      className={`w-full flex-col bg-cortex-bg border-t border-cortex-border relative shrink-0 ${
+      className={`w-full flex-col bg-bodhi-bg border-t border-BODHI-border relative shrink-0 ${
         isTerminalOpen ? 'flex' : 'hidden'
       }`}
     >
@@ -288,15 +288,15 @@ export const TerminalPanel: React.FC = () => {
         title="Drag to resize terminal"
         className="group h-3 w-full absolute -top-1.5 left-0 right-0 cursor-row-resize z-50 flex items-center justify-center"
       >
-        <div className="h-[2px] w-full bg-transparent group-hover:bg-cortex-accent/80 group-active:bg-cortex-accent transition-colors" />
+        <div className="h-[2px] w-full bg-transparent group-hover:bg-bodhi-accent/80 group-active:bg-bodhi-accent transition-colors" />
       </div>
 
       {/* Terminal Header & Multi-Session Tab Bar */}
-      <div className="h-8 px-2 flex items-center justify-between border-b border-cortex-border select-none shrink-0 bg-cortex-panel gap-2 relative z-30">
+      <div className="h-8 px-2 flex items-center justify-between border-b border-BODHI-border select-none shrink-0 bg-bodhi-panel gap-2 relative z-30">
         {/* Left: Terminal Sessions Tab Bar */}
         <div className="flex items-center gap-1 flex-1 min-w-0 py-0.5">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold text-cortex-text border-r border-cortex-border/70 pr-2.5 shrink-0">
-            <TerminalIcon size={13} className="text-cortex-accent" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold text-BODHI-text border-r border-BODHI-border/70 pr-2.5 shrink-0">
+            <TerminalIcon size={13} className="text-bodhi-accent" />
             <span className="hidden sm:inline">TERMINAL</span>
           </div>
 
@@ -312,14 +312,14 @@ export const TerminalPanel: React.FC = () => {
                   onClick={() => setActiveTerminalId(session.id)}
                   className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs cursor-pointer transition-all border shrink-0 ${
                     isActive
-                      ? 'bg-cortex-surface text-white border-cortex-accent/40 font-medium shadow-sm'
-                      : 'bg-transparent text-cortex-muted hover:text-cortex-text hover:bg-cortex-surface/50 border-transparent'
+                      ? 'bg-bodhi-surface text-white border-bodhi-accent/40 font-medium shadow-sm'
+                      : 'bg-transparent text-bodhi-muted hover:text-BODHI-text hover:bg-bodhi-surface/50 border-transparent'
                   }`}
                 >
                   {session.splitSessionId ? (
-                    <SplitSquareHorizontal size={11} className={isActive ? 'text-cortex-accent' : 'text-cortex-muted'} />
+                    <SplitSquareHorizontal size={11} className={isActive ? 'text-bodhi-accent' : 'text-bodhi-muted'} />
                   ) : (
-                    <SquareCode size={11} className={isActive ? 'text-cortex-accent' : 'text-cortex-muted'} />
+                    <SquareCode size={11} className={isActive ? 'text-bodhi-accent' : 'text-bodhi-muted'} />
                   )}
                   <span className="truncate max-w-[110px]">{session.name}</span>
 
@@ -348,7 +348,7 @@ export const TerminalPanel: React.FC = () => {
               tabIndex={-1}
               onClick={() => addTerminalSession('powershell')}
               title="New Terminal (PowerShell)"
-              className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-surface rounded transition-colors"
+              className="p-1 text-bodhi-muted hover:text-white hover:bg-bodhi-surface rounded transition-colors"
             >
               <Plus size={13} />
             </button>
@@ -360,8 +360,8 @@ export const TerminalPanel: React.FC = () => {
               title="Select Shell Type"
               className={`p-1 rounded transition-colors ${
                 isShellMenuOpen
-                  ? 'text-cortex-accent bg-cortex-accent/15'
-                  : 'text-cortex-muted hover:text-white hover:bg-cortex-surface'
+                  ? 'text-bodhi-accent bg-bodhi-accent/15'
+                  : 'text-bodhi-muted hover:text-white hover:bg-bodhi-surface'
               }`}
             >
               <ChevronDown size={11} />
@@ -370,11 +370,11 @@ export const TerminalPanel: React.FC = () => {
             {/* Shell Switcher Dropdown */}
             {isShellMenuOpen && (
               <div
-                className={`absolute left-0 w-64 bg-cortex-panel border border-cortex-border rounded-xl shadow-2xl py-1.5 z-50 animate-fade-in backdrop-blur-lg ${
+                className={`absolute left-0 w-64 bg-bodhi-panel border border-BODHI-border rounded-xl shadow-2xl py-1.5 z-50 animate-fade-in backdrop-blur-lg ${
                   terminalHeight < 240 ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
                 }`}
               >
-                <div className="px-3 py-1 text-[10px] font-semibold text-cortex-muted uppercase tracking-wider border-b border-cortex-border/50 mb-1">
+                <div className="px-3 py-1 text-[10px] font-semibold text-bodhi-muted uppercase tracking-wider border-b border-BODHI-border/50 mb-1">
                   Spawn Shell Session
                 </div>
                 {availableShells.length > 0
@@ -387,12 +387,12 @@ export const TerminalPanel: React.FC = () => {
                           e.stopPropagation()
                           handleCreateShell(opt.shell)
                         }}
-                        className="w-full flex flex-col text-left px-3 py-1.5 text-xs text-cortex-text hover:bg-cortex-surface hover:text-white transition-colors"
+                        className="w-full flex flex-col text-left px-3 py-1.5 text-xs text-BODHI-text hover:bg-bodhi-surface hover:text-white transition-colors"
                       >
                         <span className="font-medium text-white flex items-center justify-between">
                           {opt.name}
                         </span>
-                        <span className="text-[10px] text-cortex-muted truncate">{opt.description}</span>
+                        <span className="text-[10px] text-bodhi-muted truncate">{opt.description}</span>
                       </button>
                     ))
                   : fallbackShells.map((opt) => (
@@ -404,12 +404,12 @@ export const TerminalPanel: React.FC = () => {
                           e.stopPropagation()
                           handleCreateShell(opt.shell)
                         }}
-                        className="w-full flex flex-col text-left px-3 py-1.5 text-xs text-cortex-text hover:bg-cortex-surface hover:text-white transition-colors"
+                        className="w-full flex flex-col text-left px-3 py-1.5 text-xs text-BODHI-text hover:bg-bodhi-surface hover:text-white transition-colors"
                       >
                         <span className="font-medium text-white flex items-center justify-between">
                           {opt.label}
                         </span>
-                        <span className="text-[10px] text-cortex-muted">{opt.desc}</span>
+                        <span className="text-[10px] text-bodhi-muted">{opt.desc}</span>
                       </button>
                     ))}
               </div>
@@ -418,7 +418,7 @@ export const TerminalPanel: React.FC = () => {
         </div>
 
         {/* Right side powerhouse toolbar actions */}
-        <div className="flex items-center gap-1 text-cortex-muted shrink-0">
+        <div className="flex items-center gap-1 text-bodhi-muted shrink-0">
           {/* 1-Click Project Scripts & Tasks Runner */}
           {packageScripts.length > 0 && (
             <div className="relative" ref={tasksMenuRef}>
@@ -429,13 +429,13 @@ export const TerminalPanel: React.FC = () => {
                 title="Run Project Script (package.json)"
                 className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-colors ${
                   isTasksMenuOpen
-                    ? 'bg-cortex-accent/20 text-cortex-accent font-medium'
-                    : 'hover:text-white hover:bg-cortex-surface'
+                    ? 'bg-bodhi-accent/20 text-bodhi-accent font-medium'
+                    : 'hover:text-white hover:bg-bodhi-surface'
                 }`}
               >
                 <Zap size={12} className="text-amber-400" />
                 <span className="text-[11px] hidden md:inline">Tasks</span>
-                <span className="px-1 py-0.1 text-[9px] rounded bg-cortex-surface border border-cortex-border font-mono text-cortex-accent">
+                <span className="px-1 py-0.1 text-[9px] rounded bg-bodhi-surface border border-BODHI-border font-mono text-bodhi-accent">
                   {packageScripts.length}
                 </span>
                 <ChevronDown size={10} />
@@ -444,13 +444,13 @@ export const TerminalPanel: React.FC = () => {
               {/* Tasks Dropdown Menu */}
               {isTasksMenuOpen && (
                 <div
-                  className={`absolute right-0 w-64 bg-cortex-panel border border-cortex-border rounded-xl shadow-2xl py-1.5 z-50 animate-fade-in backdrop-blur-lg ${
+                  className={`absolute right-0 w-64 bg-bodhi-panel border border-BODHI-border rounded-xl shadow-2xl py-1.5 z-50 animate-fade-in backdrop-blur-lg ${
                     terminalHeight < 240 ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
                   }`}
                 >
-                  <div className="px-3 py-1 text-[10px] font-semibold text-cortex-muted uppercase tracking-wider border-b border-cortex-border/50 mb-1 flex items-center justify-between">
+                  <div className="px-3 py-1 text-[10px] font-semibold text-bodhi-muted uppercase tracking-wider border-b border-BODHI-border/50 mb-1 flex items-center justify-between">
                     <span>Project Scripts (npm)</span>
-                    <span className="text-[9px] text-cortex-accent">1-Click Run</span>
+                    <span className="text-[9px] text-bodhi-accent">1-Click Run</span>
                   </div>
                   <div className="max-h-60 overflow-y-auto">
                     {packageScripts.map((pkg) => (
@@ -462,13 +462,13 @@ export const TerminalPanel: React.FC = () => {
                           e.stopPropagation()
                           handleRunScript(pkg.name)
                         }}
-                        className="w-full flex items-center justify-between text-left px-3 py-1.5 text-xs text-cortex-text hover:bg-cortex-surface hover:text-white transition-colors group"
+                        className="w-full flex items-center justify-between text-left px-3 py-1.5 text-xs text-BODHI-text hover:bg-bodhi-surface hover:text-white transition-colors group"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Play size={11} className="text-cortex-accent group-hover:scale-110 transition-transform shrink-0" />
+                          <Play size={11} className="text-bodhi-accent group-hover:scale-110 transition-transform shrink-0" />
                           <span className="font-semibold text-white truncate font-mono">{pkg.name}</span>
                         </div>
-                        <span className="text-[10px] text-cortex-muted font-mono truncate max-w-[100px]">
+                        <span className="text-[10px] text-bodhi-muted font-mono truncate max-w-[100px]">
                           {pkg.script}
                         </span>
                       </button>
@@ -485,7 +485,7 @@ export const TerminalPanel: React.FC = () => {
             tabIndex={-1}
             onClick={handleSplitActiveTerminal}
             title="Split Terminal Side-by-Side (Ctrl+Shift+5)"
-            className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
             <SplitSquareHorizontal size={13} />
           </button>
@@ -498,14 +498,14 @@ export const TerminalPanel: React.FC = () => {
             title="Find in Terminal (Ctrl+F)"
             className={`p-1 rounded transition-colors ${
               isTerminalSearchOpen
-                ? 'text-cortex-accent bg-cortex-accent/15'
-                : 'hover:text-white hover:bg-cortex-surface'
+                ? 'text-bodhi-accent bg-bodhi-accent/15'
+                : 'hover:text-white hover:bg-bodhi-surface'
             }`}
           >
             <Search size={13} />
           </button>
 
-          <div className="h-3.5 w-[1px] bg-cortex-border/70 mx-0.5" />
+          <div className="h-3.5 w-[1px] bg-BODHI-border/70 mx-0.5" />
 
           {/* Clear & Restart */}
           <button
@@ -513,7 +513,7 @@ export const TerminalPanel: React.FC = () => {
             tabIndex={-1}
             onClick={handleClear}
             title="Clear Terminal Output"
-            className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
             <Trash2 size={12} />
           </button>
@@ -522,12 +522,12 @@ export const TerminalPanel: React.FC = () => {
             tabIndex={-1}
             onClick={handleRestart}
             title="Restart Session"
-            className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
             <RotateCcw size={12} />
           </button>
 
-          <div className="h-3.5 w-[1px] bg-cortex-border/70 mx-0.5" />
+          <div className="h-3.5 w-[1px] bg-BODHI-border/70 mx-0.5" />
 
           {/* Minimize & Close */}
           <button
@@ -535,7 +535,7 @@ export const TerminalPanel: React.FC = () => {
             tabIndex={-1}
             onClick={toggleTerminal}
             title="Hide Terminal (Ctrl+`)"
-            className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
             <ChevronDown size={14} />
           </button>
@@ -544,7 +544,7 @@ export const TerminalPanel: React.FC = () => {
             tabIndex={-1}
             onClick={toggleTerminal}
             title="Close Panel"
-            className="p-1 hover:text-red-400 hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 hover:text-red-400 hover:bg-bodhi-surface rounded transition-colors"
           >
             <X size={13} />
           </button>
@@ -614,7 +614,7 @@ export const TerminalPanel: React.FC = () => {
                     )
                   }}
                   title="Drag to resize split panes"
-                  className="w-1.5 h-full bg-cortex-border hover:bg-cortex-accent active:bg-cortex-accent cursor-col-resize z-20 shrink-0 transition-colors"
+                  className="w-1.5 h-full bg-BODHI-border hover:bg-bodhi-accent active:bg-bodhi-accent cursor-col-resize z-20 shrink-0 transition-colors"
                 />
               )}
 
@@ -625,11 +625,11 @@ export const TerminalPanel: React.FC = () => {
                     width: `${(1 - splitRatio) * 100}%`,
                     height: '100%'
                   }}
-                  className="relative overflow-hidden border-l border-cortex-border flex flex-col"
+                  className="relative overflow-hidden border-l border-BODHI-border flex flex-col"
                 >
                   {/* Split Pane Header Bar */}
-                  <div className="h-6 px-2 bg-cortex-surface/80 border-b border-cortex-border/50 flex items-center justify-between text-[11px] text-cortex-muted shrink-0 select-none">
-                    <span className="font-mono text-cortex-accent text-[10px]">
+                  <div className="h-6 px-2 bg-bodhi-surface/80 border-b border-BODHI-border/50 flex items-center justify-between text-[11px] text-bodhi-muted shrink-0 select-none">
+                    <span className="font-mono text-bodhi-accent text-[10px]">
                       {childSession.name}
                     </span>
                     <button
@@ -665,3 +665,4 @@ export const TerminalPanel: React.FC = () => {
     </div>
   )
 }
+

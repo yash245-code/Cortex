@@ -59,7 +59,7 @@ export const TerminalInstance = forwardRef<TerminalInstanceHandle, TerminalInsta
       try {
         fitAddon.fit()
         if (term.cols >= 2 && term.rows >= 2) {
-          window.cortexAPI.resizeTerminal(session.id, term.cols, term.rows)
+          window.bodhiAPI.resizeTerminal(session.id, term.cols, term.rows)
         }
       } catch {
         // ignore
@@ -326,7 +326,7 @@ export const TerminalInstance = forwardRef<TerminalInstanceHandle, TerminalInsta
             if (event.type === 'keydown') {
               navigator.clipboard.readText().then((text) => {
                 if (text) {
-                  window.cortexAPI.writeTerminal(session.id, text)
+                  window.bodhiAPI.writeTerminal(session.id, text)
                 }
               })
             }
@@ -338,7 +338,7 @@ export const TerminalInstance = forwardRef<TerminalInstanceHandle, TerminalInsta
         if (event.key === ' ' || event.code === 'Space') {
           if (event.type === 'keydown') {
             if (!event.ctrlKey && !event.altKey && !event.metaKey) {
-              window.cortexAPI.writeTerminal(session.id, ' ')
+              window.bodhiAPI.writeTerminal(session.id, ' ')
               event.preventDefault()
               event.stopPropagation()
               return false
@@ -357,18 +357,18 @@ export const TerminalInstance = forwardRef<TerminalInstanceHandle, TerminalInsta
 
       // Pipe user input directly to backend PTY
       const dataDisposable = term.onData((data: string) => {
-        window.cortexAPI.writeTerminal(session.id, data)
+        window.bodhiAPI.writeTerminal(session.id, data)
       })
 
       // Receive PTY output from backend
-      const unsubData = window.cortexAPI.onTerminalData((payload) => {
+      const unsubData = window.bodhiAPI.onTerminalData((payload) => {
         if (payload.id === session.id && xtermRef.current) {
           xtermRef.current.write(payload.data)
         }
       })
 
       // Handle process exit
-      const unsubExit = window.cortexAPI.onTerminalExit((payload) => {
+      const unsubExit = window.bodhiAPI.onTerminalExit((payload) => {
         if (payload.id === session.id && xtermRef.current) {
           xtermRef.current.write(
             `\r\n\x1b[90m[Process exited with code ${payload.exitCode}]\x1b[0m\r\n`
@@ -377,13 +377,13 @@ export const TerminalInstance = forwardRef<TerminalInstanceHandle, TerminalInsta
       })
 
       // Create the terminal backend process
-      window.cortexAPI.createTerminal(session.id, rootPath || undefined, session.shell).then(() => {
+      window.bodhiAPI.createTerminal(session.id, rootPath || undefined, session.shell).then(() => {
         isCreatedRef.current = true
         if (container.clientWidth > 0 && container.clientHeight > 0) {
           try {
             fitAddon.fit()
             if (term.cols >= 2 && term.rows >= 2) {
-              window.cortexAPI.resizeTerminal(session.id, term.cols, term.rows)
+              window.bodhiAPI.resizeTerminal(session.id, term.cols, term.rows)
             }
           } catch {
             // ignore
@@ -443,3 +443,4 @@ export const TerminalInstance = forwardRef<TerminalInstanceHandle, TerminalInsta
 )
 
 TerminalInstance.displayName = 'TerminalInstance'
+

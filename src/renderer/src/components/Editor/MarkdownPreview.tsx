@@ -58,14 +58,14 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
 
         const idx = index++
         return `
-          <div class="relative group my-4 rounded-lg overflow-hidden border border-cortex-border bg-[#141414] shadow-md">
-            <div class="flex items-center justify-between px-3 py-1.5 bg-[#1e1e1e] border-b border-cortex-border text-[11px] text-cortex-muted font-mono select-none">
-              <span class="text-cortex-accent font-semibold">${lang}</span>
+          <div class="relative group my-4 rounded-lg overflow-hidden border border-BODHI-border bg-[#141414] shadow-md">
+            <div class="flex items-center justify-between px-3 py-1.5 bg-[#1e1e1e] border-b border-BODHI-border text-[11px] text-bodhi-muted font-mono select-none">
+              <span class="text-bodhi-accent font-semibold">${lang}</span>
               <button
                 type="button"
                 data-code="${rawCode.replace(/"/g, '&quot;')}"
                 data-idx="${idx}"
-                class="md-copy-btn flex items-center gap-1 px-2 py-0.5 rounded text-cortex-muted hover:text-white hover:bg-cortex-surface transition-colors cursor-pointer"
+                class="md-copy-btn flex items-center gap-1 px-2 py-0.5 rounded text-bodhi-muted hover:text-white hover:bg-bodhi-surface transition-colors cursor-pointer"
               >
                 <span>${copiedCodeIdx === idx ? 'Copied!' : 'Copy'}</span>
               </button>
@@ -78,11 +78,11 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   }, [parsedHtml, copiedCodeIdx])
 
   return (
-    <div className="flex-1 w-full h-full flex flex-col bg-[#0d0d0d] overflow-hidden text-cortex-text select-text">
+    <div className="flex-1 w-full h-full flex flex-col bg-[#0d0d0d] overflow-hidden text-BODHI-text select-text">
       {/* Preview Header Bar */}
-      <div className="h-8 px-3 bg-cortex-panel border-b border-cortex-border flex items-center justify-between shrink-0 select-none text-xs">
-        <div className="flex items-center gap-2 font-medium text-cortex-text">
-          <BookOpen size={13} className="text-cortex-accent" />
+      <div className="h-8 px-3 bg-bodhi-panel border-b border-BODHI-border flex items-center justify-between shrink-0 select-none text-xs">
+        <div className="flex items-center gap-2 font-medium text-BODHI-text">
+          <BookOpen size={13} className="text-bodhi-accent" />
           <span className="truncate max-w-[200px]">{fileName} (Live Preview)</span>
         </div>
 
@@ -90,7 +90,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
           <button
             onClick={onClose}
             title="Close Preview"
-            className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 text-bodhi-muted hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
             <X size={13} />
           </button>

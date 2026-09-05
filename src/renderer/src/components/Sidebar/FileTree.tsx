@@ -56,16 +56,16 @@ export const FileTree: React.FC = () => {
   if (!rootPath || !rootNode) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none">
-        <div className="w-12 h-12 rounded-xl bg-cortex-surface border border-cortex-border flex items-center justify-center text-cortex-accent mb-3 shadow-inner">
+        <div className="w-12 h-12 rounded-xl bg-bodhi-surface border border-BODHI-border flex items-center justify-center text-bodhi-accent mb-3 shadow-inner">
           <FolderCode size={24} />
         </div>
-        <h4 className="text-xs font-semibold text-cortex-text mb-1">No Folder Opened</h4>
-        <p className="text-[11px] text-cortex-muted mb-4 max-w-[180px]">
+        <h4 className="text-xs font-semibold text-BODHI-text mb-1">No Folder Opened</h4>
+        <p className="text-[11px] text-bodhi-muted mb-4 max-w-[180px]">
           Open a folder to start editing files and navigating your project.
         </p>
         <button
           onClick={() => openFolder()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cortex-accent hover:brightness-110 text-black text-xs font-semibold transition-all shadow-md active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-bodhi-accent hover:brightness-110 text-black text-xs font-semibold transition-all shadow-md active:scale-95"
         >
           <FolderOpen size={13} />
           <span>Open Folder</span>
@@ -77,32 +77,32 @@ export const FileTree: React.FC = () => {
   const workspaceName = rootPath.split(/[/\\]/).pop() || rootPath
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-cortex-sidebar text-cortex-text">
+    <div className="flex-1 flex flex-col overflow-hidden bg-BODHI-sidebar text-BODHI-text">
       {/* File Tree Header */}
-      <div className="h-8 px-3 flex items-center justify-between border-b border-cortex-border select-none shrink-0">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-cortex-muted truncate">
+      <div className="h-8 px-3 flex items-center justify-between border-b border-BODHI-border select-none shrink-0">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-bodhi-muted truncate">
           {workspaceName}
         </span>
-        <div className="flex items-center gap-0.5 text-cortex-muted">
+        <div className="flex items-center gap-0.5 text-bodhi-muted">
           <button
             onClick={() => setCreatingItem({ parentPath: rootPath, type: 'file' })}
             title="New File in Root"
-            className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
             <FilePlus size={13} />
           </button>
           <button
             onClick={() => setCreatingItem({ parentPath: rootPath, type: 'directory' })}
             title="New Folder in Root"
-            className="p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
             <FolderPlus size={13} />
           </button>
           <button
             onClick={() => refreshTree()}
             title="Refresh Explorer"
-            className={`p-1 hover:text-white hover:bg-cortex-surface rounded transition-colors ${
-              isLoading ? 'animate-spin text-cortex-accent' : ''
+            className={`p-1 hover:text-white hover:bg-bodhi-surface rounded transition-colors ${
+              isLoading ? 'animate-spin text-bodhi-accent' : ''
             }`}
           >
             <RefreshCw size={13} />
@@ -114,13 +114,13 @@ export const FileTree: React.FC = () => {
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-1">
         {/* Inline Create Input for Root Level */}
         {creatingItem?.parentPath === rootPath && (
-          <div className="flex items-center h-7 px-3 text-xs bg-cortex-surface/40 mb-1">
+          <div className="flex items-center h-7 px-3 text-xs bg-bodhi-surface/40 mb-1">
             <span className="w-4 h-4 mr-1" />
             <span className="mr-1.5 flex items-center">
               {creatingItem.type === 'file' ? (
-                <File size={14} className="text-cortex-muted" />
+                <File size={14} className="text-bodhi-muted" />
               ) : (
-                <Folder size={14} className="text-cortex-accent" />
+                <Folder size={14} className="text-bodhi-accent" />
               )}
             </span>
             <input
@@ -134,7 +134,7 @@ export const FileTree: React.FC = () => {
                 if (e.key === 'Enter') handleRootCreate()
                 if (e.key === 'Escape') setCreatingItem(null)
               }}
-              className="flex-1 bg-cortex-bg border border-cortex-accent rounded px-1.5 py-0.5 text-xs text-white outline-none"
+              className="flex-1 bg-bodhi-bg border border-bodhi-accent rounded px-1.5 py-0.5 text-xs text-white outline-none"
             />
           </div>
         )}
@@ -144,7 +144,7 @@ export const FileTree: React.FC = () => {
             <FileTreeNode key={child.id} node={child} depth={0} />
           ))
         ) : (
-          <div className="p-4 text-center text-xs text-cortex-muted italic">
+          <div className="p-4 text-center text-xs text-bodhi-muted italic">
             Folder is empty
           </div>
         )}

@@ -1,20 +1,37 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
+import * as fs from 'fs'
 import { registerIpcHandlers } from './ipcHandlers'
 import { fileService } from './services/fileService'
 import { terminalService } from './services/terminalService'
+
+process.on('uncaughtException', (error) => {
+  console.error('[Bodhi Main Process] Uncaught Exception:', error)
+})
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Bodhi Main Process] Unhandled Rejection:', reason)
+})
 
 let mainWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
 let extensionsWindow: BrowserWindow | null = null
 
-function getAppIconPath(): string {
+function getAppIconPath(): string | undefined {
   const isDev = !app.isPackaged
   const filename = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
-  if (isDev) {
-    return join(__dirname, '../../resources', filename)
+  const candidates = isDev
+    ? [join(__dirname, '../../resources', filename)]
+    : [
+        join(process.resourcesPath, 'resources', filename),
+        join(process.resourcesPath, filename)
+      ]
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
   }
-  return join(process.resourcesPath, filename)
+  return undefined
 }
 
 export function openSettingsWindow(): BrowserWindow {
@@ -30,7 +47,7 @@ export function openSettingsWindow(): BrowserWindow {
   const iconPath = getAppIconPath()
 
   settingsWindow = new BrowserWindow({
-    title: 'Settings - Cortex',
+    title: 'Settings - Bodhi',
     width: 780,
     height: 560,
     minWidth: 640,
@@ -38,9 +55,9 @@ export function openSettingsWindow(): BrowserWindow {
     show: false,
     autoHideMenuBar: true,
     frame: false,
-    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hidden' as const } : {}),
     backgroundColor: '#0f1117',
-    icon: iconPath,
+    ...(iconPath ? { icon: iconPath } : {}),
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -89,7 +106,7 @@ export function openExtensionsWindow(): BrowserWindow {
   const iconPath = getAppIconPath()
 
   extensionsWindow = new BrowserWindow({
-    title: 'Extensions - Cortex',
+    title: 'Extensions - Bodhi',
     width: 980,
     height: 680,
     minWidth: 800,
@@ -97,9 +114,9 @@ export function openExtensionsWindow(): BrowserWindow {
     show: false,
     autoHideMenuBar: true,
     frame: false,
-    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hidden' as const } : {}),
     backgroundColor: '#0f1117',
-    icon: iconPath,
+    ...(iconPath ? { icon: iconPath } : {}),
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -136,8 +153,10 @@ export function openExtensionsWindow(): BrowserWindow {
 }
 
 function createWindow(): void {
+  const iconPath = getAppIconPath()
+
   mainWindow = new BrowserWindow({
-    title: 'Cortex',
+    title: 'Bodhi',
     width: 1280,
     height: 800,
     minWidth: 900,
@@ -145,9 +164,9 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     frame: false,
-    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hidden' as const } : {}),
     backgroundColor: '#0f1117',
-    icon: getAppIconPath(),
+    ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -158,10 +177,27 @@ function createWindow(): void {
 
   registerIpcHandlers(mainWindow, openSettingsWindow, openExtensionsWindow)
 
-  mainWindow.on('ready-to-show', () => {
-    if (mainWindow) {
+  let hasShown = false
+  const showMainWindow = (): void => {
+    if (!hasShown && mainWindow && !mainWindow.isDestroyed()) {
+      hasShown = true
       mainWindow.show()
+      mainWindow.focus()
     }
+  }
+
+  mainWindow.once('ready-to-show', showMainWindow)
+
+  // Fallback: guarantee the window is displayed even if ready-to-show is delayed by network or rendering
+  setTimeout(showMainWindow, 1000)
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[Bodhi] Renderer failed to load [${errorCode}]: ${errorDescription} (${validatedURL})`)
+    showMainWindow()
+  })
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Bodhi] Renderer process gone:', details)
   })
 
   // Automatically close child windows when main window closes

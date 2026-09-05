@@ -32,7 +32,7 @@ export class FileService {
     if (!this.mainWindow) return null
     const result = await dialog.showOpenDialog(this.mainWindow, {
       properties: ['openFile'],
-      title: 'Open File in Cortex'
+      title: 'Open File in BODHI'
     })
     if (result.canceled || result.filePaths.length === 0) {
       return null
@@ -44,7 +44,7 @@ export class FileService {
     if (!this.mainWindow) return null
     const result = await dialog.showOpenDialog(this.mainWindow, {
       properties: ['openDirectory', 'createDirectory'],
-      title: 'Open Folder in Cortex'
+      title: 'Open Folder in BODHI'
     })
     if (result.canceled || result.filePaths.length === 0) {
       return null

@@ -1,14 +1,14 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent, webFrame } from 'electron'
 import { IPC_CHANNELS } from '../shared/constants'
 import {
-  CortexAPI,
+  BodhiAPI,
   FileChangeEvent,
   FileNode,
   TerminalDataPayload,
   ShellProfile
 } from '../shared/types'
 
-const api: CortexAPI = {
+const api: BodhiAPI = {
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MINIMIZE),
   maximizeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MAXIMIZE),
@@ -197,7 +197,8 @@ const api: CortexAPI = {
 }
 
 try {
-  contextBridge.exposeInMainWorld('cortexAPI', api)
+  contextBridge.exposeInMainWorld('bodhiAPI', api)
 } catch (error) {
-  console.error('Failed to expose cortexAPI via contextBridge', error)
+  console.error('Failed to expose bodhiAPI via contextBridge', error)
 }
+

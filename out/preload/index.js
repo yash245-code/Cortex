@@ -2,72 +2,72 @@
 const electron = require("electron");
 const IPC_CHANNELS = {
   // Window
-  WINDOW_MINIMIZE: "cortex:window:minimize",
-  WINDOW_MAXIMIZE: "cortex:window:maximize",
-  WINDOW_CLOSE: "cortex:window:close",
-  WINDOW_IS_MAXIMIZED: "cortex:window:isMaximized",
+  WINDOW_MINIMIZE: "BODHI:window:minimize",
+  WINDOW_MAXIMIZE: "BODHI:window:maximize",
+  WINDOW_CLOSE: "BODHI:window:close",
+  WINDOW_IS_MAXIMIZED: "BODHI:window:isMaximized",
   // Dialogs
-  DIALOG_OPEN_FILE: "cortex:dialog:openFile",
-  DIALOG_OPEN_DIRECTORY: "cortex:dialog:openDirectory",
+  DIALOG_OPEN_FILE: "BODHI:dialog:openFile",
+  DIALOG_OPEN_DIRECTORY: "BODHI:dialog:openDirectory",
   // File system
-  FS_READ_DIRECTORY: "cortex:fs:readDirectory",
-  FS_READ_FILE: "cortex:fs:readFile",
-  FS_WRITE_FILE: "cortex:fs:writeFile",
-  FS_CREATE_FILE: "cortex:fs:createFile",
-  FS_CREATE_DIRECTORY: "cortex:fs:createDirectory",
-  FS_RENAME_PATH: "cortex:fs:renamePath",
-  FS_DELETE_PATH: "cortex:fs:deletePath",
+  FS_READ_DIRECTORY: "BODHI:fs:readDirectory",
+  FS_READ_FILE: "BODHI:fs:readFile",
+  FS_WRITE_FILE: "BODHI:fs:writeFile",
+  FS_CREATE_FILE: "BODHI:fs:createFile",
+  FS_CREATE_DIRECTORY: "BODHI:fs:createDirectory",
+  FS_RENAME_PATH: "BODHI:fs:renamePath",
+  FS_DELETE_PATH: "BODHI:fs:deletePath",
   // Watcher
-  WATCHER_START: "cortex:watcher:start",
-  WATCHER_STOP: "cortex:watcher:stop",
-  WATCHER_CHANGE: "cortex:watcher:change",
+  WATCHER_START: "BODHI:watcher:start",
+  WATCHER_STOP: "BODHI:watcher:stop",
+  WATCHER_CHANGE: "BODHI:watcher:change",
   // Terminal
-  TERMINAL_CREATE: "cortex:terminal:create",
-  TERMINAL_WRITE: "cortex:terminal:write",
-  TERMINAL_RESIZE: "cortex:terminal:resize",
-  TERMINAL_KILL: "cortex:terminal:kill",
-  TERMINAL_DATA: "cortex:terminal:data",
-  TERMINAL_EXIT: "cortex:terminal:exit",
-  TERMINAL_GET_AVAILABLE_SHELLS: "cortex:terminal:getAvailableShells",
+  TERMINAL_CREATE: "BODHI:terminal:create",
+  TERMINAL_WRITE: "BODHI:terminal:write",
+  TERMINAL_RESIZE: "BODHI:terminal:resize",
+  TERMINAL_KILL: "BODHI:terminal:kill",
+  TERMINAL_DATA: "BODHI:terminal:data",
+  TERMINAL_EXIT: "BODHI:terminal:exit",
+  TERMINAL_GET_AVAILABLE_SHELLS: "BODHI:terminal:getAvailableShells",
   // Search & Replace
-  SEARCH_WORKSPACE: "cortex:search:workspace",
-  SEARCH_REPLACE_FILE: "cortex:search:replaceFile",
-  SEARCH_REPLACE_ALL: "cortex:search:replaceAll",
+  SEARCH_WORKSPACE: "BODHI:search:workspace",
+  SEARCH_REPLACE_FILE: "BODHI:search:replaceFile",
+  SEARCH_REPLACE_ALL: "BODHI:search:replaceAll",
   // Settings
-  SETTINGS_OPEN: "cortex:settings:open",
-  SETTINGS_GET: "cortex:settings:get",
-  SETTINGS_UPDATE: "cortex:settings:update",
-  SETTINGS_CHANGED: "cortex:settings:changed",
+  SETTINGS_OPEN: "BODHI:settings:open",
+  SETTINGS_GET: "BODHI:settings:get",
+  SETTINGS_UPDATE: "BODHI:settings:update",
+  SETTINGS_CHANGED: "BODHI:settings:changed",
   // Git
-  GIT_STATUS: "cortex:git:status",
-  GIT_BRANCH: "cortex:git:branch",
-  GIT_GET_FILE_AT_HEAD: "cortex:git:getFileAtHead",
-  GIT_GET_DIFF: "cortex:git:getDiff",
-  GIT_STAGE: "cortex:git:stage",
-  GIT_UNSTAGE: "cortex:git:unstage",
-  GIT_STAGE_ALL: "cortex:git:stageAll",
-  GIT_UNSTAGE_ALL: "cortex:git:unstageAll",
-  GIT_DISCARD: "cortex:git:discard",
-  GIT_COMMIT: "cortex:git:commit",
-  GIT_GET_FILE_CHURN: "cortex:git:getFileChurn",
+  GIT_STATUS: "BODHI:git:status",
+  GIT_BRANCH: "BODHI:git:branch",
+  GIT_GET_FILE_AT_HEAD: "BODHI:git:getFileAtHead",
+  GIT_GET_DIFF: "BODHI:git:getDiff",
+  GIT_STAGE: "BODHI:git:stage",
+  GIT_UNSTAGE: "BODHI:git:unstage",
+  GIT_STAGE_ALL: "BODHI:git:stageAll",
+  GIT_UNSTAGE_ALL: "BODHI:git:unstageAll",
+  GIT_DISCARD: "BODHI:git:discard",
+  GIT_COMMIT: "BODHI:git:commit",
+  GIT_GET_FILE_CHURN: "BODHI:git:getFileChurn",
   // Extensions
-  EXTENSIONS_GET_INSTALLED: "cortex:extensions:getInstalled",
-  EXTENSIONS_SEARCH_MARKETPLACE: "cortex:extensions:searchMarketplace",
-  EXTENSIONS_INSTALL_FROM_MARKETPLACE: "cortex:extensions:installFromMarketplace",
-  EXTENSIONS_INSTALL_FROM_VSIX: "cortex:extensions:installFromVsix",
-  EXTENSIONS_UNINSTALL: "cortex:extensions:uninstall",
-  EXTENSIONS_TOGGLE_ENABLE: "cortex:extensions:toggleEnable",
-  EXTENSIONS_GET_SNIPPETS: "cortex:extensions:getSnippets",
-  EXTENSIONS_GET_THEMES: "cortex:extensions:getThemes",
-  EXTENSIONS_OPEN_VSIX_DIALOG: "cortex:extensions:openVsixDialog",
-  EXTENSIONS_OPEN_WINDOW: "cortex:extensions:openWindow",
-  EXTENSIONS_GET_README: "cortex:extensions:getReadme",
-  EXTENSIONS_GET_EXT_SNIPPETS: "cortex:extensions:getExtSnippets",
+  EXTENSIONS_GET_INSTALLED: "BODHI:extensions:getInstalled",
+  EXTENSIONS_SEARCH_MARKETPLACE: "BODHI:extensions:searchMarketplace",
+  EXTENSIONS_INSTALL_FROM_MARKETPLACE: "BODHI:extensions:installFromMarketplace",
+  EXTENSIONS_INSTALL_FROM_VSIX: "BODHI:extensions:installFromVsix",
+  EXTENSIONS_UNINSTALL: "BODHI:extensions:uninstall",
+  EXTENSIONS_TOGGLE_ENABLE: "BODHI:extensions:toggleEnable",
+  EXTENSIONS_GET_SNIPPETS: "BODHI:extensions:getSnippets",
+  EXTENSIONS_GET_THEMES: "BODHI:extensions:getThemes",
+  EXTENSIONS_OPEN_VSIX_DIALOG: "BODHI:extensions:openVsixDialog",
+  EXTENSIONS_OPEN_WINDOW: "BODHI:extensions:openWindow",
+  EXTENSIONS_GET_README: "BODHI:extensions:getReadme",
+  EXTENSIONS_GET_EXT_SNIPPETS: "BODHI:extensions:getExtSnippets",
   // AI Intelligence
-  AI_GENERATE_COMPLETION: "cortex:ai:generateCompletion",
-  AI_GENERATE_EDIT: "cortex:ai:generateEdit",
-  AI_CHAT: "cortex:ai:chat",
-  AI_TEST_CONNECTION: "cortex:ai:testConnection"
+  AI_GENERATE_COMPLETION: "BODHI:ai:generateCompletion",
+  AI_GENERATE_EDIT: "BODHI:ai:generateEdit",
+  AI_CHAT: "BODHI:ai:chat",
+  AI_TEST_CONNECTION: "BODHI:ai:testConnection"
 };
 const api = {
   // Window controls
@@ -202,7 +202,7 @@ const api = {
   aiTestConnection: (provider, apiKey) => electron.ipcRenderer.invoke(IPC_CHANNELS.AI_TEST_CONNECTION, provider, apiKey)
 };
 try {
-  electron.contextBridge.exposeInMainWorld("cortexAPI", api);
+  electron.contextBridge.exposeInMainWorld("bodhiAPI", api);
 } catch (error) {
-  console.error("Failed to expose cortexAPI via contextBridge", error);
+  console.error("Failed to expose bodhiAPI via contextBridge", error);
 }

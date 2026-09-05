@@ -1,12 +1,26 @@
-import { WorkspaceSession, RecentWorkspace } from '@shared/types'
+import { WorkspaceSession, RecentWorkspace, Tab } from '@shared/types'
 
-const SESSION_KEY = 'cortex_workspace_session'
-const RECENT_WORKSPACES_KEY = 'cortex_recent_workspaces'
+const SESSION_KEY = 'BODHI_workspace_session'
+const RECENT_WORKSPACES_KEY = 'BODHI_recent_workspaces'
 
 export class SessionService {
   public saveSession(session: WorkspaceSession): void {
     try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+      // Create a lightweight copy of tabs without multi-megabyte contents to prevent storage quota issues
+      const sanitizeTabs = (tabs: Tab[] = []) =>
+        tabs.map((t) => ({
+          ...t,
+          // Only save content if there are unsaved edits; otherwise re-read from disk on launch
+          content: t.isDirty ? t.content : ''
+        }))
+
+      const cleanSession: WorkspaceSession = {
+        ...session,
+        tabs: sanitizeTabs(session.tabs),
+        pane2Tabs: sanitizeTabs(session.pane2Tabs)
+      }
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(cleanSession))
     } catch (err) {
       console.warn('Failed to persist workspace session to localStorage:', err)
     }

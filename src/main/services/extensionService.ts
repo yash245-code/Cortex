@@ -109,7 +109,7 @@ export class ExtensionService {
       const response = await fetch(url, {
         headers: {
           Accept: 'application/json',
-          'User-Agent': 'Cortex-Editor/1.0.0'
+          'User-Agent': 'bodhi-editor/1.0.0'
         }
       })
 
@@ -162,7 +162,7 @@ export class ExtensionService {
     if (downloadUrl) {
       try {
         const res = await fetch(downloadUrl, {
-          headers: { 'User-Agent': 'Cortex-Editor/1.0.0' },
+          headers: { 'User-Agent': 'bodhi-editor/1.0.0' },
           redirect: 'follow'
         })
         if (res.ok) {
@@ -181,7 +181,7 @@ export class ExtensionService {
       try {
         const metaUrl = `https://open-vsx.org/api/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`
         const metaRes = await fetch(metaUrl, {
-          headers: { Accept: 'application/json', 'User-Agent': 'Cortex-Editor/1.0.0' },
+          headers: { Accept: 'application/json', 'User-Agent': 'bodhi-editor/1.0.0' },
           redirect: 'follow'
         })
         if (metaRes.ok) {
@@ -189,7 +189,7 @@ export class ExtensionService {
           if (metaData.files?.download) {
             downloadUrl = metaData.files.download
             const retryRes = await fetch(downloadUrl, {
-              headers: { 'User-Agent': 'Cortex-Editor/1.0.0' },
+              headers: { 'User-Agent': 'bodhi-editor/1.0.0' },
               redirect: 'follow'
             })
             if (retryRes.ok) {
@@ -515,7 +515,7 @@ export class ExtensionService {
       try {
         const url = `https://open-vsx.org/api/${encodeURIComponent(ns)}/${encodeURIComponent(nm)}/latest/file/readme.md`
         const res = await fetch(url, {
-          headers: { 'User-Agent': 'Cortex-Editor/1.0.0' },
+          headers: { 'User-Agent': 'bodhi-editor/1.0.0' },
           redirect: 'follow'
         })
         if (res.ok) {

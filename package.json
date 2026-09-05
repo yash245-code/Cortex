@@ -1,9 +1,9 @@
 {
-  "name": "cortex-editor",
+  "name": "bodhi-editor",
   "version": "1.0.0",
   "description": "A lightweight, performant, and extensible code editor built with Electron, React, and Monaco Editor.",
   "main": "./out/main/index.js",
-  "author": "Cortex Team",
+  "author": "Bodhi Team",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

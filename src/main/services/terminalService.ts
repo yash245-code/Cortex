@@ -201,7 +201,8 @@ export class TerminalService {
         cols: 80,
         rows: 24,
         cwd: workingDirectory,
-        env: process.env as Record<string, string>
+        env: process.env as Record<string, string>,
+        useConpty: false
       })
 
       const instance: ITerminalInstance = {
@@ -325,7 +326,7 @@ export class TerminalService {
       }
 
       // Send initial welcome notice
-      this.sendData(id, `\x1b[38;2;93;214;44m[Cortex Terminal Ready: ${workingDirectory}]\x1b[0m\r\n`)
+      this.sendData(id, `\x1b[38;2;93;214;44m[Bodhi Terminal Ready: ${workingDirectory}]\x1b[0m\r\n`)
 
       return true
     } catch (fallbackErr) {
@@ -379,7 +380,11 @@ export class TerminalService {
     const term = this.terminals.get(id)
     if (term) {
       this.terminals.delete(id)
-      term.kill()
+      try {
+        term.kill()
+      } catch (err) {
+        console.warn(`[terminalService] Error killing terminal session ${id}:`, err)
+      }
     }
     this.pendingWrites.delete(id)
   }

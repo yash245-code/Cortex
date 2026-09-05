@@ -52,13 +52,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   openFolder: async (dirPath?: string) => {
     try {
-      const targetDir = dirPath || (await window.cortexAPI.openDirectoryDialog())
+      const targetDir = dirPath || (await window.bodhiAPI.openDirectoryDialog())
       if (!targetDir) return null
 
       set({ isLoading: true, rootPath: targetDir })
 
-      const rootNode = await window.cortexAPI.readDirectory(targetDir)
-      await window.cortexAPI.watchDirectory(targetDir)
+      const rootNode = await window.bodhiAPI.readDirectory(targetDir)
+      await window.bodhiAPI.watchDirectory(targetDir)
 
       const expanded = new Set(get().expandedPaths)
       expanded.add(targetDir)
@@ -75,6 +75,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       // Sync Git status for newly opened folder
       useGitStore.getState().refreshGitStatus()
 
+      // Immediately persist folder to workspace session
+      const existingSession = sessionService.loadSession()
+      if (existingSession) {
+        sessionService.saveSession({ ...existingSession, rootPath: targetDir })
+      }
+
       return targetDir
     } catch (err) {
       console.error('Failed to open folder:', err)
@@ -85,7 +91,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   openFileDirectly: async (filePath?: string) => {
     try {
-      const targetFile = filePath || (await window.cortexAPI.openFileDialog())
+      const targetFile = filePath || (await window.bodhiAPI.openFileDialog())
       if (!targetFile) return null
       return targetFile
     } catch (err) {
@@ -98,7 +104,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { rootPath } = get()
     if (!rootPath) return
     try {
-      const rootNode = await window.cortexAPI.readDirectory(rootPath)
+      const rootNode = await window.bodhiAPI.readDirectory(rootPath)
       set({ rootNode })
       useGitStore.getState().refreshGitStatus()
     } catch (err) {
@@ -136,7 +142,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       // Normalize path separator
       const separator = parentPath.includes('\\') ? '\\' : '/'
       const newFilePath = `${parentPath}${separator}${fileName}`
-      await window.cortexAPI.createFile(newFilePath)
+      await window.bodhiAPI.createFile(newFilePath)
       await get().refreshTree()
       get().setExpanded(parentPath, true)
       set({ creatingItem: null, selectedPath: newFilePath })
@@ -152,7 +158,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     try {
       const separator = parentPath.includes('\\') ? '\\' : '/'
       const newDirPath = `${parentPath}${separator}${folderName}`
-      await window.cortexAPI.createDirectory(newDirPath)
+      await window.bodhiAPI.createDirectory(newDirPath)
       await get().refreshTree()
       get().setExpanded(parentPath, true)
       set({ creatingItem: null })
@@ -172,7 +178,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       parts.pop()
       const newPath = [...parts, newName].join(separator)
 
-      await window.cortexAPI.renamePath(oldPath, newPath)
+      await window.bodhiAPI.renamePath(oldPath, newPath)
       await get().refreshTree()
       set({ renamingPath: null, selectedPath: newPath })
       useGitStore.getState().refreshGitStatus()
@@ -186,7 +192,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   deleteItem: async (targetPath: string) => {
     if (!targetPath) return false
     try {
-      const isSuccess = await window.cortexAPI.deletePath(targetPath)
+      const isSuccess = await window.bodhiAPI.deletePath(targetPath)
       if (!isSuccess) return false
 
       const normalizedTarget = targetPath.replace(/[/\\]+$/, '').toLowerCase()
@@ -262,7 +268,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   initWatcher: () => {
-    return window.cortexAPI.onFileChange((event) => {
+    return window.bodhiAPI.onFileChange((event) => {
       // Auto-close tabs if files are deleted from external terminal or explorer
       if (event.type === 'unlink' || event.type === 'unlinkDir') {
         const normalizedTarget = event.path.replace(/[/\\]+$/, '').toLowerCase()
@@ -294,3 +300,4 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     })
   }
 }))
+

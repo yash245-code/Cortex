@@ -62,7 +62,7 @@ export const SearchPanel: React.FC = () => {
         maxResults: 2000
       }
 
-      const searchResults = await window.cortexAPI.searchWorkspace(
+      const searchResults = await window.bodhiAPI.searchWorkspace(
         rootPath,
         query,
         options
@@ -112,7 +112,7 @@ export const SearchPanel: React.FC = () => {
 
     setIsSearching(true)
     try {
-      const res = await window.cortexAPI.replaceAll(rootPath, query, replaceText, {
+      const res = await window.bodhiAPI.replaceAll(rootPath, query, replaceText, {
         matchCase,
         matchWholeWord,
         isRegex,
@@ -144,17 +144,17 @@ export const SearchPanel: React.FC = () => {
 
   if (!rootPath) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none text-cortex-muted">
-        <div className="w-12 h-12 rounded-xl bg-cortex-panel border border-cortex-border flex items-center justify-center text-cortex-accent mb-3 shadow-inner">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center select-none text-bodhi-muted">
+        <div className="w-12 h-12 rounded-xl bg-bodhi-panel border border-BODHI-border flex items-center justify-center text-bodhi-accent mb-3 shadow-inner">
           <Search size={22} />
         </div>
         <h3 className="font-semibold text-white text-xs mb-1">No Folder Opened</h3>
-        <p className="text-[11px] text-cortex-muted mb-4 max-w-[200px]">
+        <p className="text-[11px] text-bodhi-muted mb-4 max-w-[200px]">
           Open a folder to search across workspace files.
         </p>
         <button
           onClick={() => openFolder()}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-cortex-accent/20 border border-cortex-accent/40 text-cortex-accent hover:bg-cortex-accent hover:text-black font-semibold text-xs rounded-lg transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-bodhi-accent/20 border border-bodhi-accent/40 text-bodhi-accent hover:bg-bodhi-accent hover:text-black font-semibold text-xs rounded-lg transition-all"
         >
           <FolderOpen size={13} />
           <span>Open Folder</span>
@@ -164,10 +164,10 @@ export const SearchPanel: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden select-none bg-cortex-sidebar text-xs">
+    <div className="flex-1 flex flex-col h-full overflow-hidden select-none bg-BODHI-sidebar text-xs">
       {/* Header Title */}
-      <div className="px-3 py-2 border-b border-cortex-border/70 flex items-center justify-between">
-        <span className="font-semibold tracking-wider text-[11px] text-cortex-muted uppercase">
+      <div className="px-3 py-2 border-b border-BODHI-border/70 flex items-center justify-between">
+        <span className="font-semibold tracking-wider text-[11px] text-bodhi-muted uppercase">
           Search
         </span>
 
@@ -175,15 +175,15 @@ export const SearchPanel: React.FC = () => {
           <button
             onClick={handleSearch}
             title="Refresh Search"
-            className="p-1 text-cortex-muted hover:text-white hover:bg-cortex-surface rounded transition-colors"
+            className="p-1 text-bodhi-muted hover:text-white hover:bg-bodhi-surface rounded transition-colors"
           >
-            <RefreshCw size={12} className={isSearching ? 'animate-spin text-cortex-accent' : ''} />
+            <RefreshCw size={12} className={isSearching ? 'animate-spin text-bodhi-accent' : ''} />
           </button>
         )}
       </div>
 
       {/* Search Input Controls */}
-      <div className="p-3 space-y-2 border-b border-cortex-border">
+      <div className="p-3 space-y-2 border-b border-BODHI-border">
         {/* Main Search Input */}
         <div className="relative flex items-center">
           <input
@@ -192,18 +192,18 @@ export const SearchPanel: React.FC = () => {
             placeholder="Search (e.g. functionName, regex)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-cortex-panel border border-cortex-border focus:border-cortex-accent/50 focus:outline-none rounded-md px-2.5 py-1.5 text-xs text-cortex-text placeholder:text-cortex-muted/60 pr-20"
+            className="w-full bg-bodhi-panel border border-BODHI-border focus:border-bodhi-accent/50 focus:outline-none rounded-md px-2.5 py-1.5 text-xs text-BODHI-text placeholder:text-bodhi-muted/60 pr-20"
           />
 
           {/* Modifier Toggles */}
-          <div className="absolute right-1.5 flex items-center gap-0.5 text-cortex-muted">
+          <div className="absolute right-1.5 flex items-center gap-0.5 text-bodhi-muted">
             <button
               onClick={() => setMatchCase((p) => !p)}
               title="Match Case (Alt+C)"
               className={`p-0.5 rounded transition-colors ${
                 matchCase
-                  ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40'
-                  : 'hover:text-white hover:bg-cortex-surface'
+                  ? 'bg-bodhi-accent/20 text-bodhi-accent border border-bodhi-accent/40'
+                  : 'hover:text-white hover:bg-bodhi-surface'
               }`}
             >
               <CaseSensitive size={13} />
@@ -213,8 +213,8 @@ export const SearchPanel: React.FC = () => {
               title="Match Whole Word (Alt+W)"
               className={`p-0.5 rounded transition-colors ${
                 matchWholeWord
-                  ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40'
-                  : 'hover:text-white hover:bg-cortex-surface'
+                  ? 'bg-bodhi-accent/20 text-bodhi-accent border border-bodhi-accent/40'
+                  : 'hover:text-white hover:bg-bodhi-surface'
               }`}
             >
               <WholeWord size={13} />
@@ -224,8 +224,8 @@ export const SearchPanel: React.FC = () => {
               title="Use Regular Expression (Alt+R)"
               className={`p-0.5 rounded transition-colors ${
                 isRegex
-                  ? 'bg-cortex-accent/20 text-cortex-accent border border-cortex-accent/40'
-                  : 'hover:text-white hover:bg-cortex-surface'
+                  ? 'bg-bodhi-accent/20 text-bodhi-accent border border-bodhi-accent/40'
+                  : 'hover:text-white hover:bg-bodhi-surface'
               }`}
             >
               <Regex size={13} />
@@ -234,7 +234,7 @@ export const SearchPanel: React.FC = () => {
         </div>
 
         {/* Replace Bar Toggle */}
-        <div className="flex items-center gap-1 text-[11px] text-cortex-muted">
+        <div className="flex items-center gap-1 text-[11px] text-bodhi-muted">
           <button
             onClick={() => setIsReplaceOpen((p) => !p)}
             className="flex items-center gap-1 hover:text-white transition-colors"
@@ -252,7 +252,7 @@ export const SearchPanel: React.FC = () => {
               placeholder="Replace with..."
               value={replaceText}
               onChange={(e) => setReplaceText(e.target.value)}
-              className="flex-1 bg-cortex-panel border border-cortex-border focus:border-cortex-accent/50 focus:outline-none rounded-md px-2.5 py-1 text-xs text-cortex-text placeholder:text-cortex-muted/60"
+              className="flex-1 bg-bodhi-panel border border-BODHI-border focus:border-bodhi-accent/50 focus:outline-none rounded-md px-2.5 py-1 text-xs text-BODHI-text placeholder:text-bodhi-muted/60"
             />
             <button
               onClick={handleReplaceAll}
@@ -260,8 +260,8 @@ export const SearchPanel: React.FC = () => {
               title="Replace All across workspace"
               className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
                 results.length > 0
-                  ? 'bg-cortex-accent text-black hover:bg-cortex-accentHover active:scale-95 shadow-sm'
-                  : 'bg-cortex-surface text-cortex-muted opacity-50 cursor-not-allowed'
+                  ? 'bg-bodhi-accent text-black hover:bg-bodhi-accentHover active:scale-95 shadow-sm'
+                  : 'bg-bodhi-surface text-bodhi-muted opacity-50 cursor-not-allowed'
               }`}
             >
               <Replace size={12} />
@@ -271,7 +271,7 @@ export const SearchPanel: React.FC = () => {
         )}
 
         {/* File Filter Toggle */}
-        <div className="flex items-center justify-between text-[11px] text-cortex-muted pt-1">
+        <div className="flex items-center justify-between text-[11px] text-bodhi-muted pt-1">
           <button
             onClick={() => setIsFiltersOpen((p) => !p)}
             className="flex items-center gap-1 hover:text-white transition-colors"
@@ -283,7 +283,7 @@ export const SearchPanel: React.FC = () => {
 
         {/* Filter Inputs */}
         {isFiltersOpen && (
-          <div className="space-y-1.5 pt-1 text-[11px] text-cortex-muted animate-fade-in">
+          <div className="space-y-1.5 pt-1 text-[11px] text-bodhi-muted animate-fade-in">
             <div>
               <span className="block mb-0.5 text-[10px]">Files to include (e.g. *.ts, src/**):</span>
               <input
@@ -291,7 +291,7 @@ export const SearchPanel: React.FC = () => {
                 placeholder="e.g. *.tsx, src/*"
                 value={includePattern}
                 onChange={(e) => setIncludePattern(e.target.value)}
-                className="w-full bg-cortex-panel border border-cortex-border rounded px-2 py-0.5 text-xs text-cortex-text placeholder:text-cortex-muted/50"
+                className="w-full bg-bodhi-panel border border-BODHI-border rounded px-2 py-0.5 text-xs text-BODHI-text placeholder:text-bodhi-muted/50"
               />
             </div>
             <div>
@@ -301,7 +301,7 @@ export const SearchPanel: React.FC = () => {
                 placeholder="e.g. *.test.ts, *.json"
                 value={excludePattern}
                 onChange={(e) => setExcludePattern(e.target.value)}
-                className="w-full bg-cortex-panel border border-cortex-border rounded px-2 py-0.5 text-xs text-cortex-text placeholder:text-cortex-muted/50"
+                className="w-full bg-bodhi-panel border border-BODHI-border rounded px-2 py-0.5 text-xs text-BODHI-text placeholder:text-bodhi-muted/50"
               />
             </div>
           </div>
@@ -310,7 +310,7 @@ export const SearchPanel: React.FC = () => {
 
       {/* Results Header / Status */}
       {statusMessage && (
-        <div className="px-3 py-1.5 bg-cortex-panel/50 border-b border-cortex-border text-[11px] text-cortex-muted font-medium flex items-center justify-between">
+        <div className="px-3 py-1.5 bg-bodhi-panel/50 border-b border-BODHI-border text-[11px] text-bodhi-muted font-medium flex items-center justify-between">
           <span>{statusMessage}</span>
         </div>
       )}
@@ -324,16 +324,16 @@ export const SearchPanel: React.FC = () => {
               {/* File Group Header */}
               <div
                 onClick={() => toggleFileCollapse(group.filePath)}
-                className="flex items-center justify-between px-2 py-1 hover:bg-cortex-surface rounded cursor-pointer group text-cortex-text transition-colors"
+                className="flex items-center justify-between px-2 py-1 hover:bg-bodhi-surface rounded cursor-pointer group text-BODHI-text transition-colors"
               >
                 <div className="flex items-center gap-1.5 truncate">
-                  {isCollapsed ? <ChevronRight size={13} className="text-cortex-muted shrink-0" /> : <ChevronDown size={13} className="text-cortex-muted shrink-0" />}
-                  <FileCode size={13} className="text-cortex-accent shrink-0" />
+                  {isCollapsed ? <ChevronRight size={13} className="text-bodhi-muted shrink-0" /> : <ChevronDown size={13} className="text-bodhi-muted shrink-0" />}
+                  <FileCode size={13} className="text-bodhi-accent shrink-0" />
                   <span className="font-medium truncate text-white">{group.fileName}</span>
-                  <span className="text-[10px] text-cortex-muted truncate">{group.relativePath}</span>
+                  <span className="text-[10px] text-bodhi-muted truncate">{group.relativePath}</span>
                 </div>
 
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cortex-accent/15 text-cortex-accent font-mono border border-cortex-accent/30 shrink-0 ml-1">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-bodhi-accent/15 text-bodhi-accent font-mono border border-bodhi-accent/30 shrink-0 ml-1">
                   {group.matches.length}
                 </span>
               </div>
@@ -345,13 +345,13 @@ export const SearchPanel: React.FC = () => {
                     <div
                       key={`${match.filePath}-${match.line}-${match.column}-${idx}`}
                       onClick={() => openFileAtLocation(match.filePath, match.line, match.column)}
-                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-cortex-panel cursor-pointer text-[11px] group transition-colors"
+                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-bodhi-panel cursor-pointer text-[11px] group transition-colors"
                       title={`${group.relativePath}:${match.line}:${match.column}`}
                     >
-                      <span className="font-mono text-[10px] text-cortex-muted w-6 text-right shrink-0">
+                      <span className="font-mono text-[10px] text-bodhi-muted w-6 text-right shrink-0">
                         {match.line}
                       </span>
-                      <span className="truncate font-mono text-cortex-muted group-hover:text-cortex-text">
+                      <span className="truncate font-mono text-bodhi-muted group-hover:text-BODHI-text">
                         {match.lineContent.trim()}
                       </span>
                     </div>
@@ -365,3 +365,4 @@ export const SearchPanel: React.FC = () => {
     </div>
   )
 }
+

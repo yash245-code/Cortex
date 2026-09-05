@@ -1,7 +1,7 @@
 import React from 'react'
 import logoPng from '../../assets/logo.png'
 
-interface CortexLogoProps {
+interface BodhiLogoProps {
   size?: number | string
   className?: string
   color?: string
@@ -9,11 +9,11 @@ interface CortexLogoProps {
   glow?: boolean
 }
 
-export const CortexLogo: React.FC<CortexLogoProps> = ({
+export const BodhiLogo: React.FC<BodhiLogoProps> = ({
   size = 20,
   className = '',
   color,
-  alt = 'Cortex',
+  alt = 'BODHI',
   glow = true
 }) => {
   const pixelSize = typeof size === 'number' ? `${size}px` : size
@@ -25,7 +25,7 @@ export const CortexLogo: React.FC<CortexLogoProps> = ({
       style={{
         width: pixelSize,
         height: pixelSize,
-        backgroundColor: color || 'var(--cortex-accent, #5DD62C)',
+        backgroundColor: color || 'var(--bodhi-accent, #5DD62C)',
         maskImage: `url(${logoPng})`,
         WebkitMaskImage: `url(${logoPng})`,
         maskSize: 'contain',
@@ -35,7 +35,7 @@ export const CortexLogo: React.FC<CortexLogoProps> = ({
         maskPosition: 'center',
         WebkitMaskPosition: 'center',
         filter: glow
-          ? 'drop-shadow(0 0 10px var(--cortex-accent-glow, rgba(93, 214, 44, 0.35)))'
+          ? 'drop-shadow(0 0 10px var(--bodhi-accent-glow, rgba(93, 214, 44, 0.35)))'
           : undefined,
         transition: 'background-color 0.25s ease, filter 0.25s ease'
       }}

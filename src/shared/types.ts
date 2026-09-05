@@ -106,6 +106,7 @@ export interface WorkspaceSession {
   terminalHeight: number
   terminalSessions: TerminalSession[]
   activeTerminalId: string
+  cursorPosition?: { line: number; col: number }
 }
 
 export interface SearchOptions {
@@ -180,7 +181,7 @@ export interface GitFileChurnResult {
   oldestModified: number
 }
 
-export interface CortexAPI {
+export interface BodhiAPI {
   // Window controls
   minimizeWindow: () => Promise<void>
   maximizeWindow: () => Promise<void>

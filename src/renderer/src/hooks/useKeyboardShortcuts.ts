@@ -20,7 +20,8 @@ export function useKeyboardShortcuts(): void {
     openPalette,
     closePalette,
     isPaletteOpen,
-    openSettingsWindow
+    openSettingsWindow,
+    setWalkthroughOpen
   } = useEditorStore()
 
   const { openFolder, openFileDirectly } = useWorkspaceStore()
@@ -29,6 +30,13 @@ export function useKeyboardShortcuts(): void {
     const handleKeyDown = async (e: KeyboardEvent): Promise<void> => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
       const modifier = isMac ? e.metaKey : e.ctrlKey
+
+      // F1 to open Interactive Walkthrough
+      if (e.key === 'F1') {
+        e.preventDefault()
+        setWalkthroughOpen(true)
+        return
+      }
 
       // Escape to close palette
       if (e.key === 'Escape' && isPaletteOpen) {
@@ -120,7 +128,7 @@ export function useKeyboardShortcuts(): void {
       // Extensions: Ctrl+Shift+X
       else if (e.key.toLowerCase() === 'x' && e.shiftKey) {
         e.preventDefault()
-        window.cortexAPI?.openExtensionsWindow?.()
+        window.bodhiAPI?.openExtensionsWindow?.()
       }
       // AI Assistant: Ctrl+Shift+I
       else if (e.key.toLowerCase() === 'i' && e.shiftKey) {
@@ -153,8 +161,8 @@ export function useKeyboardShortcuts(): void {
         e.code === 'NumpadAdd'
       ) {
         e.preventDefault()
-        if (window.cortexAPI?.zoomIn) {
-          await window.cortexAPI.zoomIn()
+        if (window.bodhiAPI?.zoomIn) {
+          await window.bodhiAPI.zoomIn()
         }
       }
       // Zoom Out: Ctrl+- / Ctrl+_ / Numpad-
@@ -165,8 +173,8 @@ export function useKeyboardShortcuts(): void {
         e.code === 'NumpadSubtract'
       ) {
         e.preventDefault()
-        if (window.cortexAPI?.zoomOut) {
-          await window.cortexAPI.zoomOut()
+        if (window.bodhiAPI?.zoomOut) {
+          await window.bodhiAPI.zoomOut()
         }
       }
       // Reset Zoom: Ctrl+0 / Numpad0
@@ -176,8 +184,8 @@ export function useKeyboardShortcuts(): void {
         e.code === 'Numpad0'
       ) {
         e.preventDefault()
-        if (window.cortexAPI?.resetZoom) {
-          await window.cortexAPI.resetZoom()
+        if (window.bodhiAPI?.resetZoom) {
+          await window.bodhiAPI.resetZoom()
         }
       }
     }
@@ -200,3 +208,4 @@ export function useKeyboardShortcuts(): void {
     openSettingsWindow
   ])
 }
+

@@ -23,7 +23,8 @@ import {
   ZoomOut,
   WrapText,
   Maximize2,
-  Check
+  Check,
+  ShieldCheck
 } from 'lucide-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { useWorkspaceStore } from '../../store/useWorkspaceStore'
@@ -68,6 +69,8 @@ export const MenuBar: React.FC = () => {
     toggleSidebarPosition,
     settings,
     setAboutModalOpen,
+    setTermsModalOpen,
+    setWalkthroughOpen,
     openSettingsWindow,
     openTab
   } = useEditorStore()
@@ -167,7 +170,7 @@ export const MenuBar: React.FC = () => {
           icon: (
             <Check
               size={13}
-              className={settings.autoSave ? 'text-cortex-accent' : 'opacity-0'}
+              className={settings.autoSave ? 'text-bodhi-accent' : 'opacity-0'}
             />
           ),
           onClick: () => toggleAutoSave()
@@ -192,8 +195,8 @@ export const MenuBar: React.FC = () => {
           shortcut: 'Alt+F4',
           icon: <XSquare size={13} />,
           onClick: () => {
-            if (window.cortexAPI?.closeWindow) {
-              window.cortexAPI.closeWindow()
+            if (window.bodhiAPI?.closeWindow) {
+              window.bodhiAPI.closeWindow()
             }
           }
         }
@@ -240,14 +243,14 @@ export const MenuBar: React.FC = () => {
           icon: <Search size={13} />,
           onClick: () => {
             // Focus editor and trigger find
-            window.dispatchEvent(new CustomEvent('cortex:editor:find'))
+            window.dispatchEvent(new CustomEvent('BODHI:editor:find'))
           }
         },
         {
           label: 'Replace in Active File',
           shortcut: 'Ctrl+H',
           onClick: () => {
-            window.dispatchEvent(new CustomEvent('cortex:editor:replace'))
+            window.dispatchEvent(new CustomEvent('BODHI:editor:replace'))
           }
         }
       ]
@@ -329,8 +332,8 @@ export const MenuBar: React.FC = () => {
           shortcut: 'Ctrl+=',
           icon: <ZoomIn size={13} />,
           onClick: () => {
-            if (window.cortexAPI?.zoomIn) {
-              window.cortexAPI.zoomIn()
+            if (window.bodhiAPI?.zoomIn) {
+              window.bodhiAPI.zoomIn()
             } else {
               increaseFontSize()
             }
@@ -341,8 +344,8 @@ export const MenuBar: React.FC = () => {
           shortcut: 'Ctrl+-',
           icon: <ZoomOut size={13} />,
           onClick: () => {
-            if (window.cortexAPI?.zoomOut) {
-              window.cortexAPI.zoomOut()
+            if (window.bodhiAPI?.zoomOut) {
+              window.bodhiAPI.zoomOut()
             } else {
               decreaseFontSize()
             }
@@ -352,8 +355,8 @@ export const MenuBar: React.FC = () => {
           label: 'Reset Zoom',
           shortcut: 'Ctrl+0',
           onClick: () => {
-            if (window.cortexAPI?.resetZoom) {
-              window.cortexAPI.resetZoom()
+            if (window.bodhiAPI?.resetZoom) {
+              window.bodhiAPI.resetZoom()
             }
           }
         },
@@ -374,8 +377,8 @@ export const MenuBar: React.FC = () => {
           shortcut: 'F11',
           icon: <Maximize2 size={13} />,
           onClick: () => {
-            if (window.cortexAPI?.maximizeWindow) {
-              window.cortexAPI.maximizeWindow()
+            if (window.bodhiAPI?.maximizeWindow) {
+              window.bodhiAPI.maximizeWindow()
             }
           }
         }
@@ -390,7 +393,7 @@ export const MenuBar: React.FC = () => {
           icon: <Play size={13} />,
           disabled: !activeTab,
           onClick: () => {
-            if (activeTab && window.cortexAPI?.writeTerminal) {
+            if (activeTab && window.bodhiAPI?.writeTerminal) {
               const ext = activeTab.name.split('.').pop()?.toLowerCase()
               let cmd = ''
               if (ext === 'js' || ext === 'mjs') cmd = `node "${activeTab.path}"\r`
@@ -399,7 +402,7 @@ export const MenuBar: React.FC = () => {
               else if (ext === 'ps1') cmd = `powershell -ExecutionPolicy Bypass -File "${activeTab.path}"\r`
               else cmd = `echo "Running ${activeTab.name}"\r`
 
-              window.cortexAPI.writeTerminal(activeTerminalId, cmd)
+              window.bodhiAPI.writeTerminal(activeTerminalId, cmd)
             }
           }
         },
@@ -407,8 +410,8 @@ export const MenuBar: React.FC = () => {
           label: 'Restart Terminal Session',
           icon: <RotateCcw size={13} />,
           onClick: () => {
-            if (window.cortexAPI?.writeTerminal) {
-              window.cortexAPI.writeTerminal(activeTerminalId, '\x03clear\r')
+            if (window.bodhiAPI?.writeTerminal) {
+              window.bodhiAPI.writeTerminal(activeTerminalId, '\x03clear\r')
             }
           }
         }
@@ -429,8 +432,8 @@ export const MenuBar: React.FC = () => {
           label: 'Clear Terminal Output',
           shortcut: 'Ctrl+K',
           onClick: () => {
-            if (window.cortexAPI?.writeTerminal) {
-              window.cortexAPI.writeTerminal(activeTerminalId, 'cls\r')
+            if (window.bodhiAPI?.writeTerminal) {
+              window.bodhiAPI.writeTerminal(activeTerminalId, 'cls\r')
             }
           }
         },
@@ -447,6 +450,12 @@ export const MenuBar: React.FC = () => {
       name: 'Help',
       items: [
         {
+          label: 'Interactive Walkthrough & Tour',
+          shortcut: 'F1',
+          icon: <Sparkles size={13} className="text-bodhi-accent" />,
+          onClick: () => setWalkthroughOpen(true)
+        },
+        {
           label: 'Command Palette',
           shortcut: 'Ctrl+Shift+P',
           icon: <Sparkles size={13} />,
@@ -460,9 +469,14 @@ export const MenuBar: React.FC = () => {
         },
         { label: '', divider: true },
         {
-          label: 'About Cortex',
+          label: 'About BODHI',
           icon: <HelpCircle size={13} />,
           onClick: () => setAboutModalOpen(true)
+        },
+        {
+          label: 'Terms & Conditions (BUIMB Research)',
+          icon: <ShieldCheck size={13} />,
+          onClick: () => setTermsModalOpen(true)
         }
       ]
     }
@@ -480,8 +494,8 @@ export const MenuBar: React.FC = () => {
               onMouseEnter={() => handleMenuMouseEnter(menu.name)}
               className={`px-2.5 py-1 rounded-md text-[13px] font-medium transition-colors ${
                 isOpen
-                  ? 'bg-cortex-surface text-cortex-accent font-semibold shadow-sm'
-                  : 'text-cortex-muted hover:text-cortex-text hover:bg-cortex-surface/70'
+                  ? 'bg-bodhi-surface text-bodhi-accent font-semibold shadow-sm'
+                  : 'text-bodhi-muted hover:text-BODHI-text hover:bg-bodhi-surface/70'
               }`}
             >
               {menu.name}
@@ -489,10 +503,10 @@ export const MenuBar: React.FC = () => {
 
             {/* Dropdown Menu */}
             {isOpen && (
-              <div className="absolute top-full left-0 mt-1 min-w-[220px] bg-cortex-panel border border-cortex-border rounded-lg shadow-2xl py-1 z-50 animate-fade-in backdrop-blur-md">
+              <div className="absolute top-full left-0 mt-1 min-w-[220px] bg-bodhi-panel border border-BODHI-border rounded-lg shadow-2xl py-1 z-50 animate-fade-in backdrop-blur-md">
                 {menu.items.map((item, idx) => {
                   if (item.divider) {
-                    return <div key={`div-${idx}`} className="h-[1px] bg-cortex-border my-1 mx-2" />
+                    return <div key={`div-${idx}`} className="h-[1px] bg-BODHI-border my-1 mx-2" />
                   }
 
                   return (
@@ -502,25 +516,25 @@ export const MenuBar: React.FC = () => {
                       onClick={() => executeAction(item.onClick)}
                       className={`w-full flex items-center justify-between px-3 py-1.5 text-[13px] text-left transition-colors ${
                         item.disabled
-                          ? 'opacity-40 cursor-not-allowed text-cortex-muted'
-                          : 'text-cortex-text hover:bg-cortex-surface hover:text-white group'
+                          ? 'opacity-40 cursor-not-allowed text-bodhi-muted'
+                          : 'text-BODHI-text hover:bg-bodhi-surface hover:text-white group'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <span
                           className={`w-4 flex items-center justify-center shrink-0 ${
                             item.disabled
-                              ? 'text-cortex-muted'
-                              : 'text-cortex-muted group-hover:text-cortex-accent transition-colors'
+                              ? 'text-bodhi-muted'
+                              : 'text-bodhi-muted group-hover:text-bodhi-accent transition-colors'
                           }`}
                         >
-                          {item.icon || <div className="w-1.5 h-1.5 rounded-full bg-cortex-muted/30" />}
+                          {item.icon || <div className="w-1.5 h-1.5 rounded-full bg-bodhi-muted/30" />}
                         </span>
                         <span className="truncate">{item.label}</span>
                       </div>
 
                       {item.shortcut && (
-                        <span className="text-[11px] font-mono text-cortex-muted group-hover:text-cortex-muted/90 pl-3">
+                        <span className="text-[11px] font-mono text-bodhi-muted group-hover:text-bodhi-muted/90 pl-3">
                           {item.shortcut}
                         </span>
                       )}
@@ -535,3 +549,4 @@ export const MenuBar: React.FC = () => {
     </div>
   )
 }
+
