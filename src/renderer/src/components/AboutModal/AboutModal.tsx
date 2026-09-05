@@ -47,7 +47,7 @@ export const AboutModal: React.FC = () => {
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold tracking-wide text-white">BODHI</h2>
               <span className="px-2 py-0.5 text-[10px] font-mono font-medium rounded-full bg-bodhi-accent/20 text-bodhi-accent border border-bodhi-accent/40">
-                v1.0.0
+                v1.0.0-beta.1 (Beta)
               </span>
             </div>
             <p className="text-xs text-bodhi-muted">Developed by BUIMB Research • Open Source</p>

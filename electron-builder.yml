@@ -24,7 +24,7 @@ win:
     - target: portable
       arch:
         - x64
-    - target: zip
+    - target: dir
       arch:
         - x64
 
@@ -42,3 +42,17 @@ nsis:
 
 portable:
   artifactName: "Bodhi Code Editor ${version} Portable.${ext}"
+
+mac:
+  executableName: BodhiCodeEditor
+  icon: resources/icon.png
+  category: public.app-category.developer-tools
+  target:
+    - target: dir
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64

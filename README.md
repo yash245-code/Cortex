@@ -4,6 +4,7 @@
 
 ### *Next-Generation Desktop Code Editor Built for Speed, Extensibility & Intelligence*
 
+[![Release](https://img.shields.io/badge/Release-v1.0.0--beta.1%20(Public%20Beta)-5DD62C?style=for-the-badge&logo=rocket&logoColor=white)](https://github.com/)
 [![Electron](https://img.shields.io/badge/Electron-34.3.0-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.2-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
